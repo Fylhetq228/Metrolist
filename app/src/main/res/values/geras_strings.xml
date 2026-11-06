@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="geras_settings_title">Geras</string>
+    <string name="geras_settings_player_section">Player</string>
+    <string name="geras_player_title">Geras player</string>
+    <string name="geras_player_description">New full-screen player layout. Turn off to use the original Metrolist player.</string>
+    <string name="geras_up_next">Next: %1$s</string>
+    <string name="geras_already_downloaded">Already downloaded</string>
+</resources>

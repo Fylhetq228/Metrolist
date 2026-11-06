@@ -74,6 +74,19 @@ fun SettingsScreen(
             )
         )
 
+        Material3SettingsGroup(
+            title = stringResource(R.string.geras_settings_title),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.tune),
+                    title = { Text(stringResource(R.string.geras_settings_title)) },
+                    onClick = { navController.navigate(com.metrolist.music.geras.settings.GerasSettingsRoute) }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // User Interface Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_ui),

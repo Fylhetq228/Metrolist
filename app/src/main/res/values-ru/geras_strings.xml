@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="geras_settings_title">Geras</string>
+    <string name="geras_settings_player_section">Плеер</string>
+    <string name="geras_player_title">Плеер Geras</string>
+    <string name="geras_player_description">Новый экран плеера. Выключи, чтобы вернуть стандартный плеер Metrolist.</string>
+    <string name="geras_up_next">Далее: %1$s</string>
+    <string name="geras_already_downloaded">Уже скачано</string>
+</resources>

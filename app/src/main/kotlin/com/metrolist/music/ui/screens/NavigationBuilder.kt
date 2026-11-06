@@ -372,6 +372,10 @@ fun NavGraphBuilder.navigationBuilder(
         PlayerSettings(navController)
     }
 
+    composable(com.metrolist.music.geras.settings.GerasSettingsRoute) {
+        com.metrolist.music.geras.settings.GerasSettings(navController)
+    }
+
     composable("settings/storage") {
         StorageSettings(navController)
     }

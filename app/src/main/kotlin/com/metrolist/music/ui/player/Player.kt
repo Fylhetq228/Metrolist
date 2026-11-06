@@ -227,6 +227,8 @@ fun BottomSheetPlayer(
             defaultValue = true,
         )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
+    val gerasPlayerEnabled by rememberPreference(com.metrolist.music.geras.GerasPlayerEnabledKey, true)
+    val useGerasPlayer = gerasPlayerEnabled && LocalConfiguration.current.orientation != Configuration.ORIENTATION_LANDSCAPE
     val (hideStatusBarOnFullscreen) = rememberPreference(HideStatusBarOnFullscreenKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
 
@@ -814,6 +816,14 @@ fun BottomSheetPlayer(
             dismissedBound = dismissedBound,
             expandedBound = state.expandedBound,
             collapsedBound = dismissedBound + 1.dp,
+            initialAnchor = 1,
+        )
+
+    val gerasQueueState =
+        rememberBottomSheetState(
+            dismissedBound = 0.dp,
+            expandedBound = state.expandedBound,
+            collapsedBound = 1.dp,
             initialAnchor = 1,
         )
 
@@ -1906,7 +1916,32 @@ fun BottomSheetPlayer(
             }
         }
 
-        when (LocalConfiguration.current.orientation) {
+        if (useGerasPlayer) {
+            com.metrolist.music.geras.player.GerasPlayerContent(
+                state = state,
+                queueState = gerasQueueState,
+                navController = navController,
+                positionProvider = { sliderPosition ?: effectivePosition },
+                durationProvider = { duration },
+                onSeek = { target ->
+                    if (isCasting) {
+                        castHandler?.seekTo(target)
+                        lastManualSeekTime = System.currentTimeMillis()
+                    } else {
+                        playerConnection.player.seekTo(target)
+                    }
+                    position = target
+                },
+                themeMode = when {
+                    !useDarkTheme -> com.metrolist.music.geras.player.GerasThemeMode.LIGHT
+                    pureBlack -> com.metrolist.music.geras.player.GerasThemeMode.AMOLED
+                    else -> com.metrolist.music.geras.player.GerasThemeMode.DARK
+                },
+                isListenTogetherGuest = isListenTogetherGuest,
+                showLyrics = showInlineLyrics,
+                onToggleLyrics = { showInlineLyrics = !showInlineLyrics },
+            )
+        } else when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 // Calculate vertical padding like OuterTune
                 val density = LocalDensity.current
@@ -2037,7 +2072,7 @@ fun BottomSheetPlayer(
             exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
             Queue(
-                state = queueSheetState,
+                state = if (useGerasPlayer) gerasQueueState else queueSheetState,
                 playerBottomSheetState = state,
                 background =
                     if (useBlackBackground) {
