@@ -19,3 +19,4 @@ val GerasNavStyleKey = stringPreferencesKey("geras_nav_style")
 val GerasHomeEnabledKey = booleanPreferencesKey("geras_home_enabled")
 /** MANROPE or SYSTEM. */
 val GerasFontKey = stringPreferencesKey("geras_font")
+val GerasSearchEnabledKey = booleanPreferencesKey("geras_search_enabled")

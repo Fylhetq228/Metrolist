@@ -78,6 +78,11 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(Screens.Search.route) { backStackEntry ->
+        val gerasSearch by rememberPreference(com.metrolist.music.geras.GerasSearchEnabledKey, defaultValue = true)
+        if (gerasSearch) {
+            com.metrolist.music.geras.search.GerasSearchScreen()
+            return@composable
+        }
         val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
         val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
         val isSystemInDarkTheme = isSystemInDarkTheme()
