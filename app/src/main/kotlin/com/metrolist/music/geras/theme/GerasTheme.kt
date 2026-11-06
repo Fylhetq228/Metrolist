@@ -168,6 +168,13 @@ fun gerasTypography(): Typography {
 }
 
 private val typography by lazy { gerasTypography() }
+private val systemTypography by lazy {
+    val t = Typography()
+    t.copy(
+        displayLarge = t.displayLarge.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
+        displayMedium = t.displayMedium.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black),
+    )
+}
 
 /**
  * Replaces Metrolist's Material You theme: warm muted palette from the cover (or a preset),
@@ -189,5 +196,6 @@ fun GerasAppTheme(
     val sat by animateFloatAsState(targetS, tween(800), label = "themeSat")
     val amoled = darkTheme && (pureBlack || preset == GerasThemePreset.AMOLED)
     val scheme = gerasColorScheme(hue, sat, darkTheme, amoled)
-    MaterialTheme(colorScheme = scheme, typography = typography, content = content)
+    val font by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasFontKey, "MANROPE")
+    MaterialTheme(colorScheme = scheme, typography = if (font == "SYSTEM") systemTypography else typography, content = content)
 }

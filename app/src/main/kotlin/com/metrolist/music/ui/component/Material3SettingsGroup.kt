@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +46,11 @@ fun Material3SettingsGroup(
     items: List<Material3SettingsItem>,
     useLowContrast: Boolean = false
 ) {
+    val gerasTheme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "COVER")
+    if (gerasTheme != "MATERIAL") {
+        com.metrolist.music.geras.settings.GerasSettingsGroup(title, items)
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()

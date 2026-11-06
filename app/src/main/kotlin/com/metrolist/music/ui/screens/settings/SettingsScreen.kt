@@ -78,8 +78,9 @@ fun SettingsScreen(
             title = stringResource(R.string.geras_settings_title),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.tune),
-                    title = { Text(stringResource(R.string.geras_settings_title)) },
+                    icon = painterResource(R.drawable.palette),
+                    title = { Text(stringResource(R.string.geras_appearance)) },
+                    description = { Text(stringResource(R.string.geras_appearance_hint)) },
                     onClick = { navController.navigate(com.metrolist.music.geras.settings.GerasSettingsRoute) }
                 )
             )

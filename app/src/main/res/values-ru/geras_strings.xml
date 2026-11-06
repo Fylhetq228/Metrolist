@@ -52,4 +52,30 @@
         <item quantity="many">%d треков</item>
         <item quantity="other">%d трека</item>
     </plurals>
+    <string name="geras_remember">Запомнить для трека</string>
+    <string name="geras_remembered">Запомнено для трека</string>
+    <string name="geras_appearance">Внешний вид</string>
+    <string name="geras_appearance_hint">Тема, стекло, шрифты, плеер</string>
+    <string name="geras_theme_mode">Режим темы</string>
+    <string name="geras_mode_system">Системная</string>
+    <string name="geras_mode_system_hint">Следовать настройкам системы</string>
+    <string name="geras_mode_dark">Тёмная</string>
+    <string name="geras_mode_dark_hint">Тёмная тема интерфейса</string>
+    <string name="geras_mode_light">Светлая</string>
+    <string name="geras_mode_light_hint">Светлая тема интерфейса</string>
+    <string name="geras_theme">Тема</string>
+    <string name="geras_theme_cover">Под обложку трека</string>
+    <string name="geras_theme_material">Material You (Metrolist)</string>
+    <string name="geras_tab_style">Стиль вкладок</string>
+    <string name="geras_tabs_standard">Стандартный</string>
+    <string name="geras_tabs_floating">Плавающий</string>
+    <string name="geras_glass">Прозрачность</string>
+    <string name="geras_glass_on">Включено</string>
+    <string name="geras_glass_off">Выключено</string>
+    <string name="geras_glass_opacity">Плотность стекла</string>
+    <string name="geras_glass_blur">Размытие стекла</string>
+    <string name="geras_font">Шрифт</string>
+    <string name="geras_font_system">Системный</string>
+    <string name="geras_home_title">«Моя волна» на главной</string>
+    <string name="geras_home_description">Большой заголовок и радио по твоим вкусам вместо верхней панели</string>
 </resources>
