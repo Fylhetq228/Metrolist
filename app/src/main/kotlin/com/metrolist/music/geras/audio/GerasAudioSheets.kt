@@ -156,6 +156,27 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                 Text(stringResource(R.string.geras_speed_title), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c.content, modifier = Modifier.weight(1f))
                 Text(String.format(Locale.US, "%.2fx", fx.speed), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = c.accent)
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                listOf(
+                    Triple(0.75f, "Slowed", true),
+                    Triple(1f, "Default", false),
+                    Triple(1.25f, "Speedup", true),
+                ).forEach { (speed, label, linked) ->
+                    val selected = abs(fx.speed - speed) < 0.005f
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (selected) c.accent else c.content.copy(alpha = 0.08f))
+                            .clickable { GerasAudio.setSpeedFx(fx.copy(speed = speed, linked = linked)) }
+                            .padding(vertical = 12.dp),
+                    ) {
+                        Text(String.format(Locale.US, "%sx", if (speed == 1f) "1.0" else speed.toString()), color = if (selected) c.onAccent else c.content, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        Text(label, color = if (selected) c.onAccent.copy(alpha = 0.8f) else c.contentMuted, fontSize = 12.sp)
+                    }
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                 StepButton("−", c) { GerasAudio.setSpeedFx(fx.copy(speed = fx.speed - 0.01f)) }
                 Slider(
@@ -166,6 +187,21 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                 )
                 StepButton("+", c) { GerasAudio.setSpeedFx(fx.copy(speed = fx.speed + 0.01f)) }
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 52.dp)) {
+                listOf("0.5x", "1.0x", "1.5x", "2.0x").forEachIndexed { i, t ->
+                    Text(
+                        t,
+                        color = if (i == 1 && abs(fx.speed - 1f) < 0.005f) c.content else c.contentMuted,
+                        fontSize = 11.sp,
+                        modifier = Modifier.weight(1f),
+                        textAlign = when (i) {
+                            0 -> androidx.compose.ui.text.style.TextAlign.Start
+                            3 -> androidx.compose.ui.text.style.TextAlign.End
+                            else -> androidx.compose.ui.text.style.TextAlign.Center
+                        },
+                    )
+                }
             }
 
             SectionTitle(stringResource(R.string.geras_presets), c)
@@ -208,21 +244,29 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
             LabeledSlider("8D", fx.eightD, percent(fx.eightD), c) { GerasAudio.setSpeedFx(fx.copy(eightD = it)) }
             LabeledSlider(stringResource(R.string.geras_bass_boost), fx.bass, percent(fx.bass), c) { GerasAudio.setSpeedFx(fx.copy(bass = it)) }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
+                    .padding(top = 16.dp)
+                    .height(52.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { GerasAudio.setRememberPerTrack(!perTrack) }
-                    .padding(vertical = 8.dp),
+                    .background(if (perTrack) c.content.copy(alpha = 0.1f) else c.accent)
+                    .clickable { GerasAudio.setRememberPerTrack(!perTrack) },
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.geras_remember_track), color = c.content, fontSize = 15.sp)
-                    Text(stringResource(R.string.geras_remember_track_hint), color = c.contentMuted, fontSize = 12.sp)
-                }
-                Switch(checked = perTrack, onCheckedChange = { GerasAudio.setRememberPerTrack(it) }, colors = switchColors(c))
+                Text(
+                    stringResource(if (perTrack) R.string.geras_remembered else R.string.geras_remember),
+                    color = if (perTrack) c.content else c.onAccent,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                )
             }
+            Text(
+                stringResource(R.string.geras_remember_track_hint),
+                color = c.contentMuted,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally),
+            )
         }
     }
 }
@@ -364,13 +408,13 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                     .padding(top = 14.dp)
                     .horizontalScroll(rememberScrollState()),
             ) {
+                Chip("+", false, c, onClick = { naming = true })
                 EqPresets.builtIn.forEach { (id, _) ->
                     Chip(names[id] ?: id, profile.presetId == id, c, onClick = { GerasAudio.applyPreset(id) })
                 }
                 custom.forEach { preset ->
                     Chip(preset.name, profile.presetId == preset.id, c, onClick = { GerasAudio.applyPreset(preset.id) }, onLongClick = { GerasAudio.deleteCustomPreset(preset.id) })
                 }
-                Chip("+", false, c, onClick = { naming = true })
             }
 
             EqGraph(

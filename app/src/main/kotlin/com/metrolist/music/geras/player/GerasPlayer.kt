@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -554,28 +555,35 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
                 modifier = Modifier
                     .fillMaxHeight()
                     .clickable(onClick = actions.onSearch)
-                    .padding(start = 14.dp, end = 12.dp),
+                    .padding(start = 14.dp, end = 4.dp),
             ) {
                 Icon(painterResource(R.drawable.search), null, tint = colors.content, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.search), color = colors.contentMuted, fontSize = 14.sp)
             }
-            Box(Modifier.width(1.dp).height(18.dp).background(colors.contentMuted.copy(alpha = 0.3f)))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxHeight()
                     .clickable(onClick = actions.onQueue)
-                    .padding(start = 10.dp, end = 14.dp),
+                    .padding(start = 4.dp, end = 10.dp),
             ) {
-                Icon(painterResource(R.drawable.queue_music), null, tint = colors.content, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = queueLeft.toString(),
-                    color = colors.content,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(22.dp)
+                        .widthIn(min = 22.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(colors.accent)
+                        .padding(horizontal = 6.dp),
+                ) {
+                    Text(
+                        text = queueLeft.toString(),
+                        color = colors.onAccent,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
         RoundIcon(
@@ -600,7 +608,7 @@ private fun TitleBlock(
     onArtistClick: (String) -> Unit,
 ) {
     val artistId = mediaMetadata?.artists?.firstOrNull()?.id
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         AnimatedContent(
             targetState = mediaMetadata?.title.orEmpty(),
             transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
@@ -610,9 +618,10 @@ private fun TitleBlock(
                 text = title,
                 color = colors.content,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
                 overflow = TextOverflow.Clip,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
                     .basicMarquee(initialDelayMillis = 2500, velocity = 30.dp),
@@ -685,7 +694,7 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
                     scaleY = playScale
                 }
                 .clip(RoundedCornerShape(50))
-                .background(colors.accent)
+                .background(colors.content)
                 .clickable(enabled = ui.interactive, onClick = actions.onPlayPause),
         ) {
             AnimatedContent(
@@ -696,13 +705,13 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
                 Icon(
                     painter = painterResource(if (playing) R.drawable.pause else R.drawable.play),
                     contentDescription = null,
-                    tint = colors.onAccent,
+                    tint = colors.background,
                     modifier = Modifier.size(34.dp),
                 )
             }
             if (ui.isBuffering) {
                 CircularProgressIndicator(
-                    color = colors.onAccent.copy(alpha = 0.6f),
+                    color = colors.background.copy(alpha = 0.5f),
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(66.dp),
                 )
