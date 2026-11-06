@@ -8,6 +8,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -421,8 +423,9 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                 gains = profile.gains,
                 colors = c,
                 enabled = profile.enabled && !bypass,
+                onDragEnd = { GerasAudio.commitEq() },
                 onGain = { band, db ->
-                    GerasAudio.updateEq { p ->
+                    GerasAudio.updateEq(persist = false) { p ->
                         p.copy(gains = p.gains.toMutableList().also { it[band] = db }, presetId = EqPresets.CUSTOM, enabled = true)
                     }
                 },
@@ -432,6 +435,12 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                     .padding(top = 16.dp),
             )
 
+            LabeledSlider(
+                label = stringResource(R.string.geras_surround),
+                value = profile.surround,
+                valueText = percent(profile.surround),
+                c = c,
+            ) { v -> GerasAudio.updateEq { it.copy(surround = v) } }
             LabeledSlider(
                 label = stringResource(R.string.geras_preamp),
                 value = profile.preamp,
@@ -463,26 +472,45 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
     }
 }
 
-private const val GRAPH_FS = 48_000.0
-
-private fun peakingDb(f: Double, f0: Double, gainDb: Double, q: Double): Double {
-    if (abs(gainDb) < 0.01) return 0.0
-    val a = 10.0.pow(gainDb / 40.0)
-    val w0 = 2 * PI * f0 / GRAPH_FS
-    val alpha = sin(w0) / (2 * q)
-    val b0 = 1 + alpha * a
-    val b1 = -2 * cos(w0)
-    val b2 = 1 - alpha * a
-    val a0 = 1 + alpha / a
-    val a1 = -2 * cos(w0)
-    val a2 = 1 - alpha / a
-    val w = 2 * PI * f / GRAPH_FS
-    fun mag(c0: Double, c1: Double, c2: Double): Double {
-        val re = c0 + c1 * cos(w) + c2 * cos(2 * w)
-        val im = -(c1 * sin(w) + c2 * sin(2 * w))
-        return sqrt(re * re + im * im)
+/** Monotone cubic (Fritsch–Carlson) through the band points, in log-frequency space. */
+private fun monotoneSpline(xs: FloatArray, ys: FloatArray): (Float) -> Float {
+    val n = xs.size
+    val d = FloatArray(n - 1) { (ys[it + 1] - ys[it]) / (xs[it + 1] - xs[it]) }
+    val m = FloatArray(n)
+    m[0] = d[0]
+    m[n - 1] = d[n - 2]
+    for (i in 1 until n - 1) m[i] = if (d[i - 1] * d[i] <= 0f) 0f else (d[i - 1] + d[i]) / 2f
+    for (i in 0 until n - 1) {
+        if (d[i] == 0f) {
+            m[i] = 0f
+            m[i + 1] = 0f
+        } else {
+            val a = m[i] / d[i]
+            val b = m[i + 1] / d[i]
+            val h = a * a + b * b
+            if (h > 9f) {
+                val t = 3f / sqrt(h)
+                m[i] = t * a * d[i]
+                m[i + 1] = t * b * d[i]
+            }
+        }
     }
-    return 20 * log10(mag(b0, b1, b2) / mag(a0, a1, a2))
+    return { x ->
+        when {
+            x <= xs[0] -> ys[0]
+            x >= xs[n - 1] -> ys[n - 1]
+            else -> {
+                var i = 0
+                while (x > xs[i + 1]) i++
+                val h = xs[i + 1] - xs[i]
+                val t = (x - xs[i]) / h
+                val t2 = t * t
+                val t3 = t2 * t
+                (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * m[i] +
+                    (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1]
+            }
+        }
+    }
 }
 
 @Composable
@@ -492,81 +520,106 @@ internal fun EqGraph(
     enabled: Boolean,
     onGain: (Int, Float) -> Unit,
     modifier: Modifier = Modifier,
+    onDragEnd: () -> Unit = {},
 ) {
     val measurer = rememberTextMeasurer()
     val latestGains by rememberUpdatedState(gains)
+    val latestOnGain by rememberUpdatedState(onGain)
+    val latestOnDragEnd by rememberUpdatedState(onDragEnd)
     var active by remember { mutableIntStateOf(-1) }
-    val minF = 20.0
-    val maxF = 20_000.0
     val labelSpace = 34.dp
     val c = colors
-
-    fun xOf(f: Double, w: Float) = (log10(f / minF) / log10(maxF / minF) * w).toFloat()
+    val bands = GerasEq.BANDS
+    val edgePad = 22.dp
 
     Canvas(
-        modifier = modifier
-            .pointerInput(Unit) {
-                val plotH = { size.height - labelSpace.toPx() }
-                fun dbAt(y: Float) = (GerasEq.MAX_DB - (y / plotH()) * (GerasEq.MAX_DB - GerasEq.MIN_DB))
-                    .coerceIn(GerasEq.MIN_DB, GerasEq.MAX_DB)
-                    .let { Math.round(it * 2) / 2f }
-                fun nearest(x: Float) = GerasEq.BANDS.indices.minBy { abs(xOf(GerasEq.BANDS[it].toDouble(), size.width.toFloat()) - x) }
-                detectDragGestures(
-                    onDragStart = { pos -> active = nearest(pos.x) },
-                    onDragEnd = { active = -1 },
-                    onDragCancel = { active = -1 },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        if (active >= 0) {
-                            val db = dbAt(change.position.y)
-                            if (db != latestGains[active]) onGain(active, db)
-                        }
-                    },
-                )
+        modifier = modifier.pointerInput(Unit) {
+            val padPx = edgePad.toPx()
+            fun xOfBand(i: Int) = padPx + i * (size.width - 2 * padPx) / (bands.size - 1)
+            fun dbAt(y: Float): Float {
+                val plotH = size.height - labelSpace.toPx()
+                val pad = 12.dp.toPx()
+                val v = GerasEq.MAX_DB - ((y - pad) / (plotH - 2 * pad)) * (GerasEq.MAX_DB - GerasEq.MIN_DB)
+                return (Math.round(v.coerceIn(GerasEq.MIN_DB, GerasEq.MAX_DB) * 2) / 2f)
             }
-            .pointerInput(Unit) {
-                val plotH = { size.height - labelSpace.toPx() }
-                detectTapGestures(
-                    onDoubleTap = { pos ->
-                        val i = GerasEq.BANDS.indices.minBy { abs(xOf(GerasEq.BANDS[it].toDouble(), size.width.toFloat()) - pos.x) }
-                        onGain(i, 0f)
-                    },
-                    onTap = { pos ->
-                        if (pos.y < plotH()) {
-                            val i = GerasEq.BANDS.indices.minBy { abs(xOf(GerasEq.BANDS[it].toDouble(), size.width.toFloat()) - pos.x) }
-                            val db = (GerasEq.MAX_DB - (pos.y / plotH()) * (GerasEq.MAX_DB - GerasEq.MIN_DB)).coerceIn(GerasEq.MIN_DB, GerasEq.MAX_DB)
-                            onGain(i, Math.round(db * 2) / 2f)
-                        }
-                    },
-                )
-            },
+            var lastTap = 0L
+            awaitEachGesture {
+                // Take the gesture immediately so the bottom sheet never starts dragging.
+                val down = awaitFirstDown(requireUnconsumed = false)
+                down.consume()
+                val band = bands.indices.minBy { abs(xOfBand(it) - down.position.x) }
+                val now = System.currentTimeMillis()
+                if (now - lastTap < 300) {
+                    latestOnGain(band, 0f)
+                    latestOnDragEnd()
+                    lastTap = 0L
+                    return@awaitEachGesture
+                }
+                lastTap = now
+                active = band
+                val startY = down.position.y
+                val startDb = latestGains.getOrElse(band) { 0f }
+                val startDbAtFinger = dbAt(startY)
+                var moved = false
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                    if (!change.pressed) break
+                    change.consume()
+                    if (!moved && abs(change.position.y - startY) < viewConfiguration.touchSlop / 2) continue
+                    moved = true
+                    // Relative drag: the point follows the finger without jumping to it.
+                    val db = (startDb + (dbAt(change.position.y) - startDbAtFinger)).coerceIn(GerasEq.MIN_DB, GerasEq.MAX_DB)
+                    val rounded = Math.round(db * 2) / 2f
+                    if (rounded != latestGains.getOrElse(band) { 0f }) latestOnGain(band, rounded)
+                }
+                active = -1
+                if (moved) latestOnDragEnd()
+            }
+        },
     ) {
         val w = size.width
         val plotH = size.height - labelSpace.toPx()
-        val pad = 10.dp.toPx()
-        fun yOf(db: Double) = (pad + (GerasEq.MAX_DB - db) / (GerasEq.MAX_DB - GerasEq.MIN_DB) * (plotH - 2 * pad)).toFloat()
+        val pad = 12.dp.toPx()
+        val padX = edgePad.toPx()
+        fun xOfBand(i: Int) = padX + i * (w - 2 * padX) / (bands.size - 1)
+        fun yOf(db: Float) = pad + (GerasEq.MAX_DB - db) / (GerasEq.MAX_DB - GerasEq.MIN_DB) * (plotH - 2 * pad)
         val alpha = if (enabled) 1f else 0.4f
 
-        // Grid: 0 dB line and ±6/±12 guides.
-        listOf(-12.0, -6.0, 0.0, 6.0, 12.0).forEach { db ->
+        listOf(-12f, -6f, 0f, 6f, 12f).forEach { db ->
             drawLine(
-                c.content.copy(alpha = if (db == 0.0) 0.22f else 0.08f),
+                c.content.copy(alpha = if (db == 0f) 0.22f else 0.07f),
                 Offset(0f, yOf(db)),
                 Offset(w, yOf(db)),
                 strokeWidth = 1.dp.toPx(),
-                pathEffect = if (db == 0.0) null else PathEffect.dashPathEffect(floatArrayOf(8f, 8f)),
+                pathEffect = if (db == 0f) null else PathEffect.dashPathEffect(floatArrayOf(8f, 8f)),
             )
         }
+        bands.indices.forEach { i ->
+            drawLine(c.content.copy(alpha = 0.04f), Offset(xOfBand(i), pad), Offset(xOfBand(i), plotH - pad), strokeWidth = 1.dp.toPx())
+        }
 
+        val xs = FloatArray(bands.size + 2) { i ->
+            when (i) {
+                0 -> 0f
+                bands.size + 1 -> w
+                else -> xOfBand(i - 1)
+            }
+        }
+        val ys = FloatArray(bands.size + 2) { i ->
+            when (i) {
+                0 -> gains.getOrElse(0) { 0f } * 0.85f
+                bands.size + 1 -> gains.getOrElse(bands.size - 1) { 0f } * 0.85f
+                else -> gains.getOrElse(i - 1) { 0f }
+            }
+        }
+        val spline = monotoneSpline(xs, ys)
         val curve = Path()
-        val steps = 160
-        for (s in 0..steps) {
-            val f = minF * (maxF / minF).pow(s.toDouble() / steps)
-            var db = 0.0
-            GerasEq.BANDS.forEachIndexed { i, f0 -> db += peakingDb(f, f0.toDouble(), gains.getOrElse(i) { 0f }.toDouble(), GerasEq.Q.toDouble()) }
-            val x = xOf(f, w)
-            val y = yOf(db.coerceIn(-18.0, 18.0))
-            if (s == 0) curve.moveTo(x, y) else curve.lineTo(x, y)
+        val steps = 120
+        for (sIdx in 0..steps) {
+            val x = w * sIdx / steps
+            val y = yOf(spline(x))
+            if (sIdx == 0) curve.moveTo(x, y) else curve.lineTo(x, y)
         }
         val fill = Path().apply {
             addPath(curve)
@@ -574,18 +627,19 @@ internal fun EqGraph(
             lineTo(0f, plotH)
             close()
         }
-        drawPath(fill, Brush.verticalGradient(listOf(c.accent.copy(alpha = 0.38f * alpha), c.accent.copy(alpha = 0f)), startY = 0f, endY = plotH))
+        drawPath(fill, Brush.verticalGradient(listOf(c.accent.copy(alpha = 0.42f * alpha), c.accent.copy(alpha = 0f)), startY = 0f, endY = plotH))
         drawPath(curve, c.accent.copy(alpha = alpha), style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
 
-        GerasEq.BANDS.forEachIndexed { i, f0 ->
+        bands.forEachIndexed { i, f0 ->
             val g = gains.getOrElse(i) { 0f }
-            val x = xOf(f0.toDouble(), w)
-            val y = yOf(g.toDouble())
+            val x = xOfBand(i)
+            val y = yOf(g)
             val r = if (i == active) 11.dp.toPx() else 7.dp.toPx()
+            if (i == active) drawCircle(c.accent.copy(alpha = 0.22f), r * 2f, Offset(x, y))
             drawCircle(c.background, r + 2.dp.toPx(), Offset(x, y))
             drawCircle(c.accent.copy(alpha = alpha), r, Offset(x, y))
             val freq = if (f0 >= 1000) "${(f0 / 1000).let { if (it % 1f == 0f) it.toInt().toString() else it.toString() }}k" else f0.toInt().toString()
-            val db = String.format(Locale.US, "%+.1f", g).replace("+0.0", "0")
+            val db = if (abs(g) < 0.05f) "0" else String.format(Locale.US, "%+.1f", g)
             val l1 = measurer.measure(freq, TextStyle(color = c.contentMuted, fontSize = 10.sp))
             val l2 = measurer.measure(db, TextStyle(color = if (i == active) c.accent else c.content, fontSize = 10.sp, fontWeight = FontWeight.SemiBold))
             val lx = (x - l1.size.width / 2f).coerceIn(0f, w - l1.size.width)

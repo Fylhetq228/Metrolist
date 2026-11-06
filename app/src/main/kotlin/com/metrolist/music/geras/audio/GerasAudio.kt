@@ -39,6 +39,7 @@ data class EqProfile(
     val presetId: String = EqPresets.NEUTRAL,
     val gains: List<Float> = List(GerasEq.BANDS.size) { 0f },
     val preamp: Float = 0f,
+    val surround: Float = 0f,
 )
 
 @Serializable
@@ -229,14 +230,17 @@ object GerasAudio {
         saveEq()
     }
 
-    fun updateEq(transform: (EqProfile) -> EqProfile) {
+    /** [persist] = false while a finger is still dragging; call [commitEq] when it lifts. */
+    fun updateEq(persist: Boolean = true, transform: (EqProfile) -> EqProfile) {
         val kind = _editing.value
         store = when (kind) {
             OutputKind.SPEAKER -> store.copy(speaker = transform(store.speaker))
             OutputKind.HEADPHONES -> store.copy(headphones = transform(store.headphones))
         }
-        saveEq()
+        if (persist) saveEq() else publishEq()
     }
+
+    fun commitEq() = saveEq()
 
     fun applyPreset(id: String) {
         val gains = EqPresets.builtIn.firstOrNull { it.first == id }?.second
@@ -304,6 +308,7 @@ object GerasAudio {
             bass = fx.bass,
             reverb = fx.reverb,
             eightD = fx.eightD,
+            surround = profile.surround,
         )
     }
 

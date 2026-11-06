@@ -78,4 +78,5 @@
     <string name="geras_font_system">Системный</string>
     <string name="geras_home_title">«Моя волна» на главной</string>
     <string name="geras_home_description">Большой заголовок и радио по твоим вкусам вместо верхней панели</string>
+    <string name="geras_surround">Объёмный звук</string>
 </resources>
