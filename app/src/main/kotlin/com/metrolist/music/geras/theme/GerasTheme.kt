@@ -34,22 +34,19 @@ enum class GerasThemePreset(val hue: Float, val saturation: Float) {
     AQUA(186f, 0.42f),
 }
 
-@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
-private fun variable(res: Int, weight: Int) =
-    Font(res, FontWeight(weight), variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
-
+// Static instances cut from the variable fonts: variation axes on resource fonts are not
+// applied reliably on every Android build, which made text fall back to the thin default.
 object GerasFonts {
     val text = FontFamily(
-        variable(R.font.geras_manrope, 400),
-        variable(R.font.geras_manrope, 500),
-        variable(R.font.geras_manrope, 600),
-        variable(R.font.geras_manrope, 700),
-        variable(R.font.geras_manrope, 800),
+        Font(R.font.geras_manrope_400, FontWeight.Normal),
+        Font(R.font.geras_manrope_500, FontWeight.Medium),
+        Font(R.font.geras_manrope_600, FontWeight.SemiBold),
+        Font(R.font.geras_manrope_700, FontWeight.Bold),
+        Font(R.font.geras_manrope_800, FontWeight.ExtraBold),
     )
     val display = FontFamily(
-        variable(R.font.geras_unbounded, 600),
-        variable(R.font.geras_unbounded, 800),
-        variable(R.font.geras_unbounded, 900),
+        Font(R.font.geras_unbounded_700, FontWeight.Bold),
+        Font(R.font.geras_unbounded_900, FontWeight.Black),
     )
 }
 

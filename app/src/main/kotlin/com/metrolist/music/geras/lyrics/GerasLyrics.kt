@@ -501,12 +501,15 @@ private fun KaraokeText(
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 4)
     val density = LocalDensity.current
+    // TextMeasurer does not inherit the theme, so the app font has to be passed explicitly.
+    val family = MaterialTheme.typography.bodyLarge.fontFamily
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val widthPx = constraints.maxWidth
         val style = TextStyle(
+            fontFamily = family,
             fontSize = LINE_TEXT_SIZE,
             lineHeight = LINE_HEIGHT,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.ExtraBold,
             fontStyle = if (line.isBackground) FontStyle.Italic else FontStyle.Normal,
             textAlign = textAlign,
         )

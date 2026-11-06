@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -523,6 +524,7 @@ internal fun EqGraph(
     onDragEnd: () -> Unit = {},
 ) {
     val measurer = rememberTextMeasurer()
+    val labelFamily = MaterialTheme.typography.labelSmall.fontFamily
     val latestGains by rememberUpdatedState(gains)
     val latestOnGain by rememberUpdatedState(onGain)
     val latestOnDragEnd by rememberUpdatedState(onDragEnd)
@@ -640,8 +642,8 @@ internal fun EqGraph(
             drawCircle(c.accent.copy(alpha = alpha), r, Offset(x, y))
             val freq = if (f0 >= 1000) "${(f0 / 1000).let { if (it % 1f == 0f) it.toInt().toString() else it.toString() }}k" else f0.toInt().toString()
             val db = if (abs(g) < 0.05f) "0" else String.format(Locale.US, "%+.1f", g)
-            val l1 = measurer.measure(freq, TextStyle(color = c.contentMuted, fontSize = 10.sp))
-            val l2 = measurer.measure(db, TextStyle(color = if (i == active) c.accent else c.content, fontSize = 10.sp, fontWeight = FontWeight.SemiBold))
+            val l1 = measurer.measure(freq, TextStyle(color = c.contentMuted, fontSize = 10.sp, fontFamily = labelFamily))
+            val l2 = measurer.measure(db, TextStyle(color = if (i == active) c.accent else c.content, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, fontFamily = labelFamily))
             val lx = (x - l1.size.width / 2f).coerceIn(0f, w - l1.size.width)
             val dx = (x - l2.size.width / 2f).coerceIn(0f, w - l2.size.width)
             drawText(l2, topLeft = Offset(dx, plotH + 2.dp.toPx()))
