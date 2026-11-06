@@ -110,7 +110,12 @@ fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode): GerasPlayerColors {
 }
 
 @Composable
-fun rememberGerasPlayerColors(thumbnailUrl: String?, mode: GerasThemeMode): GerasPlayerColors {
+fun rememberGerasPlayerColors(thumbnailUrl: String?, mode: GerasThemeMode): GerasPlayerColors =
+    rememberGerasPalette(thumbnailUrl, mode).second
+
+/** Target (settled) colours and their animated counterpart. */
+@Composable
+fun rememberGerasPalette(thumbnailUrl: String?, mode: GerasThemeMode): Pair<GerasPlayerColors, GerasPlayerColors> {
     val context = LocalContext.current
     var seed by remember { mutableStateOf<FloatArray?>(null) }
     LaunchedEffect(thumbnailUrl) {
@@ -125,5 +130,5 @@ fun rememberGerasPlayerColors(thumbnailUrl: String?, mode: GerasThemeMode): Gera
     val contentMuted by animateColorAsState(target.contentMuted, spec, label = "contentMuted")
     val accent by animateColorAsState(target.accent, spec, label = "accent")
     val onAccent by animateColorAsState(target.onAccent, spec, label = "onAccent")
-    return GerasPlayerColors(backgroundTop, background, surface, content, contentMuted, accent, onAccent)
+    return target to GerasPlayerColors(backgroundTop, background, surface, content, contentMuted, accent, onAccent)
 }

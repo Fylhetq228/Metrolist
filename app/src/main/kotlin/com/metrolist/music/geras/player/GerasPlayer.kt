@@ -79,6 +79,8 @@ import com.metrolist.music.R
 import com.metrolist.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
 import com.metrolist.music.extensions.metadata
 import com.metrolist.music.extensions.toMediaItem
+import com.metrolist.music.geras.lyrics.GerasLyricsColors
+import com.metrolist.music.geras.lyrics.LocalGerasLyricsColors
 import com.metrolist.music.geras.video.GerasClipView
 import com.metrolist.music.geras.video.rememberClipSource
 import com.metrolist.music.extensions.toggleRepeatMode
@@ -190,7 +192,15 @@ fun GerasPlayerContent(
     val avatar = rememberArtistAvatar(mediaMetadata?.artists?.firstOrNull()?.id)
     val speed = rememberPlaybackSpeed(player)
     val (download, downloadPercent) = rememberDownloadProgress(mediaMetadata?.id)
-    val colors = rememberGerasPlayerColors(mediaMetadata?.thumbnailUrl, themeMode)
+    val (settledColors, colors) = rememberGerasPalette(mediaMetadata?.thumbnailUrl, themeMode)
+    val lyricsColors = remember(settledColors) {
+        GerasLyricsColors(
+            active = settledColors.content,
+            inactive = settledColors.content.copy(alpha = 0.3f),
+            backing = settledColors.accent,
+            accent = settledColors.accent,
+        )
+    }
 
     var showSpeedDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -318,11 +328,13 @@ fun GerasPlayerContent(
             mediaMetadata?.let { GerasClipView(videoId = it.id, mainPlayer = player, colors = colors, modifier = Modifier.fillMaxSize()) }
         },
         lyrics = {
+            androidx.compose.runtime.CompositionLocalProvider(LocalGerasLyricsColors provides lyricsColors) {
             InlineLyricsView(
                 mediaMetadata = mediaMetadata,
                 showLyrics = true,
                 positionProvider = positionProvider,
             )
+            }
         },
         modifier = modifier,
     )

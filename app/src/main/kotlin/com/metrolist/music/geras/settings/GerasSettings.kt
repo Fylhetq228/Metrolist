@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.geras.GerasLyricsEnabledKey
 import com.metrolist.music.geras.GerasPlayerEnabledKey
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
@@ -31,6 +32,7 @@ const val GerasSettingsRoute = "settings/geras"
 @Composable
 fun GerasSettings(navController: NavController) {
     val (playerEnabled, onPlayerEnabledChange) = rememberPreference(GerasPlayerEnabledKey, true)
+    val (lyricsEnabled, onLyricsEnabledChange) = rememberPreference(GerasLyricsEnabledKey, true)
 
     Column(
         Modifier
@@ -47,6 +49,13 @@ fun GerasSettings(navController: NavController) {
                     description = { Text(stringResource(R.string.geras_player_description)) },
                     trailingContent = { Switch(checked = playerEnabled, onCheckedChange = onPlayerEnabledChange) },
                     onClick = { onPlayerEnabledChange(!playerEnabled) },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.geras_lyrics_title)) },
+                    description = { Text(stringResource(R.string.geras_lyrics_description)) },
+                    trailingContent = { Switch(checked = lyricsEnabled, onCheckedChange = onLyricsEnabledChange) },
+                    onClick = { onLyricsEnabledChange(!lyricsEnabled) },
                 ),
             ),
         )

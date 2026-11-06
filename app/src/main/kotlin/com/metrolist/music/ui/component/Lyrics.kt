@@ -21,8 +21,16 @@ fun Lyrics(
     lyricsViewModel: LyricsViewModel = hiltViewModel()
 ) {
     val (experimentalLyrics, _) = rememberPreference(key = ExperimentalLyricsKey, defaultValue = true)
+    val (gerasLyrics, _) = rememberPreference(key = com.metrolist.music.geras.GerasLyricsEnabledKey, defaultValue = true)
 
-    if (experimentalLyrics) {
+    if (gerasLyrics) {
+        com.metrolist.music.geras.lyrics.GerasLyrics(
+            sliderPositionProvider = sliderPositionProvider,
+            showLyrics = showLyrics,
+            modifier = modifier,
+            lyricsViewModel = lyricsViewModel,
+        )
+    } else if (experimentalLyrics) {
         ExperimentalLyrics(
             sliderPositionProvider = sliderPositionProvider,
             modifier = modifier,
