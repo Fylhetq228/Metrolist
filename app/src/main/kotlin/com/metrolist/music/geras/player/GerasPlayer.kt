@@ -79,6 +79,8 @@ import com.metrolist.music.R
 import com.metrolist.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
 import com.metrolist.music.extensions.metadata
 import com.metrolist.music.extensions.toMediaItem
+import com.metrolist.music.geras.audio.GerasEqualizerSheet
+import com.metrolist.music.geras.audio.GerasSpeedSheet
 import com.metrolist.music.geras.lyrics.GerasLyricsColors
 import com.metrolist.music.geras.lyrics.LocalGerasLyricsColors
 import com.metrolist.music.geras.video.GerasClipView
@@ -202,7 +204,8 @@ fun GerasPlayerContent(
         )
     }
 
-    var showSpeedDialog by rememberSaveable { mutableStateOf(false) }
+    var showSpeedSheet by rememberSaveable { mutableStateOf(false) }
+    var showEqSheet by rememberSaveable { mutableStateOf(false) }
 
     // Clip (music video) mode. For audio-only tracks the current queue item is swapped for its
     // video counterpart so picture and sound share one timeline, like YTM's Song/Video switch.
@@ -231,12 +234,23 @@ fun GerasPlayerContent(
             swapTo(current.copy(id = source.videoId, musicVideoType = MUSIC_VIDEO_TYPE_OMV, setVideoId = null))
         }
     }
-    if (showSpeedDialog) TempoPitchDialog(onDismiss = { showSpeedDialog = false })
 
     val downloadedText = stringResource(R.string.geras_already_downloaded)
     val openFromPlayer: (String) -> Unit = { route ->
         state.collapseSoft()
         navController.navigate(route)
+    }
+
+    if (showSpeedSheet) GerasSpeedSheet(colors = colors, onDismiss = { showSpeedSheet = false })
+    if (showEqSheet) {
+        GerasEqualizerSheet(
+            colors = colors,
+            onDismiss = { showEqSheet = false },
+            onOpenAutoEq = {
+                showEqSheet = false
+                openFromPlayer("equalizer")
+            },
+        )
     }
 
     val ui = GerasPlayerUi(
@@ -301,8 +315,8 @@ fun GerasPlayerContent(
                 }
             },
             onToggleLyrics = onToggleLyrics,
-            onEqualizer = { openFromPlayer("equalizer") },
-            onSpeed = { showSpeedDialog = true },
+            onEqualizer = { showEqSheet = true },
+            onSpeed = { showSpeedSheet = true },
             onClip = {
                 if (clipMode) {
                     swappedFrom?.let { original ->

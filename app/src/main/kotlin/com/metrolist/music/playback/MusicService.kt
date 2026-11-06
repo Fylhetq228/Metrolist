@@ -1342,6 +1342,7 @@ class MusicService :
                 .setDeviceVolumeControlEnabled(true)
                 .build()
         createdPlayer = player
+        com.metrolist.music.geras.audio.GerasAudio.attach(this, player)
 
         playerNormalizationProcessors[player] = normalizationProcessor
         playerSilenceProcessors[player] = silenceProcessor
@@ -4058,6 +4059,7 @@ class MusicService :
                     arrayOf(
                         normalizationProcessor,
                         eqProcessor,
+                        com.metrolist.music.geras.audio.GerasAudio.newProcessor(this@MusicService),
                         silenceProcessor,
                     ),
                     SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),
