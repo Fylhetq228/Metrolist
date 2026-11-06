@@ -969,14 +969,16 @@ class MainActivity : FragmentActivity() {
                 }
 
                 var shouldShowTopBar by rememberSaveable { mutableStateOf(false) }
+                val gerasHomeEnabled by rememberPreference(com.metrolist.music.geras.GerasHomeEnabledKey, true)
 
-                LaunchedEffect(navBackStackEntry, listenTogetherInTopBar) {
+                LaunchedEffect(navBackStackEntry, listenTogetherInTopBar, gerasHomeEnabled) {
                     val currentRoute = navBackStackEntry?.destination?.route
                     val isListenTogetherScreen =
                         currentRoute == Screens.ListenTogether.route ||
                             currentRoute == "listen_together_from_topbar"
                     shouldShowTopBar = currentRoute in topLevelScreens &&
                         currentRoute != "settings" &&
+                        !(currentRoute == Screens.Home.route && gerasHomeEnabled) &&
                         !(isListenTogetherScreen && listenTogetherInTopBar)
                 }
 

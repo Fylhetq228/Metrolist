@@ -42,4 +42,12 @@
     <string name="geras_preamp">Preamp</string>
     <string name="geras_eq_autoeq">AutoEq headphone profiles</string>
     <string name="geras_eq_save_preset">Save preset</string>
+    <string name="geras_my_wave">My\nwave</string>
+    <string name="geras_wave_usual">Usual</string>
+    <string name="geras_wave_discover">Discover</string>
+    <string name="geras_recent">Recent</string>
+    <plurals name="geras_tracks">
+        <item quantity="one">%d track</item>
+        <item quantity="other">%d tracks</item>
+    </plurals>
 </resources>

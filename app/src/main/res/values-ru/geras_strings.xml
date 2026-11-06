@@ -42,4 +42,14 @@
     <string name="geras_preamp">Предусиление</string>
     <string name="geras_eq_autoeq">Профили AutoEq для наушников</string>
     <string name="geras_eq_save_preset">Сохранить пресет</string>
+    <string name="geras_my_wave">Моя\nволна</string>
+    <string name="geras_wave_usual">Обычная</string>
+    <string name="geras_wave_discover">Открытия</string>
+    <string name="geras_recent">Недавние</string>
+    <plurals name="geras_tracks">
+        <item quantity="one">%d трек</item>
+        <item quantity="few">%d трека</item>
+        <item quantity="many">%d треков</item>
+        <item quantity="other">%d трека</item>
+    </plurals>
 </resources>
