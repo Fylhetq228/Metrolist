@@ -147,6 +147,11 @@ fun MiniPlayer(
     onClick: () -> Unit = {},
 ) {
     val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
+    val gerasPlayer by rememberPreference(com.metrolist.music.geras.GerasPlayerEnabledKey, true)
+    if (gerasPlayer) {
+        com.metrolist.music.geras.ui.GerasMiniPlayer(positionState, durationState, onClick, modifier)
+        return
+    }
 
     // Create stable progress state - doesn't cause recomposition on position changes
     val progressState = remember { ProgressState(positionState, durationState) }

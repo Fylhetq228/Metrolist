@@ -270,6 +270,7 @@ dependencies {
 
     implementation(libs.material3)
     implementation(libs.palette)
+    implementation("dev.chrisbanes.haze:haze:1.7.3")
     implementation(libs.materialKolor)
 
     implementation(libs.appcompat)

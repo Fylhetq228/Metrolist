@@ -211,6 +211,7 @@ import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.get
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.geras.ui.gerasGlassSource
 import com.metrolist.music.utils.reportException
 import com.metrolist.music.utils.setAppLocale
 import com.metrolist.music.viewmodels.HomeViewModel
@@ -1200,6 +1201,7 @@ class MainActivity : FragmentActivity() {
 
                             // Pre-calculate values for graphicsLayer to avoid reading state during composition
                             val navBarTotalHeight = bottomInset + NavigationBarHeight
+                            val gerasFloatingNav = rememberPreference(com.metrolist.music.geras.GerasNavStyleKey, "FLOATING").value == "FLOATING"
 
                             if (!showRail && currentRoute != "wrapped") {
                                 Box {
@@ -1253,7 +1255,7 @@ class MainActivity : FragmentActivity() {
                                                 .graphicsLayer {
                                                     val progress = playerBottomSheetState.progress
                                                     alpha =
-                                                        if (progress > 0f ||
+                                                        if (progress > 0f || gerasFloatingNav ||
                                                             (useNewMiniPlayerDesign && !shouldShowNavigationBar)
                                                         ) {
                                                             0f
@@ -1294,7 +1296,7 @@ class MainActivity : FragmentActivity() {
                                 .fillMaxSize()
                                 .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
                     ) {
-                        Row(Modifier.fillMaxSize()) {
+                        Row(Modifier.fillMaxSize().gerasGlassSource()) {
                             val onRailItemClick: (Screens, Boolean) -> Unit =
                                 remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
                                     { screen: Screens, isSelected: Boolean ->

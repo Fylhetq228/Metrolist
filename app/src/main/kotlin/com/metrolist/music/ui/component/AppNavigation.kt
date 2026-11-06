@@ -139,6 +139,24 @@ fun AppNavigationBar(
     onSearchLongClick: (() -> Unit)? = null,
     onHomeLongHold: (() -> Unit)? = null,
 ) {
+    val gerasNavStyle by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasNavStyleKey, "FLOATING")
+    if (gerasNavStyle == "FLOATING") {
+        com.metrolist.music.geras.ui.GerasNavBar(
+            navigationItems = navigationItems,
+            isSelected = { isRouteSelected(currentRoute, it.route, navigationItems) },
+            onItemClick = { onItemClick(it, isRouteSelected(currentRoute, it.route, navigationItems)) },
+            onItemLongClick = {
+                when (it) {
+                    Screens.Search -> onSearchLongClick?.invoke()
+                    Screens.Home -> onHomeLongHold?.invoke()
+                    else -> Unit
+                }
+            },
+            modifier = modifier,
+        )
+        return
+    }
+
     val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
     val contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     val haptics = LocalHapticFeedback.current
