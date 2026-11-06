@@ -102,6 +102,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
+import com.metrolist.music.BuildConfig
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalNavController
@@ -894,7 +895,7 @@ fun LocalPlaylistHeader(
     val overrideThumbnail = remember { mutableStateOf<String?>(null) }
     var isCustomThumbnail: Boolean =
         playlist.thumbnails.firstOrNull()?.let {
-            it.contains("studio_square_thumbnail") || it.contains("content://com.metrolist.music")
+            it.contains("studio_square_thumbnail") || it.contains("content://${BuildConfig.APPLICATION_ID}")
         } ?: false
 
     val result = remember { mutableStateOf<Uri?>(null) }
