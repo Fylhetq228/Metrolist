@@ -104,6 +104,38 @@ object InnerTubeXPlayer {
             Result.failure(error)
         }
 
+    class ClipStream(
+        val url: String,
+        val headers: Map<String, String>,
+        val width: Int?,
+        val height: Int?,
+    )
+
+    /** Video-only stream of a music video, used by the Geras clip view next to the audio pipeline. */
+    suspend fun clipStream(videoId: String, maxHeight: Int = 720): Result<ClipStream> =
+        try {
+            val hints =
+                ContentHints(wantVideo = true, maxVideoHeight = maxHeight).withStreamCapabilities(
+                    allowHls = false,
+                    allowSabr = false,
+                    allowBoundedRange = true,
+                )
+            val stream =
+                bundle().extractor.extract(
+                    videoId = videoId,
+                    hints = hints,
+                    excludedClients = emptySet(),
+                    audioQuality = InnerTubeXAudioQuality.LOW,
+                    clientPlaybackNonce = generateClientPlaybackNonce(),
+                ) ?: error("No stream for $videoId")
+            val url = requireNotNull(stream.videoUrl) { "No video stream for $videoId" }
+            Result.success(ClipStream(url, stream.headers, stream.videoWidth, stream.videoHeight))
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+
     internal fun markStreamClientFailed(
         videoId: String,
         clientName: String,

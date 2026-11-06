@@ -3363,6 +3363,37 @@ object YouTube {
             }.awaitAll().filterNotNull().toMap()
         }
     }
+
+    /**
+     * For an audio-only YTM track returns the video id of its music video counterpart
+     * (the "Song / Video" switch in YouTube Music), or null when there is none.
+     */
+    suspend fun musicVideoCounterpart(videoId: String): Result<String?> =
+        runCatching {
+            val root = Json.parseToJsonElement(
+                innerTube.next(WEB_REMIX, videoId, null, null, null, null).bodyAsText(),
+            )
+            fun asObj(e: kotlinx.serialization.json.JsonElement?) = e as? kotlinx.serialization.json.JsonObject
+            fun idOf(renderer: kotlinx.serialization.json.JsonObject?) =
+                (asObj(renderer?.get("playlistPanelVideoRenderer"))?.get("videoId") as? kotlinx.serialization.json.JsonPrimitive)?.content
+
+            // Only the wrapper of the requested track counts; other queue items carry their own counterparts.
+            fun find(element: kotlinx.serialization.json.JsonElement): kotlinx.serialization.json.JsonObject? =
+                when (element) {
+                    is kotlinx.serialization.json.JsonObject ->
+                        if (idOf(asObj(element["primaryRenderer"])) == videoId) {
+                            element
+                        } else {
+                            element.values.firstNotNullOfOrNull(::find)
+                        }
+                    is kotlinx.serialization.json.JsonArray -> element.firstNotNullOfOrNull(::find)
+                    else -> null
+                }
+            val wrapper = find(root)
+            (wrapper?.get("counterpart") as? kotlinx.serialization.json.JsonArray)
+                ?.firstNotNullOfOrNull { idOf(asObj(asObj(it)?.get("counterpartRenderer"))) }
+                ?.takeIf { it != videoId }
+        }
 }
 
 internal class UploadProgressInputStream(

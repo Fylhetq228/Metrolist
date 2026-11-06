@@ -6,4 +6,6 @@
     <string name="geras_player_description">Новый экран плеера. Выключи, чтобы вернуть стандартный плеер Metrolist.</string>
     <string name="geras_up_next">Далее: %1$s</string>
     <string name="geras_already_downloaded">Уже скачано</string>
+    <string name="geras_clip">Клип</string>
+    <string name="geras_clip_unavailable">Клип для этого трека недоступен. Если YouTube заблокирован в твоём регионе, включи VPN.</string>
 </resources>

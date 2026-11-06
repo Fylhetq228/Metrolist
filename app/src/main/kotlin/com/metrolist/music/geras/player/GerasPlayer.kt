@@ -76,7 +76,11 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
 import com.metrolist.music.extensions.metadata
+import com.metrolist.music.extensions.toMediaItem
+import com.metrolist.music.geras.video.GerasClipView
+import com.metrolist.music.geras.video.rememberClipSource
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.playback.ExoDownloadService
@@ -116,6 +120,8 @@ data class GerasPlayerUi(
     val speed: Float,
     val showLyrics: Boolean,
     val interactive: Boolean,
+    val clipAvailable: Boolean = false,
+    val showClip: Boolean = false,
 )
 
 class GerasPlayerActions(
@@ -134,6 +140,7 @@ class GerasPlayerActions(
     val onToggleLyrics: () -> Unit = {},
     val onEqualizer: () -> Unit = {},
     val onSpeed: () -> Unit = {},
+    val onClip: () -> Unit = {},
 )
 
 /**
@@ -186,6 +193,34 @@ fun GerasPlayerContent(
     val colors = rememberGerasPlayerColors(mediaMetadata?.thumbnailUrl, themeMode)
 
     var showSpeedDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Clip (music video) mode. For audio-only tracks the current queue item is swapped for its
+    // video counterpart so picture and sound share one timeline, like YTM's Song/Video switch.
+    var clipMode by rememberSaveable { mutableStateOf(false) }
+    var swappedFrom by remember { mutableStateOf<MediaMetadata?>(null) }
+    val clipSource = rememberClipSource(mediaMetadata)
+    val swapTo: (MediaMetadata) -> Unit = { target ->
+        val index = player.currentMediaItemIndex
+        val pos = player.currentPosition
+        if (index >= 0) {
+            player.replaceMediaItem(index, target.toMediaItem())
+            player.seekTo(index, pos)
+        }
+    }
+    LaunchedEffect(mediaMetadata?.id) {
+        val original = swappedFrom ?: return@LaunchedEffect
+        val current = mediaMetadata ?: return@LaunchedEffect
+        if (current.id != original.id && !current.isVideoSong) swappedFrom = null
+        if (current.isVideoSong && current.title != original.title) swappedFrom = null
+    }
+    LaunchedEffect(clipMode, clipSource) {
+        val source = clipSource ?: return@LaunchedEffect
+        val current = mediaMetadata ?: return@LaunchedEffect
+        if (clipMode && source.isCounterpart && !isListenTogetherGuest) {
+            swappedFrom = current
+            swapTo(current.copy(id = source.videoId, musicVideoType = MUSIC_VIDEO_TYPE_OMV, setVideoId = null))
+        }
+    }
     if (showSpeedDialog) TempoPitchDialog(onDismiss = { showSpeedDialog = false })
 
     val downloadedText = stringResource(R.string.geras_already_downloaded)
@@ -212,9 +247,11 @@ fun GerasPlayerContent(
         speed = speed,
         showLyrics = showLyrics,
         interactive = !isListenTogetherGuest,
+        clipAvailable = clipSource != null || swappedFrom != null,
+        showClip = clipMode && mediaMetadata?.isVideoSong == true,
     )
 
-    val actions = remember(mediaMetadata, download, playbackState) {
+    val actions = remember(mediaMetadata, download, playbackState, clipMode, swappedFrom) {
         GerasPlayerActions(
             onSearch = { openFromPlayer(Screens.Search.route) },
             onQueue = { queueState.expandSoft() },
@@ -256,6 +293,17 @@ fun GerasPlayerContent(
             onToggleLyrics = onToggleLyrics,
             onEqualizer = { openFromPlayer("equalizer") },
             onSpeed = { showSpeedDialog = true },
+            onClip = {
+                if (clipMode) {
+                    swappedFrom?.let { original ->
+                        if (mediaMetadata?.isVideoSong == true) swapTo(original)
+                    }
+                    swappedFrom = null
+                    clipMode = false
+                } else {
+                    clipMode = true
+                }
+            },
         )
     }
 
@@ -266,6 +314,9 @@ fun GerasPlayerContent(
         positionProvider = positionProvider,
         durationProvider = durationProvider,
         sheetProgress = { state.progress },
+        clip = {
+            mediaMetadata?.let { GerasClipView(videoId = it.id, mainPlayer = player, colors = colors, modifier = Modifier.fillMaxSize()) }
+        },
         lyrics = {
             InlineLyricsView(
                 mediaMetadata = mediaMetadata,
@@ -287,6 +338,7 @@ fun GerasPlayerLayout(
     sheetProgress: () -> Float,
     lyrics: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    clip: @Composable () -> Unit = {},
 ) {
     var scrubPosition by remember { mutableStateOf<Long?>(null) }
 
@@ -302,7 +354,7 @@ fun GerasPlayerLayout(
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical + WindowInsetsSides.Horizontal))
                 .padding(horizontal = 20.dp),
         ) {
-            TopBar(colors, ui.queueLeft, actions)
+            TopBar(colors, ui, actions)
 
             Spacer(Modifier.height(16.dp))
 
@@ -312,13 +364,20 @@ fun GerasPlayerLayout(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
+                val pane = when {
+                    ui.showLyrics -> 1
+                    ui.showClip -> 2
+                    else -> 0
+                }
                 AnimatedContent(
-                    targetState = ui.showLyrics,
+                    targetState = pane,
                     transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
-                    label = "coverOrLyrics",
-                ) { showLyrics ->
-                    if (showLyrics) {
+                    label = "coverLyricsClip",
+                ) { target ->
+                    if (target == 1) {
                         lyrics()
+                    } else if (target == 2) {
+                        clip()
                     } else {
                         GerasCover(
                             current = ui.current,
@@ -427,13 +486,35 @@ private fun RoundIcon(
 }
 
 @Composable
-private fun TopBar(colors: GerasPlayerColors, queueLeft: Int, actions: GerasPlayerActions) {
+private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasPlayerActions) {
+    val queueLeft = ui.queueLeft
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp),
     ) {
-        // Left slot is reserved for the audio/video switch.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = ui.clipAvailable,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.CenterStart),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (ui.showClip) colors.accent else colors.surface)
+                    .clickable(enabled = ui.interactive, onClick = actions.onClip),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.slow_motion_video),
+                    contentDescription = stringResource(R.string.geras_clip),
+                    tint = if (ui.showClip) colors.onAccent else colors.content,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -474,7 +555,12 @@ private fun TopBar(colors: GerasPlayerColors, queueLeft: Int, actions: GerasPlay
         RoundIcon(
             icon = R.drawable.more_horiz,
             tint = colors.content,
-            modifier = Modifier.align(Alignment.CenterEnd),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .clip(RoundedCornerShape(50))
+                .background(colors.surface),
+            size = 40.dp,
+            iconSize = 20.dp,
             onClick = actions.onMenu,
         )
     }

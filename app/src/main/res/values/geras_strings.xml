@@ -6,4 +6,6 @@
     <string name="geras_player_description">New full-screen player layout. Turn off to use the original Metrolist player.</string>
     <string name="geras_up_next">Next: %1$s</string>
     <string name="geras_already_downloaded">Already downloaded</string>
+    <string name="geras_clip">Music video</string>
+    <string name="geras_clip_unavailable">Video is unavailable for this track. If YouTube is blocked in your region, turn on a VPN.</string>
 </resources>
