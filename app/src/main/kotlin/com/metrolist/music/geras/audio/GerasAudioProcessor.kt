@@ -22,7 +22,7 @@ data class DspParams(
     val bass: Float = 0f,
     val reverb: Float = 0f,
     val eightD: Float = 0f,
-    /** Stereo widening + decorrelated ambience, 0..1. */
+    /** Deep, spacious low end plus a wider stage, 0..1. */
     val surround: Float = 0f,
 ) {
     val isNeutral: Boolean
@@ -66,6 +66,12 @@ class GerasAudioProcessor : BaseAudioProcessor() {
     private var haas = DoubleArray(1)
     private var haasIdx = 0
     private val decorrelate = Biquad()
+    private val lowSplit = Biquad()
+    private var lowRoom = DoubleArray(1)
+    private var lowRoomIdx = 0
+    private val bodyL = Biquad()
+    private val bodyR = Biquad()
+    private var bodyDb = Double.NaN
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         val enc = inputAudioFormat.encoding
@@ -80,6 +86,10 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         reverb = Freeverb(sampleRate)
         haas = DoubleArray((sampleRate * 0.011).toInt().coerceAtLeast(1))
         haasIdx = 0
+        lowRoom = DoubleArray((sampleRate * 0.04).toInt().coerceAtLeast(2))
+        lowRoomIdx = 0
+        lowSplit.setLowPass(sampleRate, 190.0)
+        bodyDb = Double.NaN
         return inputAudioFormat
     }
 
@@ -143,18 +153,37 @@ class GerasAudioProcessor : BaseAudioProcessor() {
 
             surroundMix += (targetSurround - surroundMix) * smooth
             if (surroundMix > 1e-4) {
+                val w = surroundMix
+                // Body: a warm low shelf that follows the slider.
+                val db = Math.round(w * 20) / 20.0 * 6.0
+                if (db != bodyDb) {
+                    bodyL.setLowShelf(sampleRate, 110.0, db, true)
+                    bodyR.setLowShelf(sampleRate, 110.0, db, true)
+                    bodyDb = db
+                }
+                l = bodyL.process(l)
+                r = bodyR.process(r)
+
                 val mid = (l + r) * 0.5
                 val side = (l - r) * 0.5
-                // A short, high-passed echo of the mid pushed out of phase between the ears
-                // adds width even to near-mono mixes.
+
+                // Spacious bass: the low band comes back to each ear from a different short
+                // distance, so bass feels like it fills a room instead of sitting in the head.
+                val low = lowSplit.process(mid)
+                lowRoom[lowRoomIdx] = low
+                val n = lowRoom.size
+                val tapL = lowRoom[(lowRoomIdx - (n * 0.42).toInt() + n) % n]
+                val tapR = lowRoom[(lowRoomIdx - (n * 0.71).toInt() + n) % n]
+                if (++lowRoomIdx >= n) lowRoomIdx = 0
+
+                // Width higher up: a short, high-passed echo pushed out of phase between the ears.
                 val echo = decorrelate.process(haas[haasIdx])
                 haas[haasIdx] = mid
                 if (++haasIdx >= haas.size) haasIdx = 0
-                val w = surroundMix
-                val m = mid * (1 - 0.12 * w)
-                val sd = side * (1 + 1.4 * w) + echo * 0.32 * w
-                l = m + sd
-                r = m - sd
+
+                val sd = side * (1 + 0.7 * w) + echo * 0.18 * w
+                l = mid + sd + (tapL - low * 0.3) * 0.45 * w
+                r = mid - sd + (tapR - low * 0.3) * 0.45 * w
             }
 
             reverbMix += (targetReverb - reverbMix) * smooth
@@ -199,7 +228,7 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         }
         // Automatic headroom: boosts are compensated so loud masters do not clip.
         val maxBoost = if (p.eqEnabled) (p.eqGainsDb.maxOrNull() ?: 0f).coerceAtLeast(0f) else 0f
-        val headroom = maxBoost * 0.5f + p.bass * 3f
+        val headroom = maxBoost * 0.5f + p.bass * 3f + p.surround * 3f
         val userPreamp = if (p.eqEnabled) p.preampDb else 0f
         preamp = 10.0.pow((userPreamp - headroom) / 20.0)
         decorrelate.setHighPass(sampleRate, 350.0)
@@ -217,6 +246,10 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         reverb?.clear()
         haas.fill(0.0)
         decorrelate.clear()
+        lowRoom.fill(0.0)
+        lowSplit.clear()
+        bodyL.clear()
+        bodyR.clear()
     }
 
     override fun onReset() {
@@ -268,6 +301,19 @@ internal class Biquad {
         b2 = a * ((a + 1) - (a - 1) * cw - sa) / a0
         a1 = -2 * ((a - 1) + (a + 1) * cw) / a0
         a2 = ((a + 1) + (a - 1) * cw - sa) / a0
+    }
+
+    fun setLowPass(fs: Int, f0: Double) {
+        active = true
+        val w0 = 2 * PI * f0 / fs
+        val alpha = sin(w0) / (2 * 0.707)
+        val cw = cos(w0)
+        val a0 = 1 + alpha
+        b0 = (1 - cw) / 2 / a0
+        b1 = (1 - cw) / a0
+        b2 = (1 - cw) / 2 / a0
+        a1 = -2 * cw / a0
+        a2 = (1 - alpha) / a0
     }
 
     fun setHighPass(fs: Int, f0: Double) {

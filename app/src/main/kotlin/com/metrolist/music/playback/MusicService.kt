@@ -4054,6 +4054,7 @@ class MusicService :
             .Builder(this@MusicService)
             .setEnableFloatOutput(enableFloatOutput)
             .setEnableAudioTrackPlaybackParams(useAudioTrackPlaybackParams)
+            .setAudioTrackBufferSizeProvider(com.metrolist.music.geras.audio.GerasAudio.audioTrackBuffers)
             .setAudioProcessorChain(
                 DefaultAudioSink.DefaultAudioProcessorChain(
                     arrayOf(

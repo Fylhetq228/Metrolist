@@ -87,6 +87,17 @@ object SpeedPresets {
  */
 @UnstableApi
 object GerasAudio {
+    /**
+     * Effects run before the AudioTrack, so its buffer is the delay between moving a slider
+     * and hearing it. Media3's default keeps 250-750 ms; 100-200 ms is still safe on phones.
+     */
+    val audioTrackBuffers: androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider =
+        androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider.Builder()
+            .setMinPcmBufferDurationUs(100_000)
+            .setMaxPcmBufferDurationUs(200_000)
+            .setPcmBufferMultiplicationFactor(2)
+            .build()
+
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private lateinit var prefs: SharedPreferences
     private lateinit var appContext: Context
