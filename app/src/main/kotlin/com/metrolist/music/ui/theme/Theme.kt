@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
@@ -34,6 +35,13 @@ fun MetrolistTheme(
     themeColor: Color = DefaultThemeColor,
     content: @Composable () -> Unit,
 ) {
+    val gerasTheme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "COVER")
+    val gerasPreset = com.metrolist.music.geras.theme.GerasThemePreset.entries.firstOrNull { it.name == gerasTheme }
+    if (gerasPreset != null) {
+        com.metrolist.music.geras.theme.GerasAppTheme(darkTheme, pureBlack, themeColor, gerasPreset, content)
+        return
+    }
+
     val context = LocalContext.current
     // Determine if system dynamic colors should be used (Android S+ and default theme color)
     val useSystemDynamicColor = (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
