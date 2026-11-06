@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -83,6 +84,7 @@ import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.geras.audio.GerasEqualizerSheet
 import com.metrolist.music.geras.audio.GerasSpeedSheet
 import com.metrolist.music.geras.lyrics.GerasLyricsColors
+import com.metrolist.music.geras.ui.gerasRaised
 import com.metrolist.music.geras.lyrics.LocalGerasLyricsColors
 import com.metrolist.music.geras.video.GerasClipView
 import com.metrolist.music.geras.video.rememberClipSource
@@ -480,8 +482,7 @@ private fun Capsule(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(colors.surface)
+            .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background))
             .padding(horizontal = 4.dp),
     ) { content() }
 }
@@ -530,8 +531,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (ui.showClip) colors.accent else colors.surface)
+                    .gerasRaised(RoundedCornerShape(50), if (ui.showClip) colors.accent else colors.surface.compositeOver(colors.background))
                     .clickable(enabled = ui.interactive, onClick = actions.onClip),
             ) {
                 Icon(
@@ -547,8 +547,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
             modifier = Modifier
                 .align(Alignment.Center)
                 .height(40.dp)
-                .clip(RoundedCornerShape(50))
-                .background(colors.surface),
+                .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background)),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -591,8 +590,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
             tint = colors.content,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .clip(RoundedCornerShape(50))
-                .background(colors.surface),
+                .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background)),
             size = 40.dp,
             iconSize = 20.dp,
             onClick = actions.onMenu,
@@ -669,8 +667,7 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(30.dp))
-            .background(colors.surface)
+            .gerasRaised(RoundedCornerShape(30.dp), colors.surface.compositeOver(colors.background), elevation = 14.dp)
             .padding(vertical = 12.dp, horizontal = 8.dp),
     ) {
         RoundIcon(
@@ -693,8 +690,7 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
                     scaleX = playScale
                     scaleY = playScale
                 }
-                .clip(RoundedCornerShape(50))
-                .background(colors.content)
+                .gerasRaised(RoundedCornerShape(50), colors.content, elevation = 16.dp)
                 .clickable(enabled = ui.interactive, onClick = actions.onPlayPause),
         ) {
             AnimatedContent(

@@ -40,6 +40,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -80,16 +82,17 @@ object GerasGlass {
 fun Modifier.gerasGlassSource(): Modifier = hazeSource(GerasGlass.state)
 
 /**
- * "Liquid glass": blurred backdrop, a tint from the theme, a hairline highlight on the
- * edge and a faint top sheen. Falls back to a plain translucent fill when disabled.
+ * "Liquid glass": a soft drop shadow lifts the surface, the backdrop is blurred and tinted,
+ * a specular sheen sits on the top-left, the lower part is slightly shaded and the rim
+ * catches light at the top and, more faintly, at the bottom like a thick glass lens.
  */
 @Composable
 fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surfaceContainer): Modifier {
     val enabled by rememberPreference(GerasGlassEnabledKey, true)
     val opacity by rememberPreference(GerasGlassOpacityKey, 0.55f)
     val blur by rememberPreference(GerasGlassBlurKey, 22f)
-    val edge = MaterialTheme.colorScheme.onSurface
-    val base = this
+    return this
+        .shadow(elevation = 22.dp, shape = shape, ambientColor = Color.Black.copy(alpha = 0.5f), spotColor = Color.Black.copy(alpha = 0.6f))
         .clip(shape)
         .then(
             if (enabled) {
@@ -99,26 +102,58 @@ fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.su
                         backgroundColor = tint,
                         tints = listOf(HazeTint(tint.copy(alpha = opacity))),
                         blurRadius = blur.dp,
-                        noiseFactor = 0.04f,
+                        noiseFactor = 0.05f,
                     ),
                 )
             } else {
                 Modifier.background(tint.copy(alpha = 0.96f))
             },
         )
-        .background(
-            Brush.verticalGradient(
-                0f to edge.copy(alpha = 0.07f),
-                0.5f to Color.Transparent,
-            ),
-        )
+        .glassLighting(shape)
+}
+
+/** Opaque raised surface with the same lighting, for cards and buttons that sit on a background. */
+@Composable
+fun Modifier.gerasRaised(shape: Shape, color: Color, elevation: Dp = 10.dp): Modifier =
+    this
+        .shadow(elevation = elevation, shape = shape, ambientColor = Color.Black.copy(alpha = 0.35f), spotColor = Color.Black.copy(alpha = 0.45f))
+        .clip(shape)
+        .background(color)
+        .glassLighting(shape, strength = 0.7f)
+
+private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f): Modifier =
+    this
+        .drawWithContent {
+            drawContent()
+            // Specular bloom near the top-left corner.
+            drawRect(
+                Brush.radialGradient(
+                    0f to Color.White.copy(alpha = 0.13f * strength),
+                    1f to Color.Transparent,
+                    center = Offset(size.width * 0.18f, 0f),
+                    radius = size.maxDimension * 0.55f,
+                ),
+            )
+            // Top sheen and a slightly darker belly give the surface thickness.
+            drawRect(
+                Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = 0.09f * strength),
+                    0.42f to Color.Transparent,
+                    0.7f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.16f * strength),
+                ),
+            )
+        }
         .border(
             width = 1.dp,
-            brush = Brush.verticalGradient(listOf(edge.copy(alpha = 0.16f), edge.copy(alpha = 0.04f))),
+            brush = Brush.verticalGradient(
+                0f to Color.White.copy(alpha = 0.32f * strength),
+                0.35f to Color.White.copy(alpha = 0.06f * strength),
+                0.75f to Color.White.copy(alpha = 0.03f * strength),
+                1f to Color.White.copy(alpha = 0.14f * strength),
+            ),
             shape = shape,
         )
-    return base
-}
 
 @Composable
 fun GerasNavBar(
@@ -146,7 +181,15 @@ fun GerasNavBar(
                     modifier = Modifier
                         .size(width = 64.dp, height = 46.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f * bg))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f * bg),
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f * bg),
+                                ),
+                            ),
+                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.16f * bg), RoundedCornerShape(50))
                         .pointerInput(screen) {
                             detectTapGestures(
                                 onTap = { onItemClick(screen) },

@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.metrolist.music.R
+import com.metrolist.music.geras.ui.gerasRaised
+import androidx.compose.ui.graphics.compositeOver
 import com.metrolist.music.models.MediaMetadata
 
 private fun formatTime(ms: Long): String {
@@ -170,8 +172,7 @@ private fun NextCapsule(next: MediaMetadata, colors: GerasPlayerColors, onClick:
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(colors.surface)
+            .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background), elevation = 6.dp)
             .clickable(onClick = onClick)
             .padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
     ) {

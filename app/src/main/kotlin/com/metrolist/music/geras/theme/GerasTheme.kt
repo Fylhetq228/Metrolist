@@ -192,7 +192,15 @@ fun GerasAppTheme(
     val (targetH, targetS) = remember(coverColor, preset) {
         if (preset == GerasThemePreset.COVER) seedFromColor(coverColor) else preset.hue to preset.saturation
     }
-    val hue by animateFloatAsState(targetH, tween(800), label = "themeHue")
+    // Animate along the shorter way round the colour wheel (350° -> 10° must not pass through green).
+    val unwrapped = remember { floatArrayOf(targetH) }
+    val target = remember(targetH) {
+        var diff = targetH - (unwrapped[0] % 360f + 360f) % 360f
+        if (diff > 180f) diff -= 360f
+        if (diff < -180f) diff += 360f
+        (unwrapped[0] + diff).also { unwrapped[0] = it }
+    }
+    val hue by animateFloatAsState(target, tween(800), label = "themeHue")
     val sat by animateFloatAsState(targetS, tween(800), label = "themeSat")
     val amoled = darkTheme && (pureBlack || preset == GerasThemePreset.AMOLED)
     val scheme = gerasColorScheme(hue, sat, darkTheme, amoled)
