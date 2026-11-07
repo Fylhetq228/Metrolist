@@ -201,4 +201,10 @@
     <string name="geras_profile_title">Profile</string>
     <string name="geras_profile_entry">Profile and stats</string>
     <string name="geras_profile_entry_hint">Minutes, top artists and tracks</string>
+    <string name="geras_queue_title">Up next</string>
+    <string name="geras_queue_shuffle">Shuffle</string>
+    <string name="geras_queue_repeat">Repeat</string>
+    <string name="geras_queue_repeat_all">Repeat all</string>
+    <string name="geras_queue_repeat_one">Repeat one</string>
+    <string name="geras_queue_clear">Clear upcoming</string>
 </resources>

@@ -203,4 +203,10 @@
     <string name="geras_profile_title">Профиль</string>
     <string name="geras_profile_entry">Профиль и статистика</string>
     <string name="geras_profile_entry_hint">Минуты, топ артистов и треков</string>
+    <string name="geras_queue_title">Очередь</string>
+    <string name="geras_queue_shuffle">Перемешать</string>
+    <string name="geras_queue_repeat">Повтор</string>
+    <string name="geras_queue_repeat_all">Повтор всего</string>
+    <string name="geras_queue_repeat_one">Повтор трека</string>
+    <string name="geras_queue_clear">Очистить далее</string>
 </resources>

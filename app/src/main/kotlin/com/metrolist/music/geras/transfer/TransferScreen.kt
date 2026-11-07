@@ -154,7 +154,7 @@ private fun InputPane(error: String?, onLink: (String) -> Unit, onFile: (android
     val scheme = MaterialTheme.colorScheme
     val clipboard = LocalClipboardManager.current
     var link by rememberSaveable { mutableStateOf("") }
-    val valid = TransferReaders.canRead(link)
+    val valid = link.isNotBlank()
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(onFile) }
     val bottom = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
 

@@ -2071,7 +2071,9 @@ fun BottomSheetPlayer(
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
-            Queue(
+            if (useGerasPlayer) {
+                com.metrolist.music.geras.player.GerasQueue(state = gerasQueueState)
+            } else Queue(
                 state = if (useGerasPlayer) gerasQueueState else queueSheetState,
                 playerBottomSheetState = state,
                 background =

@@ -47,6 +47,29 @@ object SoundCloudSource : MusicSource {
 
     fun isScId(mediaId: String?) = mediaId?.startsWith(ID_PREFIX) == true
 
+    /** Share links (on.soundcloud.com/xyz) redirect to the real page; follow them and drop tracking params. */
+    fun expandShortLink(url: String): String {
+        if (!url.contains("on.soundcloud.com") && !url.contains("soundcloud.app.goo.gl")) return url
+        val resolved = runCatching {
+            var current = url
+            repeat(5) {
+                val c = (java.net.URL(current).openConnection() as java.net.HttpURLConnection).apply {
+                    instanceFollowRedirects = false
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36")
+                }
+                val code = c.responseCode
+                val next = c.getHeaderField("Location")
+                c.disconnect()
+                if (code !in 300..399 || next == null) return@runCatching current
+                current = java.net.URL(java.net.URL(current), next).toString()
+            }
+            current
+        }.getOrDefault(url)
+        return resolved.substringBefore('?')
+    }
+
     private fun bigArtwork(url: String?) = url
         ?.replace("-mini.", "-t500x500.")
         ?.replace("-large.", "-t500x500.")
@@ -132,7 +155,8 @@ object SoundCloudSource : MusicSource {
 
     override fun canOpen(url: String): Boolean = "soundcloud.com" in url || "on.soundcloud.com" in url
 
-    override suspend fun resolve(url: String): SourceItem? = withContext(Dispatchers.IO) {
+    override suspend fun resolve(link: String): SourceItem? = withContext(Dispatchers.IO) {
+        val url = expandShortLink(link)
         runCatching {
             when (service.getLinkTypeByUrl(url)) {
                 StreamingService.LinkType.STREAM -> {

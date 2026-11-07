@@ -88,14 +88,15 @@ object TransferReaders {
     fun canRead(text: String): Boolean {
         val t = text.trim()
         return spotifyRe.containsMatchIn(t) || ytListRe.containsMatchIn(t) || ytBrowseRe.containsMatchIn(t) ||
-            ("soundcloud.com" in t && "/sets/" in t)
+            ("soundcloud.com" in t && "/sets/" in t) || "on.soundcloud.com/" in t
     }
 
     suspend fun read(link: String): ImportedPlaylist = withContext(Dispatchers.IO) {
-        val url = link.trim()
+        // Shared text often wraps the link ("Listen to … on #SoundCloud https://…").
+        val url = Regex("""https?://\S+""").find(link)?.value ?: link.trim()
         try {
             spotifyRe.find(url)?.let { m -> return@withContext spotify(m.groupValues[1], m.groupValues[2]) }
-            if ("soundcloud.com" in url) return@withContext soundCloud(url)
+            if ("soundcloud.com" in url) return@withContext soundCloud(SoundCloudSource.expandShortLink(url))
             val ytId = ytListRe.find(url)?.groupValues?.get(1) ?: ytBrowseRe.find(url)?.groupValues?.get(1)?.removePrefix("VL")
             if (ytId != null) return@withContext youtube(ytId)
         } catch (e: TransferException) {
@@ -149,7 +150,8 @@ object TransferReaders {
     }
 
     private suspend fun soundCloud(url: String): ImportedPlaylist {
-        val c = SoundCloudSource.loadCollection(ItemKind.PLAYLIST, url).getOrThrow()
+        if ("/sets/" !in url) throw TransferException(TransferException.Kind.UNSUPPORTED_LINK)
+        val c = SoundCloudSource.loadCollection(ItemKind.PLAYLIST, url.substringBefore('?')).getOrThrow()
         if (c.tracks.isEmpty()) throw TransferException(TransferException.Kind.EMPTY)
         return ImportedPlaylist(
             c.title, TransferSource.SOUNDCLOUD, c.thumbnail,
