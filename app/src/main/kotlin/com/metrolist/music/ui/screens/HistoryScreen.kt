@@ -343,7 +343,7 @@ fun HistoryScreen(
                             showInLibraryIcon = true,
                             trailingContent = {
                                 if (inSelectMode) {
-                                    Checkbox(
+                                    com.metrolist.music.geras.ui.GerasCheckbox(
                                         checked = event.event.id in selection,
                                         onCheckedChange = onCheckedChange,
                                     )
@@ -500,7 +500,7 @@ fun HistoryScreen(
         },
         actions = {
             if (inSelectMode) {
-                Checkbox(
+                com.metrolist.music.geras.ui.GerasCheckbox(
                     checked = selection.size == allEvents.size && selection.isNotEmpty(),
                     onCheckedChange = {
                         if (selection.size == allEvents.size) {

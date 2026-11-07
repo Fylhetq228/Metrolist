@@ -170,7 +170,7 @@ fun RomanizationSettings(
             checkboxesList += Material3SettingsItem(
                 title = { Text(language) },
                 trailingContent = {
-                    Checkbox(
+                    com.metrolist.music.geras.ui.GerasCheckbox(
                         checked = checked,
                         onCheckedChange = { isChecked ->
                             states[index] = Pair(language, isChecked)

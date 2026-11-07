@@ -88,6 +88,8 @@ fun GerasSettingsHome(navController: NavController) {
     val (crossfade, onCrossfadeChange) = rememberPreference(com.metrolist.music.constants.CrossfadeEnabledKey, false)
     val (crossfadeLen, onCrossfadeLenChange) = rememberPreference(com.metrolist.music.constants.CrossfadeDurationKey, 5f)
     val (smartShuffle, onSmartShuffleChange) = rememberPreference(com.metrolist.music.geras.audio.GerasSmartShuffleKey, true)
+    val (normalize, onNormalizeChange) = rememberPreference(com.metrolist.music.constants.AudioNormalizationKey, true)
+    val (skipSilence, onSkipSilenceChange) = rememberPreference(com.metrolist.music.constants.SkipSilenceKey, false)
     var showEq by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
@@ -153,19 +155,38 @@ fun GerasSettingsHome(navController: NavController) {
                     icon = painterResource(R.drawable.graphic_eq),
                     title = { Text(stringResource(R.string.geras_crossfade)) },
                     description = { Text(stringResource(R.string.geras_crossfade_hint)) },
-                    trailingContent = { androidx.compose.material3.Switch(checked = crossfade, onCheckedChange = onCrossfadeChange) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = crossfade, onCheckedChange = onCrossfadeChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
                     onClick = { onCrossfadeChange(!crossfade) },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.volume_up),
+                    title = { Text(stringResource(R.string.geras_normalize)) },
+                    description = { Text(stringResource(R.string.geras_normalize_hint)) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = normalize, onCheckedChange = onNormalizeChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
+                    onClick = { onNormalizeChange(!normalize) },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.fast_forward),
+                    title = { Text(stringResource(R.string.geras_skip_silence)) },
+                    description = { Text(stringResource(R.string.geras_skip_silence_hint)) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = skipSilence, onCheckedChange = onSkipSilenceChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
+                    onClick = { onSkipSilenceChange(!skipSilence) },
                 ),
             ) + if (crossfade) listOf(
                 Material3SettingsItem(
                     title = {
-                        Column {
-                            Row {
-                                Text(stringResource(R.string.geras_crossfade_len), modifier = Modifier.weight(1f))
-                                Text("${crossfadeLen.toInt()} s", color = scheme.onSurfaceVariant)
-                            }
-                            androidx.compose.material3.Slider(value = crossfadeLen, onValueChange = onCrossfadeLenChange, valueRange = 1f..15f, steps = 13)
-                        }
+com.metrolist.music.geras.ui.GerasSlider(
+                                value = crossfadeLen,
+                                onValueChange = onCrossfadeLenChange,
+                                valueRange = 1f..15f,
+                                label = stringResource(R.string.geras_crossfade_len),
+                                valueText = "${crossfadeLen.toInt()} s",
+                                steps = 13,
+                                accent = MaterialTheme.colorScheme.primary,
+                                track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                content = MaterialTheme.colorScheme.onSurface,
+                                onAccent = MaterialTheme.colorScheme.onPrimary,
+                            )
                     },
                 ),
             ) else emptyList(),
@@ -197,7 +218,7 @@ fun GerasSettingsHome(navController: NavController) {
                     icon = painterResource(R.drawable.shuffle),
                     title = { Text(stringResource(R.string.geras_smart_shuffle)) },
                     description = { Text(stringResource(R.string.geras_smart_shuffle_hint)) },
-                    trailingContent = { androidx.compose.material3.Switch(checked = smartShuffle, onCheckedChange = onSmartShuffleChange) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = smartShuffle, onCheckedChange = onSmartShuffleChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
                     onClick = { onSmartShuffleChange(!smartShuffle) },
                 ),
                 Material3SettingsItem(

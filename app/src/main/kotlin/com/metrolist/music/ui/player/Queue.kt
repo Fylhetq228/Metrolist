@@ -840,7 +840,7 @@ fun Queue(
                                     isPlaying = isPlaying && isActive,
                                     trailingContent = {
                                         if (inSelectMode) {
-                                            Checkbox(
+                                            com.metrolist.music.geras.ui.GerasCheckbox(
                                                 checked = window.mediaItem.mediaId in selection,
                                                 onCheckedChange = onCheckedChange,
                                             )
@@ -1138,7 +1138,7 @@ fun Queue(
                         text = pluralStringResource(R.plurals.n_selected, count, count),
                         modifier = Modifier.weight(1f),
                     )
-                    Checkbox(
+                    com.metrolist.music.geras.ui.GerasCheckbox(
                         checked = count == mutableQueueWindows.size && count > 0,
                         onCheckedChange = {
                             if (count == mutableQueueWindows.size) {

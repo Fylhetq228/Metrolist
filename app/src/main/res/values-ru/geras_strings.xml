@@ -223,4 +223,11 @@
     <string name="geras_menu_dislike">Не нравится</string>
     <string name="geras_menu_dislike_hint">Пропустить и реже ставить такое в волне</string>
     <string name="geras_dislike_done">Понял, волна будет это обходить</string>
+    <string name="geras_effects_off">Выключены</string>
+    <string name="geras_loop_hint">Зациклить кусок трека</string>
+    <string name="geras_eq_more">Устройство и усиление</string>
+    <string name="geras_normalize">Ровная громкость</string>
+    <string name="geras_normalize_hint">Треки звучат примерно одинаково громко</string>
+    <string name="geras_skip_silence">Пропуск тишины</string>
+    <string name="geras_skip_silence_hint">Убирает паузы в начале и в конце треков</string>
 </resources>

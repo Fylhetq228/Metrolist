@@ -574,7 +574,7 @@ fun AutoPlaylistScreen(
                             showInLibraryIcon = true,
                             trailingContent = {
                                 if (inSelectMode) {
-                                    Checkbox(
+                                    com.metrolist.music.geras.ui.GerasCheckbox(
                                         checked = song.id in selection,
                                         onCheckedChange = onCheckedChange,
                                     )
@@ -789,7 +789,7 @@ fun AutoPlaylistScreen(
             },
             actions = {
                 if (inSelectMode) {
-                    Checkbox(
+                    com.metrolist.music.geras.ui.GerasCheckbox(
                         checked = selection.size == filteredSongs.size && selection.isNotEmpty(),
                         onCheckedChange = {
                             if (selection.size == filteredSongs.size) {

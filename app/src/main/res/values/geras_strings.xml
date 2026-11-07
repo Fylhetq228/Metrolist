@@ -221,4 +221,11 @@
     <string name="geras_menu_dislike">Not for me</string>
     <string name="geras_menu_dislike_hint">Skip and play less like this in My Wave</string>
     <string name="geras_dislike_done">Got it, the wave will avoid it</string>
+    <string name="geras_effects_off">Off</string>
+    <string name="geras_loop_hint">Loop a part of the track</string>
+    <string name="geras_eq_more">Device and gain</string>
+    <string name="geras_normalize">Even loudness</string>
+    <string name="geras_normalize_hint">Tracks play at a similar volume</string>
+    <string name="geras_skip_silence">Skip silence</string>
+    <string name="geras_skip_silence_hint">Cut quiet gaps at the start and end</string>
 </resources>

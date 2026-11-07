@@ -617,7 +617,7 @@ fun LocalPlaylistScreen(
                             showInLibraryIcon = true,
                             trailingContent = {
                                 if (inSelectMode) {
-                                    Checkbox(
+                                    com.metrolist.music.geras.ui.GerasCheckbox(
                                         checked = selection.contains(song.map.id),
                                         onCheckedChange = onCheckedChange,
                                     )
@@ -798,7 +798,7 @@ fun LocalPlaylistScreen(
             },
             actions = {
                 if (inSelectMode) {
-                    Checkbox(
+                    com.metrolist.music.geras.ui.GerasCheckbox(
                         checked = selection.size == songs.size && selection.isNotEmpty(),
                         onCheckedChange = {
                             if (selection.size == songs.size) {

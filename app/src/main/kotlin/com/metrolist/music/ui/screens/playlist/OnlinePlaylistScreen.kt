@@ -325,7 +325,7 @@ fun OnlinePlaylistScreen(
                                     ).animateItem(),
                             trailingContent = {
                                 if (inSelectMode) {
-                                    Checkbox(
+                                    com.metrolist.music.geras.ui.GerasCheckbox(
                                         checked = songItem.id in selection,
                                         onCheckedChange = onCheckedChange,
                                     )
@@ -430,7 +430,7 @@ fun OnlinePlaylistScreen(
             },
             actions = {
                 if (inSelectMode) {
-                    Checkbox(
+                    com.metrolist.music.geras.ui.GerasCheckbox(
                         checked = selection.size == filteredSongs.size && selection.isNotEmpty(),
                         onCheckedChange = {
                             if (selection.size == filteredSongs.size) {

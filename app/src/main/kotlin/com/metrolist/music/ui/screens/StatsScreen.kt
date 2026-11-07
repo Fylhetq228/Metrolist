@@ -635,7 +635,7 @@ fun StatsScreen(
                             modifier = Modifier.weight(1f), // Allow ArtistListItem to take remaining space
                         )
 
-                        Checkbox(
+                        com.metrolist.music.geras.ui.GerasCheckbox(
                             checked = sArtists.contains(Artist(name = artist.artist.name, id = artist.id)), // Get the current checked state
                             onCheckedChange = {
                                 toggleArtistSelection(uiArtist)
@@ -750,7 +750,7 @@ fun StatsScreen(
         },
         actions = {
             if (inSelectMode) {
-                Checkbox(
+                com.metrolist.music.geras.ui.GerasCheckbox(
                     checked = true,
                     onCheckedChange = {
                     },

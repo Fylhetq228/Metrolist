@@ -121,30 +121,40 @@ fun GerasSettings(navController: NavController) {
                 Material3SettingsItem(
                     title = { Text(stringResource(R.string.geras_glass)) },
                     description = { Text(stringResource(if (glass) R.string.geras_glass_on else R.string.geras_glass_off)) },
-                    trailingContent = { Switch(checked = glass, onCheckedChange = onGlassChange) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = glass, onCheckedChange = onGlassChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
                     onClick = { onGlassChange(!glass) },
                 ),
                 Material3SettingsItem(
                     title = {
-                        Column {
-                            Row {
-                                Text(stringResource(R.string.geras_glass_opacity), modifier = Modifier.weight(1f))
-                                Text("${(opacity * 100).toInt()}%", color = scheme.onSurfaceVariant)
-                            }
-                            Slider(value = opacity, onValueChange = onOpacityChange, valueRange = 0.1f..0.95f, enabled = glass)
-                        }
+com.metrolist.music.geras.ui.GerasSlider(
+                                value = opacity,
+                                onValueChange = onOpacityChange,
+                                valueRange = 0.1f..0.95f,
+                                label = stringResource(R.string.geras_glass_opacity),
+                                valueText = "${(opacity * 100).toInt()}%",
+                                enabled = glass,
+                                accent = MaterialTheme.colorScheme.primary,
+                                track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                content = MaterialTheme.colorScheme.onSurface,
+                                onAccent = MaterialTheme.colorScheme.onPrimary,
+                            )
                     },
                     enabled = glass,
                 ),
                 Material3SettingsItem(
                     title = {
-                        Column {
-                            Row {
-                                Text(stringResource(R.string.geras_glass_blur), modifier = Modifier.weight(1f))
-                                Text(String.format(Locale.US, "%.0fpx", blur), color = scheme.onSurfaceVariant)
-                            }
-                            Slider(value = blur, onValueChange = onBlurChange, valueRange = 0f..40f, enabled = glass)
-                        }
+com.metrolist.music.geras.ui.GerasSlider(
+                                value = blur,
+                                onValueChange = onBlurChange,
+                                valueRange = 0f..40f,
+                                label = stringResource(R.string.geras_glass_blur),
+                                valueText = String.format(Locale.US, "%.0fpx", blur),
+                                enabled = glass,
+                                accent = MaterialTheme.colorScheme.primary,
+                                track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                content = MaterialTheme.colorScheme.onSurface,
+                                onAccent = MaterialTheme.colorScheme.onPrimary,
+                            )
                     },
                     enabled = glass,
                 ),

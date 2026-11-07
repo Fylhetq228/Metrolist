@@ -115,15 +115,23 @@ private fun LabeledSlider(
     c: GerasPlayerColors,
     range: ClosedFloatingPointRange<Float> = 0f..1f,
     enabled: Boolean = true,
+    origin: Float? = null,
     onChange: (Float) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label, color = if (enabled) c.content else c.contentMuted, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Text(valueText, color = c.contentMuted, fontSize = 13.sp)
-        }
-        Slider(value = value, onValueChange = onChange, valueRange = range, enabled = enabled, colors = sliderColors(c))
-    }
+    com.metrolist.music.geras.ui.GerasSlider(
+        value = value,
+        onValueChange = onChange,
+        valueRange = range,
+        label = label,
+        valueText = valueText,
+        enabled = enabled,
+        origin = origin,
+        accent = c.accent,
+        track = c.content.copy(alpha = 0.09f),
+        content = c.content,
+        onAccent = c.onAccent,
+        modifier = Modifier.padding(vertical = 4.dp),
+    )
 }
 
 @OptIn(UnstableApi::class)
@@ -181,32 +189,15 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                     }
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                StepButton("−", c) { GerasAudio.setSpeedFx(fx.copy(speed = fx.speed - 0.01f)) }
-                Slider(
-                    value = fx.speed,
-                    onValueChange = { GerasAudio.setSpeedFx(fx.copy(speed = it)) },
-                    valueRange = 0.5f..2f,
-                    colors = sliderColors(c),
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                )
-                StepButton("+", c) { GerasAudio.setSpeedFx(fx.copy(speed = fx.speed + 0.01f)) }
-            }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 52.dp)) {
-                listOf("0.5x", "1.0x", "1.5x", "2.0x").forEachIndexed { i, t ->
-                    Text(
-                        t,
-                        color = if (i == 1 && abs(fx.speed - 1f) < 0.005f) c.content else c.contentMuted,
-                        fontSize = 11.sp,
-                        modifier = Modifier.weight(1f),
-                        textAlign = when (i) {
-                            0 -> androidx.compose.ui.text.style.TextAlign.Start
-                            3 -> androidx.compose.ui.text.style.TextAlign.End
-                            else -> androidx.compose.ui.text.style.TextAlign.Center
-                        },
-                    )
-                }
-            }
+            Spacer(Modifier.height(10.dp))
+            LabeledSlider(
+                label = stringResource(R.string.geras_speed_title),
+                value = fx.speed,
+                valueText = String.format(Locale.US, "%.2fx", fx.speed),
+                c = c,
+                range = 0.5f..2f,
+                origin = 1f,
+            ) { GerasAudio.setSpeedFx(fx.copy(speed = it)) }
 
             SectionTitle(stringResource(R.string.geras_presets), c)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
@@ -217,40 +208,64 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                 }
             }
 
-            SectionTitle(stringResource(R.string.geras_pitch_mode), c)
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(50))
-                    .background(c.content.copy(alpha = 0.08f))
-                    .padding(4.dp),
+            Spacer(Modifier.height(6.dp))
+            com.metrolist.music.geras.ui.GerasExpandable(
+                title = stringResource(R.string.geras_pitch_mode),
+                summary = if (fx.linked) stringResource(R.string.geras_pitch_linked) else String.format(Locale.US, "%+.1f", fx.pitchSemitones),
+                content = c.content,
+                muted = c.contentMuted,
             ) {
-                Segment(stringResource(R.string.geras_pitch_linked), fx.linked, c, Modifier.weight(1f)) {
-                    GerasAudio.setSpeedFx(fx.copy(linked = true))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(50))
+                        .background(c.content.copy(alpha = 0.08f))
+                        .padding(4.dp),
+                ) {
+                    Segment(stringResource(R.string.geras_pitch_linked), fx.linked, c, Modifier.weight(1f)) {
+                        GerasAudio.setSpeedFx(fx.copy(linked = true))
+                    }
+                    Segment(stringResource(R.string.geras_pitch_keep), !fx.linked, c, Modifier.weight(1f)) {
+                        GerasAudio.setSpeedFx(fx.copy(linked = false))
+                    }
                 }
-                Segment(stringResource(R.string.geras_pitch_keep), !fx.linked, c, Modifier.weight(1f)) {
-                    GerasAudio.setSpeedFx(fx.copy(linked = false))
-                }
+                Spacer(Modifier.height(10.dp))
+                val pitchShown = if (fx.linked) 12f * kotlin.math.log2(fx.speed) else fx.pitchSemitones
+                LabeledSlider(
+                    label = stringResource(R.string.geras_pitch),
+                    value = pitchShown.coerceIn(-12f, 12f),
+                    valueText = String.format(Locale.US, "%+.1f", pitchShown),
+                    c = c,
+                    range = -12f..12f,
+                    enabled = !fx.linked,
+                    origin = 0f,
+                ) { GerasAudio.setSpeedFx(fx.copy(pitchSemitones = Math.round(it * 10) / 10f)) }
+
+
             }
-            Spacer(Modifier.height(10.dp))
-            val pitchShown = if (fx.linked) 12f * kotlin.math.log2(fx.speed) else fx.pitchSemitones
-            LabeledSlider(
-                label = stringResource(R.string.geras_pitch),
-                value = pitchShown.coerceIn(-12f, 12f),
-                valueText = String.format(Locale.US, "%+.1f", pitchShown),
-                c = c,
-                range = -12f..12f,
-                enabled = !fx.linked,
-            ) { GerasAudio.setSpeedFx(fx.copy(pitchSemitones = Math.round(it * 10) / 10f)) }
+            com.metrolist.music.geras.ui.GerasExpandable(
+                title = stringResource(R.string.geras_effects),
+                summary = listOf(stringResource(R.string.geras_reverb) to fx.reverb, "8D" to fx.eightD, stringResource(R.string.geras_bass_boost) to fx.bass)
+                    .filter { it.second > 0.005f }.joinToString(" · ") { it.first + " " + percent(it.second) }.ifEmpty { stringResource(R.string.geras_effects_off) },
+                content = c.content,
+                muted = c.contentMuted,
+            ) {
+                LabeledSlider(stringResource(R.string.geras_reverb), fx.reverb, percent(fx.reverb), c) { GerasAudio.setSpeedFx(fx.copy(reverb = it)) }
+                LabeledSlider("8D", fx.eightD, percent(fx.eightD), c) { GerasAudio.setSpeedFx(fx.copy(eightD = it)) }
+                LabeledSlider(stringResource(R.string.geras_bass_boost), fx.bass, percent(fx.bass), c) { GerasAudio.setSpeedFx(fx.copy(bass = it)) }
 
-            SectionTitle(stringResource(R.string.geras_effects), c)
-            LabeledSlider(stringResource(R.string.geras_reverb), fx.reverb, percent(fx.reverb), c) { GerasAudio.setSpeedFx(fx.copy(reverb = it)) }
-            LabeledSlider("8D", fx.eightD, percent(fx.eightD), c) { GerasAudio.setSpeedFx(fx.copy(eightD = it)) }
-            LabeledSlider(stringResource(R.string.geras_bass_boost), fx.bass, percent(fx.bass), c) { GerasAudio.setSpeedFx(fx.copy(bass = it)) }
 
-            SectionTitle(stringResource(R.string.geras_loop_title), c)
-            LoopControls(c)
+            }
+            com.metrolist.music.geras.ui.GerasExpandable(
+                title = stringResource(R.string.geras_loop_title),
+                summary = stringResource(R.string.geras_loop_hint),
+                content = c.content,
+                muted = c.contentMuted,
+            ) {
+                LoopControls(c)
 
+
+            }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.gerasBounce(0.92f)
@@ -383,30 +398,15 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                 ) {
                     Text(if (bypass) "B" else "A", color = if (bypass) c.onAccent else c.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
-                Switch(checked = profile.enabled, onCheckedChange = { on -> GerasAudio.updateEq { it.copy(enabled = on) } }, colors = switchColors(c))
+                com.metrolist.music.geras.ui.GerasSwitch(
+                    checked = profile.enabled,
+                    onCheckedChange = { on -> GerasAudio.updateEq { it.copy(enabled = on) } },
+                    accent = c.accent,
+                    track = c.content.copy(alpha = 0.15f),
+                )
             }
-            Text(
-                stringResource(if (bypass) R.string.geras_ab_b else R.string.geras_ab_a),
-                color = c.contentMuted,
-                fontSize = 12.sp,
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 14.dp),
-            ) {
-                OutputKind.entries.forEach { kind ->
-                    val label = stringResource(if (kind == OutputKind.HEADPHONES) R.string.geras_eq_headphones else R.string.geras_eq_speaker)
-                    Chip(if (kind == output) "$label •" else label, editing == kind, c, onClick = {
-                        if (auto) GerasAudio.setAutoSwitch(false)
-                        GerasAudio.selectEditing(kind)
-                    })
-                }
-                Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.geras_eq_auto), color = c.contentMuted, fontSize = 13.sp)
-                Spacer(Modifier.width(6.dp))
-                Switch(checked = auto, onCheckedChange = { GerasAudio.setAutoSwitch(it) }, colors = switchColors(c))
+            androidx.compose.animation.AnimatedVisibility(bypass) {
+                Text(stringResource(R.string.geras_ab_b), color = c.contentMuted, fontSize = 12.sp)
             }
 
             Row(
@@ -446,16 +446,44 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                 valueText = percent(profile.surround),
                 c = c,
             ) { v -> GerasAudio.updateEq { it.copy(surround = v) } }
-            LabeledSlider(
-                label = stringResource(R.string.geras_preamp),
-                value = profile.preamp,
-                valueText = String.format(Locale.US, "%+.1f dB", profile.preamp),
-                c = c,
-                range = -12f..6f,
-            ) { v -> GerasAudio.updateEq { it.copy(preamp = Math.round(v * 2) / 2f) } }
+            com.metrolist.music.geras.ui.GerasExpandable(
+                title = stringResource(R.string.geras_eq_more),
+                summary = stringResource(if (output == OutputKind.HEADPHONES) R.string.geras_eq_headphones else R.string.geras_eq_speaker) + if (auto) " · " + stringResource(R.string.geras_eq_auto) else "",
+                content = c.content,
+                muted = c.contentMuted,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 14.dp),
+                ) {
+                    OutputKind.entries.forEach { kind ->
+                        val label = stringResource(if (kind == OutputKind.HEADPHONES) R.string.geras_eq_headphones else R.string.geras_eq_speaker)
+                        Chip(if (kind == output) "$label •" else label, editing == kind, c, onClick = {
+                            if (auto) GerasAudio.setAutoSwitch(false)
+                            GerasAudio.selectEditing(kind)
+                        })
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(stringResource(R.string.geras_eq_auto), color = c.contentMuted, fontSize = 13.sp)
+                    Spacer(Modifier.width(6.dp))
+                    com.metrolist.music.geras.ui.GerasSwitch(checked = auto, onCheckedChange = { GerasAudio.setAutoSwitch(it) }, accent = c.accent, track = c.content.copy(alpha = 0.15f))
+                }
 
-            TextButton(onClick = onOpenAutoEq, modifier = Modifier.align(Alignment.End)) {
-                Text(stringResource(R.string.geras_eq_autoeq), color = c.accent)
+
+                LabeledSlider(
+                    label = stringResource(R.string.geras_preamp),
+                    value = profile.preamp,
+                    valueText = String.format(Locale.US, "%+.1f dB", profile.preamp),
+                    c = c,
+                    range = -12f..6f,
+                    origin = 0f,
+                ) { v -> GerasAudio.updateEq { it.copy(preamp = Math.round(v * 2) / 2f) } }
+
+
+                TextButton(onClick = onOpenAutoEq) {
+                    Text(stringResource(R.string.geras_eq_autoeq), color = c.accent)
+                }
             }
         }
     }
@@ -779,7 +807,7 @@ fun GerasSleepSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                     Text(stringResource(R.string.geras_sleep_fade), color = c.content, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(stringResource(R.string.geras_sleep_fade_hint), color = c.contentMuted, fontSize = 12.sp)
                 }
-                androidx.compose.material3.Switch(checked = fade, onCheckedChange = { fade = it }, colors = switchColors(c))
+                com.metrolist.music.geras.ui.GerasSwitch(checked = fade, onCheckedChange = { fade = it }, accent = c.accent, track = c.content.copy(alpha = 0.15f))
             }
         }
     }

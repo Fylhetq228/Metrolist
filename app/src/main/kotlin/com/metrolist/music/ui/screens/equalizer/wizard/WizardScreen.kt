@@ -386,7 +386,7 @@ private fun VariantItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
+            com.metrolist.music.geras.ui.GerasCheckbox(
                 checked = isSelected,
                 onCheckedChange = { onToggle() }
             )

@@ -148,7 +148,7 @@ fun CsvColumnMappingDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Checkbox(
+                com.metrolist.music.geras.ui.GerasCheckbox(
                     checked = hasHeader,
                     onCheckedChange = { hasHeader = it },
                 )
