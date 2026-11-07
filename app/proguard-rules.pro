@@ -199,7 +199,7 @@
 # Geras: NewPipeExtractor (SoundCloud)
 -dontwarn javax.script.**
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
--keep class org.mozilla.javascript.** { *; }
--keep class org.mozilla.classfile.ClassFileWriter
--dontwarn org.mozilla.javascript.tools.**
+-dontwarn org.mozilla.javascript.**
+-dontwarn org.mozilla.classfile.**
+-dontwarn jdk.dynalink.**
 -dontwarn java.beans.**
