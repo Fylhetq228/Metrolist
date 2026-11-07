@@ -15,6 +15,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -161,3 +162,12 @@ fun Modifier.gerasPop(active: Boolean): Modifier = composed {
         scaleY = scale.value
     }
 }
+
+/** Track change for titles: the old line slides up and fades, the new one rises from below. */
+val GerasTextSwap: androidx.compose.animation.ContentTransform
+    get() = (
+        androidx.compose.animation.slideInVertically(spring(dampingRatio = 0.8f, stiffness = 380f, visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1))) { it / 2 } +
+            fadeIn(tween(260, delayMillis = 60))
+        ) togetherWith (
+        androidx.compose.animation.slideOutVertically(tween(220)) { -it / 2 } + fadeOut(tween(160))
+        )

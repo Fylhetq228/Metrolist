@@ -625,7 +625,7 @@ private fun TitleBlock(
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         AnimatedContent(
             targetState = mediaMetadata?.title.orEmpty(),
-            transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(150)) },
+            transitionSpec = { com.metrolist.music.geras.ui.GerasTextSwap },
             label = "title",
         ) { title ->
             Text(

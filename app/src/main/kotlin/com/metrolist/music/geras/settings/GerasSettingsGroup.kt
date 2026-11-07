@@ -2,6 +2,8 @@ package com.metrolist.music.geras.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,11 +52,20 @@ fun GerasSettingsGroup(title: String?, items: List<Material3SettingsItem>, modif
                 .background(scheme.surfaceContainer),
         ) {
             items.forEachIndexed { index, item ->
+                // iOS-like row highlight instead of a ripple.
+                val interaction = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val pressed by interaction.collectIsPressedAsState()
+                val highlight by androidx.compose.animation.animateColorAsState(
+                    if (pressed) scheme.onSurface.copy(alpha = 0.08f) else scheme.onSurface.copy(alpha = 0f),
+                    androidx.compose.animation.core.tween(if (pressed) 60 else 320),
+                    label = "rowHighlight",
+                )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = item.enabled && item.onClick != null) { item.onClick?.invoke() }
+                        .background(highlight)
+                        .clickable(interaction, indication = null, enabled = item.enabled && item.onClick != null) { item.onClick?.invoke() }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
                     val alpha = if (item.enabled) 1f else 0.38f

@@ -145,6 +145,22 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
             Cover(covers.getOrNull(0), 120.dp, Modifier.align(Alignment.TopStart).offset(y = 10.dp).graphicsLayer { translationY = bob * 6f })
             Cover(covers.getOrNull(1), 66.dp, Modifier.align(Alignment.TopEnd).offset(x = (-14).dp).graphicsLayer { translationY = -bob * 5f })
             Cover(covers.getOrNull(2), 60.dp, Modifier.align(Alignment.Center).offset(x = 38.dp, y = (-6).dp).graphicsLayer { translationY = bob * 4f }, circle = true)
+            // Breathing halo around the play button, like a soft sonar ping.
+            val ping by floatAnim.animateFloat(0f, 1f, infiniteRepeatable(tween(2400), RepeatMode.Restart), label = "ping")
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-6).dp)
+                    .size(76.dp)
+                    .graphicsLayer {
+                        val k = 1f + ping * 0.45f
+                        scaleX = k
+                        scaleY = k
+                        alpha = (1f - ping) * 0.45f
+                    }
+                    .clip(RoundedCornerShape(50))
+                    .background(scheme.primary),
+            )
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.gerasBounce(0.94f)
@@ -228,7 +244,7 @@ private fun ModeChip(text: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.gerasBounce(0.94f)
             .height(32.dp)
             .clip(RoundedCornerShape(50))
-            .background(if (selected) scheme.onSurface.copy(alpha = 0.12f) else Color.Transparent)
+            .background(androidx.compose.animation.animateColorAsState(if (selected) scheme.onSurface.copy(alpha = 0.12f) else Color.Transparent, label = "mode").value)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
     ) {

@@ -310,7 +310,7 @@ private fun Segment(text: String, selected: Boolean, modifier: Modifier, onClick
         modifier = modifier.gerasBounce(0.95f)
             .height(36.dp)
             .clip(RoundedCornerShape(50))
-            .background(if (selected) scheme.surfaceContainerHighest else Color.Transparent)
+            .background(androidx.compose.animation.animateColorAsState(if (selected) scheme.surfaceContainerHighest else Color.Transparent, androidx.compose.animation.core.spring(stiffness = 500f), label = "seg").value)
             .clickable(onClick = onClick),
     ) {
         Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (selected) scheme.onSurface else scheme.onSurfaceVariant)
@@ -325,11 +325,11 @@ private fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.gerasBounce(0.95f)
             .height(34.dp)
             .clip(RoundedCornerShape(50))
-            .background(if (selected) scheme.primary else scheme.surfaceContainer)
+            .background(androidx.compose.animation.animateColorAsState(if (selected) scheme.primary else scheme.surfaceContainer, androidx.compose.animation.core.spring(stiffness = 500f), label = "chip").value)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
     ) {
-        Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (selected) scheme.onPrimary else scheme.onSurface)
+        Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = androidx.compose.animation.animateColorAsState(if (selected) scheme.onPrimary else scheme.onSurface, label = "chipText").value)
     }
 }
 
@@ -547,7 +547,7 @@ private fun LazyListScope.emptyStateContent(
     if (history.isNotEmpty()) {
         item(key = "history_title") { SectionHeader(stringResource(R.string.geras_search_history)) }
         items(history, key = { "h" + it.id }) { entry ->
-            HistoryRow(entry.query, onClick = { viewModel.query.value = entry.query }, onDelete = { viewModel.deleteHistory(entry) })
+            Box(Modifier.animateItem()) { HistoryRow(entry.query, onClick = { viewModel.query.value = entry.query }, onDelete = { viewModel.deleteHistory(entry) }) }
         }
     }
 }
@@ -670,14 +670,14 @@ private fun LazyListScope.onlineContent(
         }
     }
     if (kind == null) {
-        online.top?.let { top -> item(key = "top") { TopResultCard(top, { open(top) }, { showMenu(top) }) } }
+        online.top?.let { top -> item(key = "top") { Box(Modifier.animateItem()) { TopResultCard(top, { open(top) }, { showMenu(top) }) } } }
         online.sections.forEach { section ->
             val k = section.kind ?: return@forEach
             item(key = "title_$k") {
                 SectionHeader(kindLabel(k), stringResource(R.string.geras_more)) { viewModel.kind.value = k }
             }
             if (k == ItemKind.TRACK) {
-                items(section.items.take(6), key = { "t_" + it.sourceId + it.id }) { ResultRow(it, { open(it) }, { showMenu(it) }) }
+                items(section.items.take(6), key = { "t_" + it.sourceId + it.id }) { Box(Modifier.animateItem()) { ResultRow(it, { open(it) }, { showMenu(it) }) } }
             } else {
                 item(key = "row_$k") {
                     LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
@@ -688,7 +688,7 @@ private fun LazyListScope.onlineContent(
         }
     } else {
         val items = online.sections.flatMap { it.items }
-        items(items, key = { "f_" + it.sourceId + it.id }) { ResultRow(it, { open(it) }, { showMenu(it) }) }
+        items(items, key = { "f_" + it.sourceId + it.id }) { Box(Modifier.animateItem()) { ResultRow(it, { open(it) }, { showMenu(it) }) } }
         if (online.loading && items.isNotEmpty()) {
             item(key = "more_loading") {
                 Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {

@@ -360,12 +360,14 @@ fun GerasMiniPlayer(
                     .clip(RoundedCornerShape(50))
                     .background(scheme.surfaceVariant),
             ) {
-                AsyncImage(
-                    model = metadata?.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                androidx.compose.animation.Crossfade(targetState = metadata?.thumbnailUrl, animationSpec = androidx.compose.animation.core.tween(350), label = "miniCover") { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 ProgressRing(positionState, durationState, scheme.primary)
             }
             Spacer(Modifier.width(12.dp))
@@ -377,6 +379,13 @@ fun GerasMiniPlayer(
                         alpha = 1f - (abs(offset.value) / 400f).coerceIn(0f, 0.7f)
                     },
             ) {
+              androidx.compose.animation.AnimatedContent(
+                targetState = metadata,
+                contentKey = { it?.id },
+                transitionSpec = { GerasTextSwap },
+                label = "miniText",
+              ) { metadata ->
+               Column {
                 Text(
                     text = metadata?.title.orEmpty(),
                     fontSize = 15.sp,
@@ -392,6 +401,8 @@ fun GerasMiniPlayer(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+               }
+              }
             }
             Box(Modifier.gerasPop(liked)) {
                 MiniButton(if (liked) R.drawable.favorite else R.drawable.favorite_border, if (liked) scheme.error else scheme.onSurface) {
