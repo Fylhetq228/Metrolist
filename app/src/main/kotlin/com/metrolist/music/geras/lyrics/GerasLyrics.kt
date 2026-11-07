@@ -199,6 +199,16 @@ fun GerasLyrics(
     val currentSong by playerConnection.currentSong.collectAsStateWithLifecycle(initialValue = null)
     val lyricsEntity by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
     val rawLyrics = remember(lyricsEntity) { lyricsEntity?.lyrics?.trim() }
+    // Lyrics saved earlier may belong to another song with the same title: drop them so the
+    // player fetches again with the stricter check.
+    val databaseForCheck = com.metrolist.music.LocalDatabase.current
+    LaunchedEffect(lyricsEntity, mediaMetadata?.duration) {
+        val entity = lyricsEntity ?: return@LaunchedEffect
+        val duration = mediaMetadata?.takeIf { it.id == entity.id }?.duration ?: return@LaunchedEffect
+        if (!GerasLyricsCheck.plausible(entity.lyrics, entity.provider, duration)) {
+            databaseForCheck.query { delete(entity) }
+        }
+    }
     val lines by lyricsViewModel.lines.collectAsStateWithLifecycle()
 
     LaunchedEffect(rawLyrics, enabledLanguages, romanizeCyrillicByLine) {

@@ -49,6 +49,7 @@ constructor(
         currentLyricsJob?.cancel()
 
         val cached = cache.get(mediaMetadata.id)?.firstOrNull()
+            ?.takeIf { com.metrolist.music.geras.lyrics.GerasLyricsCheck.plausible(it.lyrics, it.providerName, mediaMetadata.duration) }
         if (cached != null) {
             return LyricsWithProvider(cached.lyrics, cached.providerName)
         }
@@ -94,6 +95,13 @@ constructor(
                     null
                 }
 
+                // Geras: skip lyrics that cannot belong to this track (same title, other song).
+                if (providerResult != null && providerResult.isSuccess &&
+                    !com.metrolist.music.geras.lyrics.GerasLyricsCheck.plausible(providerResult.getOrNull(), provider.name, mediaMetadata.duration)
+                ) {
+                    Timber.tag("LyricsHelper").w("${provider.name} returned lyrics of another song, skipping")
+                    continue
+                }
                 if (providerResult != null && providerResult.isSuccess) {
                     Timber.tag("LyricsHelper").i("Got lyrics from ${provider.name}")
                     val filtered = LyricsUtils.filterLyricsCreditLines(providerResult.getOrNull()!!)
