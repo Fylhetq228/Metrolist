@@ -207,4 +207,14 @@
     <string name="geras_queue_repeat_all">Repeat all</string>
     <string name="geras_queue_repeat_one">Repeat one</string>
     <string name="geras_queue_clear">Clear upcoming</string>
+    <string name="geras_wave_by_track">Wave from track</string>
+    <string name="geras_wave_started">Wave from this track is on</string>
+    <string name="geras_menu_to_playlist">To playlist</string>
+    <string name="geras_menu_share">Share</string>
+    <string name="geras_menu_artist">Go to artist</string>
+    <string name="geras_menu_album">Go to album</string>
+    <string name="geras_menu_add_library">Add to library</string>
+    <string name="geras_menu_remove_library">Remove from library</string>
+    <string name="geras_menu_speed_hint">Slowed, Nightcore, A-B repeat</string>
+    <string name="geras_menu_details">Track details</string>
 </resources>

@@ -1882,13 +1882,8 @@ class MusicService :
 
         scope.launch(SilentHandler) {
             // Use simple videoId to let YouTube personalize recommendations
-            val radioQueue =
-                YouTubeQueue(
-                    endpoint =
-                        WatchEndpoint(
-                            videoId = currentMediaId,
-                        ),
-                )
+            // Geras: "radio" from the player is My Wave seeded from the current track.
+            val radioQueue: Queue = com.metrolist.music.geras.wave.GerasWave.queue(currentMediaMetadata)
 
             try {
                 val initialStatus =

@@ -157,6 +157,7 @@ class GerasPlayerActions(
     val onSpeed: () -> Unit = {},
     val onClip: () -> Unit = {},
     val onSleep: () -> Unit = {},
+    val onWave: () -> Unit = {},
     val onClearLoop: () -> Unit = {},
 )
 
@@ -314,10 +315,12 @@ fun GerasPlayerContent(
             onMenu = {
                 val metadata = mediaMetadata ?: return@GerasPlayerActions
                 menuState.show {
-                    PlayerMenu(
+                    GerasPlayerMenu(
                         mediaMetadata = metadata,
                         playerBottomSheetState = state,
-                        onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } },
+                        onShowDetails = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } },
+                        onSleep = { showSleepSheet = true },
+                        onSpeed = { showSpeedSheet = true },
                         onDismiss = menuState::dismiss,
                     )
                 }
@@ -354,6 +357,10 @@ fun GerasPlayerContent(
             onEqualizer = { showEqSheet = true },
             onSpeed = { showSpeedSheet = true },
             onSleep = { showSleepSheet = true },
+            onWave = {
+                playerConnection.startRadioSeamlessly()
+                Toast.makeText(context, context.getString(R.string.geras_wave_started), Toast.LENGTH_SHORT).show()
+            },
             onClearLoop = { com.metrolist.music.geras.audio.GerasLoop.clear() },
             onClip = {
                 if (clipMode) {
@@ -569,26 +576,21 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
             .fillMaxWidth()
             .height(48.dp),
     ) {
-        androidx.compose.animation.AnimatedVisibility(
-            visible = ui.clipAvailable,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterStart),
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .gerasBounce(0.88f)
+                .size(40.dp)
+                .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background))
+                .clickable(enabled = ui.interactive, onClick = actions.onWave),
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.gerasBounce(0.9f)
-                    .size(40.dp)
-                    .gerasRaised(RoundedCornerShape(50), if (ui.showClip) colors.accent else colors.surface.compositeOver(colors.background))
-                    .clickable(enabled = ui.interactive, onClick = actions.onClip),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.slow_motion_video),
-                    contentDescription = stringResource(R.string.geras_clip),
-                    tint = if (ui.showClip) colors.onAccent else colors.content,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Icon(
+                painter = painterResource(R.drawable.geras_wave),
+                contentDescription = stringResource(R.string.geras_wave_by_track),
+                tint = colors.content,
+                modifier = Modifier.size(21.dp),
+            )
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -633,16 +635,40 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
                 }
             }
         }
-        RoundIcon(
-            icon = R.drawable.more_horiz,
-            tint = colors.content,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background)),
-            size = 40.dp,
-            iconSize = 20.dp,
-            onClick = actions.onMenu,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = ui.clipAvailable,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                            ) {
+                Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.gerasBounce(0.9f)
+                            .size(40.dp)
+                            .gerasRaised(RoundedCornerShape(50), if (ui.showClip) colors.accent else colors.surface.compositeOver(colors.background))
+                            .clickable(enabled = ui.interactive, onClick = actions.onClip),
+                ) {
+                        Icon(
+                            painter = painterResource(R.drawable.slow_motion_video),
+                            contentDescription = stringResource(R.string.geras_clip),
+                            tint = if (ui.showClip) colors.onAccent else colors.content,
+                            modifier = Modifier.size(20.dp),
+                        )
+                }
+            }
+            RoundIcon(
+                icon = R.drawable.more_horiz,
+                tint = colors.content,
+                modifier = Modifier.gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background)),
+                size = 40.dp,
+                iconSize = 20.dp,
+                onClick = actions.onMenu,
+            )
+        }
     }
 }
 

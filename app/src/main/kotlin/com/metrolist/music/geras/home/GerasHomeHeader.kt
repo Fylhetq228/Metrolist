@@ -82,13 +82,16 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
     var mode by rememberSaveable { mutableStateOf(WaveMode.USUAL) }
     val scheme = MaterialTheme.colorScheme
 
-    val covers = remember(quickPicks, discover, mode) {
+    val recentTop by remember { database.mostPlayedSongs(java.time.LocalDateTime.now().minusDays(60), limit = 12) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val covers = remember(quickPicks, discover, mode, recentTop) {
         val list = if (mode == WaveMode.DISCOVER) {
             discover.orEmpty().mapNotNull { it.recommendation.thumbnail }
         } else {
             quickPicks.orEmpty().mapNotNull { it.song.thumbnailUrl }
         }
-        list.distinct().take(4).map { it.resize(400, 400) }
+        // Quick picks may still be loading (or empty offline): fall back to what you play most.
+        (list + recentTop.mapNotNull { it.song.thumbnailUrl }).distinct().take(4).map { it.resize(400, 400) }
     }
 
     val waveTitle = stringResource(R.string.geras_my_wave)

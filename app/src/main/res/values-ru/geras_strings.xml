@@ -209,4 +209,14 @@
     <string name="geras_queue_repeat_all">Повтор всего</string>
     <string name="geras_queue_repeat_one">Повтор трека</string>
     <string name="geras_queue_clear">Очистить далее</string>
+    <string name="geras_wave_by_track">Волна по треку</string>
+    <string name="geras_wave_started">Включена волна по этому треку</string>
+    <string name="geras_menu_to_playlist">В плейлист</string>
+    <string name="geras_menu_share">Поделиться</string>
+    <string name="geras_menu_artist">К исполнителю</string>
+    <string name="geras_menu_album">К альбому</string>
+    <string name="geras_menu_add_library">В медиатеку</string>
+    <string name="geras_menu_remove_library">Убрать из медиатеки</string>
+    <string name="geras_menu_speed_hint">Slowed, Nightcore, повтор A-B</string>
+    <string name="geras_menu_details">О треке</string>
 </resources>
