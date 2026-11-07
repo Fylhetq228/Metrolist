@@ -498,7 +498,7 @@ internal fun LineView(
             )
             .padding(vertical = 2.dp),
     ) {
-        KaraokeText(line, isActive && synced, clock, colors, textAlign)
+        KaraokeText(line, isActive && synced, clock, colors, textAlign, past = isPast)
         val sub = listOfNotNull(romanized?.takeIf { it.isNotBlank() && it != line.text }, translated?.takeIf { it.isNotBlank() })
         sub.forEach { s ->
             Text(
@@ -512,6 +512,11 @@ internal fun LineView(
     }
 }
 
+/**
+ * Lyrics style C ("glowing words"): the line is dim until a word is sung; that word lights up,
+ * glows and pops up with a little overshoot, then stays bright. Each word is measured on its
+ * own so its glow is never clipped by its neighbours.
+ */
 @Composable
 private fun KaraokeText(
     line: KLine,
@@ -519,8 +524,9 @@ private fun KaraokeText(
     clock: MutableLongState,
     colors: GerasLyricsColors,
     textAlign: TextAlign,
+    past: Boolean = false,
 ) {
-    val measurer = rememberTextMeasurer(cacheSize = 4)
+    val measurer = rememberTextMeasurer(cacheSize = 16)
     val density = LocalDensity.current
     // TextMeasurer does not inherit the theme, so the app font has to be passed explicitly.
     val family = MaterialTheme.typography.bodyLarge.fontFamily
@@ -547,8 +553,23 @@ private fun KaraokeText(
         val bright = remember(line, widthPx, colors) {
             measurer.measure(annotated(colors.active, colors.backing), style, constraints = Constraints(maxWidth = widthPx))
         }
+        // One layout per word, placed where the word sits in the full line.
+        class Piece(val word: KWord, val layout: TextLayoutResult, val dimLayout: TextLayoutResult, val at: Offset)
+        val pieces = remember(line, widthPx, colors) {
+            line.words.mapNotNull { w ->
+                val first = w.charStart.coerceIn(0, (line.text.length - 1).coerceAtLeast(0))
+                if (line.text.isEmpty() || w.charEnd <= w.charStart) return@mapNotNull null
+                val row = bright.getLineForOffset(first)
+                val x = bright.getHorizontalPosition(first, true)
+                val sub = annotated(colors.active, colors.backing).subSequence(w.charStart, w.charEnd.coerceAtMost(line.text.length))
+                val subDim = annotated(colors.inactive, colors.inactive.copy(alpha = colors.inactive.alpha * 0.75f)).subSequence(w.charStart, w.charEnd.coerceAtMost(line.text.length))
+                val oneLine = style.copy(textAlign = TextAlign.Start)
+                Piece(w, measurer.measure(sub, oneLine, softWrap = false), measurer.measure(subDim, oneLine, softWrap = false), Offset(x, bright.getLineTop(row)))
+            }
+        }
         val heightDp = with(density) { dim.size.height.toDp() }
-        val featherPx = with(density) { 28.dp.toPx() }
+        val liftPx = with(density) { 4.dp.toPx() }
+        val glowColor = colors.active
 
         Canvas(
             Modifier
@@ -556,92 +577,51 @@ private fun KaraokeText(
                 .height(heightDp),
         ) {
             if (!filling) {
-                drawText(dim)
+                drawText(if (past) bright else dim)
+                return@Canvas
+            }
+            if (pieces.isEmpty()) {
+                drawText(if (clock.longValue >= line.start) bright else dim)
                 return@Canvas
             }
             val t = clock.longValue
-            val cursor = cursorFor(line, t)
-            val (cursorLine, x) = if (cursor <= 0f) (-1 to 0f) else cursorPosition(bright, cursor, line.text.length)
-            val liftPx = 3.5.dp.toPx()
-            val pad = 10.dp.toPx()
-
-            fun DrawScope.paintRegion(clip: Rect, rowIdx: Int, glow: Float) {
-                clipRect(clip.left, clip.top, clip.right, clip.bottom) {
-                    drawText(dim)
-                    when {
-                        cursorLine < 0 || rowIdx > cursorLine -> Unit
-                        rowIdx < cursorLine -> {
-                            drawText(bright)
-                        }
-                        else -> drawIntoCanvas { canvas ->
-                            canvas.saveLayer(Rect(Offset.Zero, size), Paint())
-                            drawText(bright)
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    0f to Color.Transparent,
-                                    1f to Color.Black,
-                                    startX = x - featherPx * 0.35f,
-                                    endX = x + featherPx * 0.65f,
-                                ),
-                                topLeft = Offset(0f, bright.getLineTop(rowIdx)),
-                                size = Size(size.width, bright.getLineBottom(rowIdx) - bright.getLineTop(rowIdx)),
-                                blendMode = BlendMode.DstOut,
-                            )
-                            canvas.restore()
+            pieces.forEach { pc ->
+                val w = pc.word
+                when {
+                    t < w.start -> drawText(pc.dimLayout, topLeft = pc.at)
+                    else -> {
+                        val since = (t - w.start).toFloat()
+                        val after = (t - w.end).toFloat()
+                        // Pop: ease-out-back on the way up, settle back once the word is over.
+                        val up = easeOutBack((since / 180f).coerceIn(0f, 1f))
+                        val down = if (after > 0f) (1f - (after / 320f)).coerceIn(0f, 1f) else 1f
+                        val k = up * down
+                        val glow = (if (after > 0f) (1f - after / 450f) else 1f).coerceIn(0f, 1f)
+                        val scale = 1f + 0.08f * k
+                        val cx = pc.at.x + pc.layout.size.width / 2f
+                        val cy = pc.at.y + pc.layout.size.height / 2f
+                        withTransform({
+                            translate(0f, -liftPx * k)
+                            scale(scale, scale, Offset(cx, cy))
+                        }) {
+                            if (glow > 0.02f) {
+                                drawText(pc.layout, topLeft = pc.at, shadow = Shadow(glowColor.copy(alpha = 0.85f * glow), Offset.Zero, 26f))
+                                drawText(pc.layout, topLeft = pc.at, shadow = Shadow(Color.White.copy(alpha = 0.6f * glow), Offset.Zero, 6f))
+                            }
+                            drawText(pc.layout, topLeft = pc.at)
                         }
                     }
                 }
             }
-
-            if (line.words.isEmpty()) {
-                for (row in 0 until bright.lineCount) {
-                    paintRegion(Rect(0f, bright.getLineTop(row), size.width, bright.getLineBottom(row)), row, 0f)
-                }
-                return@Canvas
-            }
-            // Each word rises a little while it is sung and glows; sung words stay slightly up.
-            var drawnTo = 0
-            line.words.forEach { w ->
-                val first = w.charStart.coerceIn(0, line.text.length - 1)
-                val last = (w.charEnd - 1).coerceIn(first, line.text.length - 1)
-                val row = bright.getLineForOffset(first)
-                if (bright.getLineForOffset(last) != row) {
-                    paintRegion(Rect(0f, bright.getLineTop(row), size.width, bright.getLineBottom(bright.getLineForOffset(last))), row, 0f)
-                    return@forEach
-                }
-                val p = when {
-                    t < w.start -> 0f
-                    t >= w.end -> 1f
-                    else -> (t - w.start).toFloat() / (w.end - w.start).coerceAtLeast(1)
-                }
-                val singing = t >= w.start && t < w.end + 250
-                val lift = when {
-                    p <= 0f -> 0f
-                    p >= 1f -> 0.35f + 0.65f * kotlin.math.max(0f, 1f - (t - w.end) / 350f)
-                    else -> kotlin.math.sin(p * Math.PI / 2).toFloat()
-                } * liftPx
-                val glow = if (singing) 1f - kotlin.math.abs(p - 0.5f) else 0f
-                val left = minOf(bright.getHorizontalPosition(first, true), bright.getHorizontalPosition(last + 1, true))
-                val right = maxOf(bright.getHorizontalPosition(first, true), bright.getHorizontalPosition(last + 1, true))
-                val rect = Rect(left - 2f, bright.getLineTop(row) - pad, right + 2f, bright.getLineBottom(row) + pad)
-                if (glow > 0.05f) {
-                    // Soft light behind the word being sung.
-                    val c = Offset((left + right) / 2f, (bright.getLineTop(row) + bright.getLineBottom(row)) / 2f - lift)
-                    val rowH = bright.getLineBottom(row) - bright.getLineTop(row)
-                    val radius = minOf((right - left) * 0.6f + 10.dp.toPx(), rowH * 0.9f)
-                    drawCircle(
-                        Brush.radialGradient(listOf(colors.active.copy(alpha = 0.14f * glow), Color.Transparent), center = c, radius = radius),
-                        radius = radius,
-                        center = c,
-                    )
-                }
-                withTransform({ translate(0f, -lift) }) {
-                    paintRegion(rect, row, glow)
-                }
-                drawnTo = maxOf(drawnTo, w.charEnd)
-            }
         }
     }
+}
+
+private fun easeOutBack(x: Float): Float {
+    val c1 = 2.2f
+    val c3 = c1 + 1f
+    val y = x - 1f
+    return 1f + c3 * y * y * y + c1 * y * y
 }
 
 /** Fractional character offset that should be filled at time [t]. */
