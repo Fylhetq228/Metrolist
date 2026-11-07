@@ -185,4 +185,5 @@
     <string name="geras_crossfade">Crossfade</string>
     <string name="geras_crossfade_hint">Tracks blend into each other</string>
     <string name="geras_crossfade_len">Length</string>
+    <string name="geras_search_by_lyrics">From the lyrics</string>
 </resources>

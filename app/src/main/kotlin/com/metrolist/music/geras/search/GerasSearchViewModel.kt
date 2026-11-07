@@ -56,6 +56,8 @@ data class OnlineState(
     val sections: List<SourceSection> = emptyList(),
     val continuation: Pair<String, String>? = null,
     val error: String? = null,
+    /** Songs whose lyrics contain the query, for queries that look like a line. */
+    val lyricsHits: List<SourceItem> = emptyList(),
 )
 
 data class LibraryState(
@@ -173,6 +175,10 @@ class GerasSearchViewModel @Inject constructor(
                 }
             }
             _online.value = pages.toState(q, effective.takeIf { it != q }, correction)
+            if ((k == null || k == ItemKind.TRACK) && (s == null || s == "ytm") && LyricsLineSearch.looksLikeLine(q)) {
+                val hits = runCatching { LyricsLineSearch.search(q) }.getOrDefault(emptyList())
+                if (hits.isNotEmpty() && _online.value.query == q) _online.value = _online.value.copy(lyricsHits = hits)
+            }
         }
     }
 

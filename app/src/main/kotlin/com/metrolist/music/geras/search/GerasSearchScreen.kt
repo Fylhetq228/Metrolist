@@ -675,6 +675,10 @@ private fun LazyListScope.onlineContent(
     }
     if (kind == null) {
         online.top?.let { top -> item(key = "top") { Box(Modifier.animateItem()) { TopResultCard(top, { open(top) }, { showMenu(top) }) } } }
+        if (online.lyricsHits.isNotEmpty()) {
+            item(key = "lyrics_title") { Box(Modifier.animateItem()) { SectionHeader(stringResource(R.string.geras_search_by_lyrics)) } }
+            items(online.lyricsHits, key = { "ly_" + it.id }) { Box(Modifier.animateItem()) { ResultRow(it, { open(it) }, { showMenu(it) }) } }
+        }
         online.sections.forEach { section ->
             val k = section.kind ?: return@forEach
             item(key = "title_$k") {

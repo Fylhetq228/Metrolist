@@ -187,4 +187,5 @@
     <string name="geras_crossfade">Плавный переход</string>
     <string name="geras_crossfade_hint">Треки перетекают друг в друга</string>
     <string name="geras_crossfade_len">Длительность</string>
+    <string name="geras_search_by_lyrics">По строчке из текста</string>
 </resources>
