@@ -137,8 +137,12 @@ fun GerasSearchScreen(viewModel: GerasSearchViewModel = hiltViewModel()) {
     val open: (SourceItem) -> Unit = { item ->
         focusManager.clearFocus()
         if (query.isNotBlank()) viewModel.commitHistory(online.corrected ?: query)
-        viewModel.rememberOpened(item)
-        MusicSources.byId(item.sourceId)?.open(item, openContext)
+        if (item.sourceId == TRANSFER_SOURCE) {
+            navController.navigate(com.metrolist.music.geras.transfer.transferRoute(item.raw as? String))
+        } else {
+            viewModel.rememberOpened(item)
+            MusicSources.byId(item.sourceId)?.open(item, openContext)
+        }
     }
     val showMenu: (SourceItem) -> Unit = { item ->
         when (val raw = item.raw) {

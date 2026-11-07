@@ -392,6 +392,13 @@ fun NavGraphBuilder.navigationBuilder(
         )
     }
 
+    composable(
+        route = com.metrolist.music.geras.transfer.TransferRoute,
+        arguments = listOf(androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null }),
+    ) { entry ->
+        com.metrolist.music.geras.transfer.TransferScreen(navController, entry.arguments?.getString("url"))
+    }
+
     composable(com.metrolist.music.geras.settings.GerasSettingsRoute) {
         com.metrolist.music.geras.settings.GerasSettings(navController)
     }

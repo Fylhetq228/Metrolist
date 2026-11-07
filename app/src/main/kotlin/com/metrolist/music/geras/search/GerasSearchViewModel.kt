@@ -75,6 +75,8 @@ private data class StoredItem(
     val thumbnail: String?,
 )
 
+const val TRANSFER_SOURCE = "transfer"
+
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GerasSearchViewModel @Inject constructor(
@@ -272,6 +274,19 @@ class GerasSearchViewModel @Inject constructor(
         val url = text?.trim()?.takeIf { it.startsWith("http") && it.length < 500 } ?: return
         if (url == lastLink) return
         lastLink = url
+        // Spotify playlists and albums can only be transferred, not opened directly.
+        com.metrolist.music.geras.transfer.TransferReaders.spotifyKind(url)?.let {
+            _link.value = SourceItem(
+                sourceId = TRANSFER_SOURCE,
+                kind = ItemKind.PLAYLIST,
+                id = url,
+                title = context.getString(com.metrolist.music.R.string.geras_transfer_link_title),
+                subtitle = context.getString(com.metrolist.music.R.string.geras_transfer_link_sub),
+                thumbnail = null,
+                raw = url,
+            )
+            return
+        }
         viewModelScope.launch {
             _link.value = withContext(Dispatchers.IO) {
                 runCatching { MusicSources.forUrl(url)?.resolve(url) ?: SpotifyLinks.resolve(url) }.getOrNull()

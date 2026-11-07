@@ -154,6 +154,12 @@ fun GerasSettingsHome(navController: NavController) {
             modifier = Modifier.gerasAppear(3),
             items = listOf(
                 Material3SettingsItem(
+                    icon = painterResource(R.drawable.geras_transfer),
+                    title = { Text(stringResource(R.string.geras_transfer_title)) },
+                    description = { Text(stringResource(R.string.geras_transfer_menu_hint)) },
+                    onClick = { navController.navigate(com.metrolist.music.geras.transfer.transferRoute()) },
+                ),
+                Material3SettingsItem(
                     icon = painterResource(R.drawable.history),
                     title = { Text(stringResource(R.string.history)) },
                     onClick = { navController.navigate("history") },
