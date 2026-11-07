@@ -44,6 +44,36 @@ private const val MIN_LINE_MS = 1_200L
  * otherwise words spread over the line proportionally to their length. Long pauses become
  * [KItem.Gap] so the UI can show the "..." indicator.
  */
+/**
+ * True when the parsed lines really carry timing. Checked on the parsed result, not on the raw
+ * text, so TTML/XML lyrics (word-synced, no LRC brackets) are recognised too.
+ */
+fun linesAreTimed(entries: List<LyricsEntry>): Boolean {
+    val times = entries.filter { it.text.isNotBlank() }.map { it.time }
+    if (times.size < 2) return false
+    val distinct = times.distinct().size
+    return distinct >= minOf(3, times.size) && times.zipWithNext().count { (a, b) -> b >= a } >= (times.size - 1) * 0.8
+}
+
+/**
+ * Plain (untimed) lyrics: spread the lines over the track so the text still flows with the
+ * music. Approximate by nature, so the screen marks it as such and does not seek on tap.
+ */
+fun estimateTiming(entries: List<LyricsEntry>, durationMs: Long): List<LyricsEntry> {
+    val lines = entries.filter { it.text.isNotBlank() }
+    if (lines.isEmpty() || durationMs < 30_000) return entries
+    val start = (durationMs * 0.07).toLong()
+    val span = (durationMs * 0.86).toLong()
+    val weights = lines.map { it.text.length + 12f }
+    val total = weights.sum()
+    var acc = 0f
+    return lines.mapIndexed { i, e ->
+        val t = start + (span * (acc / total)).toLong()
+        acc += weights[i]
+        e.copy(time = t, words = null)
+    }
+}
+
 fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
     val source = entries.filter { it.text.isNotBlank() || !it.words.isNullOrEmpty() }
     if (source.isEmpty()) return emptyList()
@@ -55,7 +85,13 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
 
     val lines = source.mapIndexed { i, e ->
         val nextStart = source.drop(i + 1).firstOrNull { !it.isBackground || !e.isBackground }?.time
-        val words = e.words?.filter { it.text.isNotEmpty() }
+        val words = e.words?.filter { it.text.isNotEmpty() }?.takeIf { ws ->
+            // Some providers send word lists with zero or nonsense times: interpolate those instead.
+            val first = (ws.first().startTime * 1000).toLong()
+            val last = (ws.last().endTime * 1000).toLong()
+            last > first && first >= e.time - 3_000 && (nextStart == null || first <= nextStart + 3_000) &&
+                ws.zipWithNext().all { (a, b) -> b.startTime >= a.startTime - 0.05 }
+        }
         if (!words.isNullOrEmpty()) {
             val sb = StringBuilder()
             val kw = words.mapIndexed { wi, w ->

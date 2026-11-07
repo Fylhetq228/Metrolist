@@ -69,6 +69,10 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -200,8 +204,14 @@ fun GerasLyrics(
     LaunchedEffect(rawLyrics, enabledLanguages, romanizeCyrillicByLine) {
         lyricsViewModel.processLyrics(rawLyrics, enabledLanguages, romanizeCyrillicByLine, false)
     }
-    val synced = remember(rawLyrics) { lyricsTextLooksSynced(rawLyrics) }
-    val items = remember(lines, synced) { buildKaraoke(lines, synced) }
+    // Timing is judged on the parsed lines (TTML has no LRC brackets); untimed lyrics get an
+    // estimated flow over the track instead of sitting still.
+    val timed = remember(lines) { linesAreTimed(lines) }
+    val durationMs = (mediaMetadata?.duration ?: 0) * 1000L
+    val estimated = !timed && lines.count { it.text.isNotBlank() } >= 4 && durationMs >= 30_000
+    val timedLines = remember(lines, estimated, durationMs) { if (estimated) estimateTiming(lines, durationMs) else lines }
+    val synced = timed || estimated
+    val items = remember(timedLines, synced) { buildKaraoke(timedLines, synced) }
 
     TranslationEffects(lines = lines, showLyrics = showLyrics, songId = currentSong?.id)
 
@@ -328,8 +338,9 @@ fun GerasLyrics(
                                     clock = clock,
                                     colors = colors,
                                     respectAgents = respectAgents,
+                                    calm = !touching && System.currentTimeMillis() - lastUserTouch > USER_SCROLL_PAUSE_MS,
                                     onClick = {
-                                        if (synced && !isGuest) {
+                                        if (timed && !isGuest) {
                                             lastUserTouch = 0L
                                             playerConnection.seekTo((line.start - lyricsOffset).coerceAtLeast(0))
                                             resumeTick++
@@ -435,14 +446,19 @@ internal fun LineView(
     clock: MutableLongState,
     colors: GerasLyricsColors,
     respectAgents: Boolean,
+    calm: Boolean = true,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
+    // A small overshoot makes the new line "arrive" instead of just fading in.
     val emphasis by animateFloatAsState(
         targetValue = if (isActive || !synced) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 260f),
         label = "lineEmphasis",
     )
+    // Depth of field like Apple Music: lines further from the current one go soft.
+    val blurTarget = if (!synced || isActive || !calm) 0f else (distance.coerceAtMost(4) * 1.1f)
+    val blurDp by animateFloatAsState(blurTarget, tween(450), label = "lineBlur")
     val textAlign = when {
         respectAgents && line.agent == "v2" -> TextAlign.End
         respectAgents && line.agent == "v1000" -> TextAlign.Center
@@ -465,8 +481,13 @@ internal fun LineView(
                 val s = scaleBase * (0.93f + 0.07f * emphasis)
                 scaleX = s
                 scaleY = s
+                translationY = (1f - emphasis.coerceIn(0f, 1f)) * 6.dp.toPx() * if (isPast) -1f else 1f
                 transformOrigin = origin
-                alpha = if (!synced) 1f else (0.55f + 0.45f * emphasis) * (1f - far * 0.35f)
+                alpha = if (!synced) 1f else (0.5f + 0.5f * emphasis.coerceIn(0f, 1f)) * (1f - far * 0.35f)
+                if (android.os.Build.VERSION.SDK_INT >= 31 && blurDp > 0.2f) {
+                    val px = blurDp.dp.toPx()
+                    renderEffect = androidx.compose.ui.graphics.BlurEffect(px, px, androidx.compose.ui.graphics.TileMode.Decal)
+                }
             }
             .clip(RoundedCornerShape(12.dp))
             .combinedClickable(
@@ -538,33 +559,86 @@ private fun KaraokeText(
                 drawText(dim)
                 return@Canvas
             }
-            drawText(dim)
-            val cursor = cursorFor(line, clock.longValue)
-            if (cursor <= 0f) return@Canvas
-            val (lineIdx, x) = cursorPosition(bright, cursor, line.text.length)
-            val layerBounds = Rect(Offset.Zero, size)
-            drawIntoCanvas { canvas ->
-                canvas.saveLayer(layerBounds, Paint())
-                drawText(bright)
-                val lineTop = bright.getLineTop(lineIdx)
-                val lineBottom = bright.getLineBottom(lineIdx)
-                // Hide everything below the cursor line.
-                if (lineBottom < size.height) {
-                    drawRect(Color.Black, Offset(0f, lineBottom), Size(size.width, size.height - lineBottom), blendMode = BlendMode.DstOut)
+            val t = clock.longValue
+            val cursor = cursorFor(line, t)
+            val (cursorLine, x) = if (cursor <= 0f) (-1 to 0f) else cursorPosition(bright, cursor, line.text.length)
+            val liftPx = 3.5.dp.toPx()
+            val pad = 10.dp.toPx()
+
+            fun DrawScope.paintRegion(clip: Rect, rowIdx: Int, glow: Float) {
+                clipRect(clip.left, clip.top, clip.right, clip.bottom) {
+                    drawText(dim)
+                    when {
+                        cursorLine < 0 || rowIdx > cursorLine -> Unit
+                        rowIdx < cursorLine -> {
+                            drawText(bright)
+                        }
+                        else -> drawIntoCanvas { canvas ->
+                            canvas.saveLayer(Rect(Offset.Zero, size), Paint())
+                            drawText(bright)
+                            drawRect(
+                                brush = Brush.horizontalGradient(
+                                    0f to Color.Transparent,
+                                    1f to Color.Black,
+                                    startX = x - featherPx * 0.35f,
+                                    endX = x + featherPx * 0.65f,
+                                ),
+                                topLeft = Offset(0f, bright.getLineTop(rowIdx)),
+                                size = Size(size.width, bright.getLineBottom(rowIdx) - bright.getLineTop(rowIdx)),
+                                blendMode = BlendMode.DstOut,
+                            )
+                            canvas.restore()
+                        }
+                    }
                 }
-                // Soft edge on the cursor line: fully filled left of the cursor, fading out over the feather.
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        0f to Color.Transparent,
-                        1f to Color.Black,
-                        startX = x - featherPx * 0.35f,
-                        endX = x + featherPx * 0.65f,
-                    ),
-                    topLeft = Offset(0f, lineTop),
-                    size = Size(size.width, lineBottom - lineTop),
-                    blendMode = BlendMode.DstOut,
-                )
-                canvas.restore()
+            }
+
+            if (line.words.isEmpty()) {
+                for (row in 0 until bright.lineCount) {
+                    paintRegion(Rect(0f, bright.getLineTop(row), size.width, bright.getLineBottom(row)), row, 0f)
+                }
+                return@Canvas
+            }
+            // Each word rises a little while it is sung and glows; sung words stay slightly up.
+            var drawnTo = 0
+            line.words.forEach { w ->
+                val first = w.charStart.coerceIn(0, line.text.length - 1)
+                val last = (w.charEnd - 1).coerceIn(first, line.text.length - 1)
+                val row = bright.getLineForOffset(first)
+                if (bright.getLineForOffset(last) != row) {
+                    paintRegion(Rect(0f, bright.getLineTop(row), size.width, bright.getLineBottom(bright.getLineForOffset(last))), row, 0f)
+                    return@forEach
+                }
+                val p = when {
+                    t < w.start -> 0f
+                    t >= w.end -> 1f
+                    else -> (t - w.start).toFloat() / (w.end - w.start).coerceAtLeast(1)
+                }
+                val singing = t >= w.start && t < w.end + 250
+                val lift = when {
+                    p <= 0f -> 0f
+                    p >= 1f -> 0.35f + 0.65f * kotlin.math.max(0f, 1f - (t - w.end) / 350f)
+                    else -> kotlin.math.sin(p * Math.PI / 2).toFloat()
+                } * liftPx
+                val glow = if (singing) 1f - kotlin.math.abs(p - 0.5f) else 0f
+                val left = minOf(bright.getHorizontalPosition(first, true), bright.getHorizontalPosition(last + 1, true))
+                val right = maxOf(bright.getHorizontalPosition(first, true), bright.getHorizontalPosition(last + 1, true))
+                val rect = Rect(left - 2f, bright.getLineTop(row) - pad, right + 2f, bright.getLineBottom(row) + pad)
+                if (glow > 0.05f) {
+                    // Soft light behind the word being sung.
+                    val c = Offset((left + right) / 2f, (bright.getLineTop(row) + bright.getLineBottom(row)) / 2f - lift)
+                    val rowH = bright.getLineBottom(row) - bright.getLineTop(row)
+                    val radius = minOf((right - left) * 0.6f + 10.dp.toPx(), rowH * 0.9f)
+                    drawCircle(
+                        Brush.radialGradient(listOf(colors.active.copy(alpha = 0.14f * glow), Color.Transparent), center = c, radius = radius),
+                        radius = radius,
+                        center = c,
+                    )
+                }
+                withTransform({ translate(0f, -lift) }) {
+                    paintRegion(rect, row, glow)
+                }
+                drawnTo = maxOf(drawnTo, w.charEnd)
             }
         }
     }
