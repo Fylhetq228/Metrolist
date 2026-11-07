@@ -203,7 +203,20 @@ fun GerasPlayerMenu(
                 ),
             )
         }
-        GerasMenuCard(rows)
+        GerasMenuCard(
+            rows + GerasMenuRow(
+                icon = { Icon(painterResource(R.drawable.geras_dislike), null) },
+                title = { Text(stringResource(R.string.geras_menu_dislike)) },
+                description = { Text(stringResource(R.string.geras_menu_dislike_hint)) },
+                trailing = null,
+                onClick = {
+                    com.metrolist.music.geras.wave.GerasWave.dislike(mediaMetadata.id, mediaMetadata.artists.firstOrNull()?.name)
+                    if (playerConnection.player.hasNextMediaItem()) playerConnection.seekToNext()
+                    Toast.makeText(context, R.string.geras_dislike_done, Toast.LENGTH_SHORT).show()
+                    onDismiss()
+                },
+            ),
+        )
         Spacer(Modifier.height(12.dp))
         GerasMenuCard(
             listOf(

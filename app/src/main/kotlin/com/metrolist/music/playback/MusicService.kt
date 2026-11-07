@@ -1344,6 +1344,7 @@ class MusicService :
         createdPlayer = player
         com.metrolist.music.geras.audio.GerasAudio.attach(this, player)
         com.metrolist.music.geras.wave.GerasWave.database = database
+        com.metrolist.music.geras.wave.GerasWave.init(this)
 
         playerNormalizationProcessors[player] = normalizationProcessor
         playerSilenceProcessors[player] = silenceProcessor

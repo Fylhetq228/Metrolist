@@ -171,7 +171,18 @@ object GerasAudio {
         players += WeakReference(player)
         player.addListener(
             object : Player.Listener {
+                private var lastArtist: String? = null
+                private var startedAt = System.currentTimeMillis()
+
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    // Wave feedback: a quick manual skip vs. a track played to the end.
+                    val listened = System.currentTimeMillis() - startedAt
+                    when (reason) {
+                        Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> if (listened < 30_000) com.metrolist.music.geras.wave.GerasWave.skipped(lastArtist)
+                        Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> com.metrolist.music.geras.wave.GerasWave.enjoyed(lastArtist)
+                    }
+                    lastArtist = mediaItem?.mediaMetadata?.artist?.toString()?.substringBefore(',')
+                    startedAt = System.currentTimeMillis()
                     onTrackChanged(mediaItem?.mediaId)
                 }
             },

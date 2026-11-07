@@ -218,4 +218,7 @@
     <string name="geras_menu_speed_hint">Slowed, Nightcore, A-B repeat</string>
     <string name="geras_menu_details">Track details</string>
     <string name="geras_rescue_toast">YouTube refused this track over your connection, playing it from SoundCloud</string>
+    <string name="geras_menu_dislike">Not for me</string>
+    <string name="geras_menu_dislike_hint">Skip and play less like this in My Wave</string>
+    <string name="geras_dislike_done">Got it, the wave will avoid it</string>
 </resources>

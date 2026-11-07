@@ -220,4 +220,7 @@
     <string name="geras_menu_speed_hint">Slowed, Nightcore, повтор A-B</string>
     <string name="geras_menu_details">О треке</string>
     <string name="geras_rescue_toast">YouTube не отдаёт трек через это подключение, играю его с SoundCloud</string>
+    <string name="geras_menu_dislike">Не нравится</string>
+    <string name="geras_menu_dislike_hint">Пропустить и реже ставить такое в волне</string>
+    <string name="geras_dislike_done">Понял, волна будет это обходить</string>
 </resources>
