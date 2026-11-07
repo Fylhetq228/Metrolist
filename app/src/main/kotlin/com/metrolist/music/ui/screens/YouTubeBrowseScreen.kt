@@ -196,7 +196,7 @@ fun YouTubeBrowseScreen(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(browseResult?.title.orEmpty()) },
         navigationIcon = {
             IconButton(

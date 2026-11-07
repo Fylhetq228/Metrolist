@@ -182,7 +182,7 @@ fun ArtistSongsScreen(
             }
         }
 
-        TopAppBar(
+        com.metrolist.music.geras.ui.GerasTopAppBar(
             title = { Text(artist?.artist?.name.orEmpty()) },
             navigationIcon = {
                 IconButton(

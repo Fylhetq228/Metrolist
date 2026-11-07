@@ -1012,7 +1012,7 @@ fun ArtistScreen(
         )
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { if (!transparentAppBar) Text(displayArtistName.orEmpty()) },
         navigationIcon = {
             IconButton(

@@ -1114,7 +1114,7 @@ fun ContentSettings(
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.content)) },
         navigationIcon = {
             IconButton(

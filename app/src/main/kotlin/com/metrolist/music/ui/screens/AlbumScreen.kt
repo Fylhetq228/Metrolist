@@ -520,7 +520,7 @@ fun AlbumScreen(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = {
             if (inSelectMode) {
                 Text(pluralStringResource(R.plurals.n_selected, selection.size, selection.size))

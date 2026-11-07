@@ -350,7 +350,7 @@ fun CachePlaylistScreen(
             headerItems = 2
         )
 
-        TopAppBar(
+        com.metrolist.music.geras.ui.GerasTopAppBar(
             title = {
                 when {
                     inSelectMode -> {

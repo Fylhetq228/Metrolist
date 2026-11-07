@@ -107,7 +107,7 @@ fun ChartsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = { Text(stringResource(R.string.charts)) },
                 navigationIcon = {
                     IconButton(

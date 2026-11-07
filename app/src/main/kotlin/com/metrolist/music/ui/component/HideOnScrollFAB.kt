@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.FloatingActionButton
+import com.metrolist.music.geras.ui.gerasBounce
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
@@ -43,8 +44,8 @@ fun BoxScope.HideOnScrollFAB(
 ) {
     AnimatedVisibility(
         visible = visible && lazyListState.isScrollingUp(),
-        enter = slideInVertically { it },
-        exit = slideOutVertically { it },
+        enter = slideInVertically(androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 420f)) { it } + androidx.compose.animation.scaleIn(initialScale = 0.6f),
+        exit = slideOutVertically { it } + androidx.compose.animation.scaleOut(targetScale = 0.6f),
         modifier =
         Modifier
             .align(Alignment.BottomEnd)
@@ -60,8 +61,9 @@ fun BoxScope.HideOnScrollFAB(
             if (onRecognitionClick != null) {
                 SmallFloatingActionButton(
                     onClick = onRecognitionClick,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
@@ -74,6 +76,10 @@ fun BoxScope.HideOnScrollFAB(
             }
             FloatingActionButton(
                 onClick = onClick,
+                shape = androidx.compose.foundation.shape.CircleShape,
+                containerColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.gerasBounce(0.9f),
             ) {
                 Icon(
                     painter = painterResource(icon),

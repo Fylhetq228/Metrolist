@@ -365,7 +365,7 @@ fun LoginScreen(
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
 
-        TopAppBar(
+        com.metrolist.music.geras.ui.GerasTopAppBar(
             title = {
                 Text(
                     stringResource(

@@ -57,7 +57,7 @@ fun IntegrationScreen(
         )
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.integrations)) },
         navigationIcon = {
             IconButton(

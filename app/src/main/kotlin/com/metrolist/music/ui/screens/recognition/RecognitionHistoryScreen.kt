@@ -148,7 +148,7 @@ fun RecognitionHistoryScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = { Text(stringResource(R.string.recognition_history)) },
                 navigationIcon = {
                     IconButton(

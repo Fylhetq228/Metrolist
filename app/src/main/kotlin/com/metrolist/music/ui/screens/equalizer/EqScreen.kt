@@ -186,7 +186,7 @@ private fun EqScreenContent(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = { Text(stringResource(R.string.equalizer_header)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

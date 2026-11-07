@@ -217,7 +217,7 @@ fun BackupAndRestore(
         )
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.backup_restore)) },
         navigationIcon = {
             IconButton(

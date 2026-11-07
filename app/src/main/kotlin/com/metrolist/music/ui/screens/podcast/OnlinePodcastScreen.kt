@@ -234,7 +234,7 @@ fun OnlinePodcastScreen(
             }
         }
 
-        TopAppBar(
+        com.metrolist.music.geras.ui.GerasTopAppBar(
             title = {
                 if (isSearching) {
                     TextField(

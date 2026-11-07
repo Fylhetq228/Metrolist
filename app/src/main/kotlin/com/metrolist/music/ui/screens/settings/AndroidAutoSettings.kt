@@ -367,7 +367,7 @@ fun AndroidAutoSettings(
         Spacer(Modifier.height(27.dp))
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.android_auto)) },
         navigationIcon = {
             IconButton(

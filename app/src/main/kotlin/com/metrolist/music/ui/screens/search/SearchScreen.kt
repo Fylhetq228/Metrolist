@@ -178,7 +178,7 @@ fun SearchScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

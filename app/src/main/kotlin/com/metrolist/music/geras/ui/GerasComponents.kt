@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -165,3 +166,51 @@ fun GerasMenuCard(rows: List<GerasMenuRow>, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/**
+ * Drop-in for Material's TopAppBar on the old Metrolist screens: background-coloured bar,
+ * bold title and the back button in a soft circle. Caller colours are ignored on purpose.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun GerasTopAppBar(
+    title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+    windowInsets: androidx.compose.foundation.layout.WindowInsets = androidx.compose.material3.TopAppBarDefaults.windowInsets,
+    @Suppress("UNUSED_PARAMETER") colors: androidx.compose.material3.TopAppBarColors? = null,
+    scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+    androidx.compose.material3.TopAppBar(
+        title = {
+            ProvideTextStyle(MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)) { title() }
+        },
+        modifier = modifier,
+        navigationIcon = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .androidxDrawCircleBehind(scheme.surfaceContainerHigh),
+            ) { navigationIcon() }
+        },
+        actions = actions,
+        windowInsets = windowInsets,
+        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+            containerColor = scheme.background,
+            scrolledContainerColor = scheme.surfaceContainer,
+            titleContentColor = scheme.onSurface,
+            navigationIconContentColor = scheme.onSurface,
+            actionIconContentColor = scheme.onSurface,
+        ),
+        scrollBehavior = scrollBehavior,
+    )
+}
+
+private fun Modifier.androidxDrawCircleBehind(color: Color): Modifier = this.then(
+    Modifier.drawBehind {
+        if (size.width > 1f) drawCircle(color, radius = minOf(size.width, size.height) / 2f - 2.dp.toPx())
+    },
+)

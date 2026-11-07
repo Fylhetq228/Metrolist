@@ -188,7 +188,7 @@ fun RomanizationSettings(
         )
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.lyrics_romanize_title)) },
         navigationIcon = {
             IconButton(

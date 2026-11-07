@@ -200,7 +200,7 @@ fun RecognitionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = { Text(stringResource(R.string.recognize_music)) },
                 navigationIcon = {
                     IconButton(

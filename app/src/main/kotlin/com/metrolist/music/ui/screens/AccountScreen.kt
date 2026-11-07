@@ -318,7 +318,7 @@ fun AccountScreen(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.account)) },
         navigationIcon = {
             IconButton(

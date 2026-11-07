@@ -513,7 +513,7 @@ fun ListenTogetherSettings(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.listen_together)) },
         navigationIcon = {
             IconButton(

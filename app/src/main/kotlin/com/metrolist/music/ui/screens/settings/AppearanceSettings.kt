@@ -1857,7 +1857,7 @@ fun AppearanceSettings(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.appearance)) },
         navigationIcon = {
             IconButton(

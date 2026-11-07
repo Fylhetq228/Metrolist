@@ -168,7 +168,7 @@ fun ThemeScreen(
         )
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.theme_colors)) },
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {

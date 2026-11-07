@@ -102,7 +102,7 @@ fun NewReleaseScreen(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.new_release_albums)) },
         navigationIcon = {
             IconButton(

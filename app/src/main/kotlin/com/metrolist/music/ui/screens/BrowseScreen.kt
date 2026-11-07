@@ -144,7 +144,7 @@ fun BrowseScreen(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(title ?: "") },
         navigationIcon = {
             IconButton(

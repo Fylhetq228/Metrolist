@@ -417,7 +417,7 @@ fun ListenTogetherScreen(
     }
 
     if (shouldShowTopBar) {
-        TopAppBar(
+        com.metrolist.music.geras.ui.GerasTopAppBar(
             title = { Text(stringResource(R.string.together)) },
             navigationIcon = {
                 IconButton(

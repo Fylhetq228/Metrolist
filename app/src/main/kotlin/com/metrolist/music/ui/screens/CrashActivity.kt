@@ -117,7 +117,7 @@ fun CrashScreen(
     
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = { 
                     Text(
                         text = stringResource(R.string.crash_title),

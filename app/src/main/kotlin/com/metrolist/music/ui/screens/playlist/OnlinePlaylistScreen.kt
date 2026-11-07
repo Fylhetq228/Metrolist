@@ -359,7 +359,7 @@ fun OnlinePlaylistScreen(
             }
         }
 
-        TopAppBar(
+        com.metrolist.music.geras.ui.GerasTopAppBar(
             title = {
                 if (inSelectMode) {
                     Text(

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import com.metrolist.music.R
@@ -183,6 +184,15 @@ fun gerasTypography(textFamily: FontFamily = GerasFonts.manrope): Typography {
     )
 }
 
+/** Softer, rounder corners everywhere Material components are still used. */
+private val GerasShapes = androidx.compose.material3.Shapes(
+    extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+    small = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(26.dp),
+    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
+)
+
 private val typographies = HashMap<String, Typography>()
 
 private fun typographyFor(id: String): Typography = typographies.getOrPut(id) { gerasTypography(GerasFonts.byId(id)) }
@@ -216,5 +226,5 @@ fun GerasAppTheme(
     val amoled = darkTheme && (pureBlack || preset == GerasThemePreset.AMOLED)
     val scheme = gerasColorScheme(hue, sat, darkTheme, amoled)
     val font by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasFontKey, "MANROPE")
-    MaterialTheme(colorScheme = scheme, typography = typographyFor(font), content = content)
+    MaterialTheme(colorScheme = scheme, typography = typographyFor(font), shapes = GerasShapes, content = content)
 }

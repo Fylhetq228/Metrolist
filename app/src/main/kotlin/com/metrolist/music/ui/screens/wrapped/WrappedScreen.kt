@@ -196,7 +196,7 @@ fun WrappedScreenContent() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = onClose) {

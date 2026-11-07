@@ -105,7 +105,7 @@ fun MoodAndGenresScreen(
         }
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.mood_and_genres)) },
         navigationIcon = {
             IconButton(

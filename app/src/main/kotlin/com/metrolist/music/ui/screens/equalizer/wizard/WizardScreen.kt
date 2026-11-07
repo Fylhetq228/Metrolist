@@ -64,7 +64,7 @@ private fun WizardScreenContent(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
+            com.metrolist.music.geras.ui.GerasTopAppBar(
                 title = {
                     Text(
                         text = when (state.currentStep) {

@@ -877,7 +877,7 @@ fun DiscordSettings(
         )
     }
 
-    TopAppBar(
+    com.metrolist.music.geras.ui.GerasTopAppBar(
         title = { Text(stringResource(R.string.discord_integration)) },
         navigationIcon = {
             IconButton(
