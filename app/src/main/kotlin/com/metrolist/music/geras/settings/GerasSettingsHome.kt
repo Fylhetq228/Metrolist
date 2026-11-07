@@ -94,6 +94,12 @@ fun GerasSettingsHome(navController: NavController) {
         com.metrolist.music.geras.source.soundcloud.GerasScFirst.init(context)
         mutableStateOf(com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled)
     }
+    var dpi by remember {
+        com.metrolist.music.geras.net.GerasDpi.init(context)
+        mutableStateOf(com.metrolist.music.geras.net.GerasDpi.enabled)
+    }
+    var dpiMethod by remember { mutableStateOf(com.metrolist.music.geras.net.GerasDpi.method) }
+    var restartHint by remember { mutableStateOf(false) }
     var showEq by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
@@ -250,6 +256,34 @@ com.metrolist.music.geras.ui.GerasSlider(
             ),
         )
 
+        Spacer(Modifier.height(10.dp))
+        GerasSettingsGroup(
+            title = stringResource(R.string.geras_section_network),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.language),
+                    title = { Text(stringResource(R.string.geras_dpi)) },
+                    description = { Text(stringResource(if (restartHint) R.string.geras_dpi_restart else R.string.geras_dpi_hint)) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = dpi, onCheckedChange = { dpi = it; com.metrolist.music.geras.net.GerasDpi.enabled = it; restartHint = true }, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
+                    onClick = {
+                        dpi = !dpi
+                        com.metrolist.music.geras.net.GerasDpi.enabled = dpi
+                        restartHint = true
+                    },
+                ),
+            ) + if (dpi) listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.tune),
+                    title = { Text(stringResource(R.string.geras_dpi_method)) },
+                    description = { Text(stringResource(if (dpiMethod == 0) R.string.geras_dpi_method_a else R.string.geras_dpi_method_b)) },
+                    onClick = {
+                        dpiMethod = 1 - dpiMethod
+                        com.metrolist.music.geras.net.GerasDpi.method = dpiMethod
+                        restartHint = true
+                    },
+                ),
+            ) else emptyList(),
+        )
         Spacer(Modifier.height(10.dp))
         GerasSettingsGroup(
             title = stringResource(R.string.geras_section_search),

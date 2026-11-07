@@ -230,4 +230,11 @@
     <string name="geras_skip_silence_hint">Cut quiet gaps at the start and end</string>
     <string name="geras_sc_first">Sound from SoundCloud</string>
     <string name="geras_sc_first_hint">Plays the same recording from SoundCloud when it is there in full, otherwise YouTube</string>
+    <string name="geras_section_network">Network</string>
+    <string name="geras_dpi">Bypass throttling without VPN</string>
+    <string name="geras_dpi_hint">Experimental. Hides YouTube and SoundCloud traffic from the provider\'s filter without a VPN</string>
+    <string name="geras_dpi_restart">Close and reopen the app to apply</string>
+    <string name="geras_dpi_method">Bypass method</string>
+    <string name="geras_dpi_method_a">A: split the TLS record and packets (tap to switch)</string>
+    <string name="geras_dpi_method_b">B: split packets only (tap to switch)</string>
 </resources>

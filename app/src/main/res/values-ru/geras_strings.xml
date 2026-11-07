@@ -232,4 +232,11 @@
     <string name="geras_skip_silence_hint">Убирает паузы в начале и в конце треков</string>
     <string name="geras_sc_first">Звук из SoundCloud</string>
     <string name="geras_sc_first_hint">Если трек есть на SoundCloud целиком, играет оттуда, иначе с YouTube</string>
+    <string name="geras_section_network">Сеть</string>
+    <string name="geras_dpi">Обход замедления без VPN</string>
+    <string name="geras_dpi_hint">Экспериментально. Прячет запросы к YouTube и SoundCloud от фильтра провайдера, без VPN</string>
+    <string name="geras_dpi_restart">Закрой и снова открой приложение, чтобы применить</string>
+    <string name="geras_dpi_method">Способ обхода</string>
+    <string name="geras_dpi_method_a">A: резать TLS-запись и пакеты (нажми, чтобы сменить)</string>
+    <string name="geras_dpi_method_b">B: резать только пакеты (нажми, чтобы сменить)</string>
 </resources>

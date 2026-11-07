@@ -73,6 +73,12 @@ class App :
         // process claim WebView's data directory and crash the next main-process WebView.
         if (!isMainProcess()) return
 
+        // Geras: optional in-app DPI bypass for YouTube throttling (no VPN). A proxy set by the
+        // user in Metrolist's own settings still wins, it is applied later.
+        com.metrolist.music.geras.net.GerasDpi.init(this)
+        com.metrolist.music.geras.lyrics.GerasLyricsVerify.init(this)
+        com.metrolist.music.geras.net.GerasDpi.proxy?.let { YouTube.proxy = it }
+
         // Install crash handler first
         CrashHandler.install(this)
         ArtistNameAliases.initialize(this)
@@ -302,6 +308,12 @@ class App :
         return ImageLoader
             .Builder(this)
             .apply {
+                // Geras: covers go through the same throttling bypass when it is on.
+                com.metrolist.music.geras.net.GerasDpi.proxy?.let { dpi ->
+                    components {
+                        add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(callFactory = { okhttp3.OkHttpClient.Builder().proxy(dpi).build() }))
+                    }
+                }
                 crossfade(true)
                 allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
                 // Memory cache for fast image loading (prevents network requests on recomposition)
