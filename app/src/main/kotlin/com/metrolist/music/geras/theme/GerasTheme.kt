@@ -37,17 +37,36 @@ enum class GerasThemePreset(val hue: Float, val saturation: Float) {
 // Static instances cut from the variable fonts: variation axes on resource fonts are not
 // applied reliably on every Android build, which made text fall back to the thin default.
 object GerasFonts {
-    val text = FontFamily(
-        Font(R.font.geras_manrope_400, FontWeight.Normal),
-        Font(R.font.geras_manrope_500, FontWeight.Medium),
-        Font(R.font.geras_manrope_600, FontWeight.SemiBold),
-        Font(R.font.geras_manrope_700, FontWeight.Bold),
-        Font(R.font.geras_manrope_800, FontWeight.ExtraBold),
+    private fun family(r400: Int, r500: Int, r600: Int, r700: Int, r800: Int) = FontFamily(
+        Font(r400, FontWeight.Normal),
+        Font(r500, FontWeight.Medium),
+        Font(r600, FontWeight.SemiBold),
+        Font(r700, FontWeight.Bold),
+        Font(r800, FontWeight.ExtraBold),
     )
+
+    val manrope = family(R.font.geras_manrope_400, R.font.geras_manrope_500, R.font.geras_manrope_600, R.font.geras_manrope_700, R.font.geras_manrope_800)
+    val onest = family(R.font.geras_onest_400, R.font.geras_onest_500, R.font.geras_onest_600, R.font.geras_onest_700, R.font.geras_onest_800)
+    val inter = family(R.font.geras_inter_400, R.font.geras_inter_500, R.font.geras_inter_600, R.font.geras_inter_700, R.font.geras_inter_800)
+    val montserrat = family(R.font.geras_montserrat_400, R.font.geras_montserrat_500, R.font.geras_montserrat_600, R.font.geras_montserrat_700, R.font.geras_montserrat_800)
+
+    /** Default text font; kept for code that needs a family outside the theme. */
+    val text = manrope
     val display = FontFamily(
         Font(R.font.geras_unbounded_700, FontWeight.Bold),
         Font(R.font.geras_unbounded_900, FontWeight.Black),
     )
+
+    /** Ids stored in GerasFontKey, in the order shown on the Appearance screen. */
+    val choices: List<Pair<String, FontFamily>> = listOf(
+        "MANROPE" to manrope,
+        "ONEST" to onest,
+        "INTER" to inter,
+        "MONTSERRAT" to montserrat,
+        "SYSTEM" to FontFamily.Default,
+    )
+
+    fun byId(id: String): FontFamily = choices.firstOrNull { it.first == id }?.second ?: manrope
 }
 
 private fun hsl(h: Float, s: Float, l: Float): Color =
@@ -142,13 +161,13 @@ fun gerasColorScheme(hue: Float, sat: Float, dark: Boolean, amoled: Boolean): Co
     }
 }
 
-fun gerasTypography(): Typography {
+fun gerasTypography(textFamily: FontFamily = GerasFonts.manrope): Typography {
     val t = Typography()
-    fun TextStyle.text(weight: FontWeight? = null) = copy(fontFamily = GerasFonts.text, fontWeight = weight ?: fontWeight)
+    fun TextStyle.text(weight: FontWeight? = null) = copy(fontFamily = textFamily, fontWeight = weight ?: fontWeight)
     return Typography(
         displayLarge = t.displayLarge.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
         displayMedium = t.displayMedium.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp),
-        displaySmall = t.displaySmall.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.ExtraBold),
+        displaySmall = t.displaySmall.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black),
         headlineLarge = t.headlineLarge.text(FontWeight.ExtraBold),
         headlineMedium = t.headlineMedium.text(FontWeight.ExtraBold),
         headlineSmall = t.headlineSmall.text(FontWeight.Bold),
@@ -164,14 +183,9 @@ fun gerasTypography(): Typography {
     )
 }
 
-private val typography by lazy { gerasTypography() }
-private val systemTypography by lazy {
-    val t = Typography()
-    t.copy(
-        displayLarge = t.displayLarge.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
-        displayMedium = t.displayMedium.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black),
-    )
-}
+private val typographies = HashMap<String, Typography>()
+
+private fun typographyFor(id: String): Typography = typographies.getOrPut(id) { gerasTypography(GerasFonts.byId(id)) }
 
 /**
  * Replaces Metrolist's Material You theme: warm muted palette from the cover (or a preset),
@@ -202,5 +216,5 @@ fun GerasAppTheme(
     val amoled = darkTheme && (pureBlack || preset == GerasThemePreset.AMOLED)
     val scheme = gerasColorScheme(hue, sat, darkTheme, amoled)
     val font by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasFontKey, "MANROPE")
-    MaterialTheme(colorScheme = scheme, typography = if (font == "SYSTEM") systemTypography else typography, content = content)
+    MaterialTheme(colorScheme = scheme, typography = typographyFor(font), content = content)
 }
