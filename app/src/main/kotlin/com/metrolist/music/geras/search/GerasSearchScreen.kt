@@ -105,6 +105,7 @@ import com.metrolist.music.ui.menu.YouTubeSongMenu
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import com.metrolist.music.geras.ui.gerasBounce
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -292,7 +293,7 @@ private fun SearchField(
 private fun FieldButton(icon: Int, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.95f)
             .size(40.dp)
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick),
@@ -306,7 +307,7 @@ private fun Segment(text: String, selected: Boolean, modifier: Modifier, onClick
     val scheme = MaterialTheme.colorScheme
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
+        modifier = modifier.gerasBounce(0.95f)
             .height(36.dp)
             .clip(RoundedCornerShape(50))
             .background(if (selected) scheme.surfaceContainerHighest else Color.Transparent)
@@ -321,7 +322,7 @@ private fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.95f)
             .height(34.dp)
             .clip(RoundedCornerShape(50))
             .background(if (selected) scheme.primary else scheme.surfaceContainer)
@@ -346,7 +347,7 @@ private fun SectionHeader(text: String, action: String? = null, onAction: (() ->
                 action,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.95f)
                     .clip(RoundedCornerShape(50))
                     .clickable(onClick = onAction)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -397,7 +398,7 @@ private fun ResultRow(item: SourceItem, onClick: () -> Unit, onMenu: () -> Unit)
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.95f)
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onMenu)
             .padding(horizontal = 16.dp, vertical = 7.dp),
@@ -426,7 +427,7 @@ private fun ResultRow(item: SourceItem, onClick: () -> Unit, onMenu: () -> Unit)
         }
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.95f)
                 .size(40.dp)
                 .clip(RoundedCornerShape(50))
                 .clickable(onClick = onMenu),
@@ -442,7 +443,7 @@ private fun TopResultCard(item: SourceItem, onClick: () -> Unit, onMenu: () -> U
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.95f)
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .fillMaxWidth()
             .gerasRaised(RoundedCornerShape(22.dp), scheme.surfaceContainer)
@@ -472,7 +473,7 @@ private fun TopResultCard(item: SourceItem, onClick: () -> Unit, onMenu: () -> U
         if (item.kind == ItemKind.TRACK) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.95f)
                     .size(46.dp)
                     .gerasRaised(RoundedCornerShape(50), scheme.onSurface, elevation = 6.dp)
                     .clickable(onClick = onClick),
@@ -487,7 +488,7 @@ private fun TopResultCard(item: SourceItem, onClick: () -> Unit, onMenu: () -> U
 private fun CoverTile(item: SourceItem, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Column(
-        Modifier
+        Modifier.gerasBounce(0.95f)
             .width(128.dp)
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
@@ -508,7 +509,7 @@ private fun LinkCard(item: SourceItem, onOpen: () -> Unit, onDismiss: () -> Unit
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.95f)
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .fillMaxWidth()
             .gerasRaised(RoundedCornerShape(20.dp), scheme.primaryContainer)
@@ -575,7 +576,7 @@ private fun HistoryRow(text: String, onClick: () -> Unit, onDelete: () -> Unit) 
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.95f)
                 .fillMaxWidth()
                 .background(scheme.background)
                 .clickable(onClick = onClick)
@@ -624,7 +625,7 @@ private fun LazyListScope.onlineContent(
                 suggestions.forEach { s ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
+                        modifier = Modifier.gerasBounce(0.95f)
                             .height(32.dp)
                             .clip(RoundedCornerShape(50))
                             .clickable {
@@ -644,7 +645,7 @@ private fun LazyListScope.onlineContent(
     if (online.corrected != null) {
         item(key = "correction") {
             val scheme = MaterialTheme.colorScheme
-            Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+            Column(Modifier.gerasBounce(0.95f).padding(horizontal = 20.dp, vertical = 6.dp)) {
                 Text(stringResource(R.string.geras_showing_results_for, online.corrected), fontSize = 13.sp, color = scheme.onSurfaceVariant)
                 Text(
                     stringResource(R.string.geras_search_instead, online.query),

@@ -49,6 +49,7 @@ import com.metrolist.music.geras.source.ItemKind
 import com.metrolist.music.geras.source.soundcloud.SoundCloudSource.toMetadata
 import com.metrolist.music.geras.ui.gerasRaised
 import com.metrolist.music.playback.queues.ListQueue
+import com.metrolist.music.geras.ui.gerasBounce
 
 /** SoundCloud playlist or artist: header, play/shuffle, track list. */
 @Composable
@@ -100,7 +101,7 @@ fun SoundCloudCollectionScreen(navController: NavController, kind: ItemKind, url
                         itemsIndexed(collection.tracks, key = { i, t -> "$i${t.id}" }) { index, track ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
+                                modifier = Modifier.gerasBounce(0.96f)
                                     .fillMaxWidth()
                                     .clickable { play(collection, index, false) }
                                     .padding(horizontal = 16.dp, vertical = 7.dp),
@@ -136,7 +137,7 @@ private fun PillButton(icon: Int, text: String, primary: Boolean, onClick: () ->
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.96f)
             .height(46.dp)
             .gerasRaised(RoundedCornerShape(50), if (primary) scheme.onSurface else scheme.surfaceContainerHigh, elevation = 8.dp)
             .clickable(onClick = onClick)

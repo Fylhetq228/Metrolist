@@ -54,6 +54,8 @@ import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import java.util.Locale
+import com.metrolist.music.geras.ui.gerasAppear
+import com.metrolist.music.geras.ui.gerasBounce
 
 const val GerasSettingsRoute = "settings/geras"
 
@@ -75,6 +77,7 @@ fun GerasSettings(navController: NavController) {
     ) {
         GerasSettingsGroup(
             title = stringResource(R.string.geras_theme_mode),
+            modifier = Modifier.gerasAppear(1),
             items = listOf(
                 DarkMode.AUTO to (R.string.geras_mode_system to R.string.geras_mode_system_hint),
                 DarkMode.ON to (R.string.geras_mode_dark to R.string.geras_mode_dark_hint),
@@ -95,6 +98,7 @@ fun GerasSettings(navController: NavController) {
 
         GerasSettingsGroup(
             title = stringResource(R.string.geras_theme),
+            modifier = Modifier.gerasAppear(2),
             items = GerasThemePreset.entries.map { it.name }.map { name ->
                 val preset = GerasThemePreset.entries.firstOrNull { it.name == name }
                 Material3SettingsItem(
@@ -112,6 +116,7 @@ fun GerasSettings(navController: NavController) {
 
         GerasSettingsGroup(
             title = stringResource(R.string.geras_glass),
+            modifier = Modifier.gerasAppear(3),
             items = listOf(
                 Material3SettingsItem(
                     title = { Text(stringResource(R.string.geras_glass)) },
@@ -148,6 +153,7 @@ fun GerasSettings(navController: NavController) {
 
         GerasSettingsGroup(
             title = stringResource(R.string.geras_font),
+            modifier = Modifier.gerasAppear(4),
             items = GerasFonts.choices.map { (id, family) ->
                 val label = if (id == "SYSTEM") stringResource(R.string.geras_font_system) else id.lowercase().replaceFirstChar { it.uppercase() }
                 Material3SettingsItem(
@@ -206,7 +212,7 @@ fun GerasTopBar(title: String, onBack: () -> Unit) {
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.9f)
                 .size(44.dp)
                 .clip(RoundedCornerShape(50))
                 .background(scheme.surfaceContainerHigh)

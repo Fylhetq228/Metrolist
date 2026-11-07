@@ -45,6 +45,7 @@ import com.metrolist.music.R
 import com.metrolist.music.geras.ui.gerasRaised
 import androidx.compose.ui.graphics.compositeOver
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.geras.ui.gerasBounce
 
 private fun formatTime(ms: Long): String {
     if (ms < 0) return "0:00"
@@ -171,7 +172,7 @@ fun GerasTimeRow(
 private fun NextCapsule(next: MediaMetadata, colors: GerasPlayerColors, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.92f)
             .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background), elevation = 6.dp)
             .clickable(onClick = onClick)
             .padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),

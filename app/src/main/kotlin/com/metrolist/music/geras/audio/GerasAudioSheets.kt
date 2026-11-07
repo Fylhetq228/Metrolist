@@ -75,6 +75,7 @@ import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import com.metrolist.music.geras.ui.gerasBounce
 
 @Composable
 private fun sliderColors(c: GerasPlayerColors) = SliderDefaults.colors(
@@ -90,7 +91,7 @@ private fun Chip(text: String, selected: Boolean, c: GerasPlayerColors, onClick:
     @kotlin.OptIn(ExperimentalFoundationApi::class)
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.92f)
             .height(34.dp)
             .clip(RoundedCornerShape(50))
             .background(if (selected) c.accent else c.content.copy(alpha = 0.08f))
@@ -168,7 +169,7 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                     val selected = abs(fx.speed - speed) < 0.005f
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
+                        modifier = Modifier.gerasBounce(0.92f)
                             .weight(1f)
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (selected) c.accent else c.content.copy(alpha = 0.08f))
@@ -249,7 +250,7 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
 
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.92f)
                     .fillMaxWidth()
                     .padding(top = 16.dp)
                     .height(52.dp)
@@ -300,7 +301,7 @@ private fun SheetHandle(c: GerasPlayerColors) {
 private fun StepButton(text: String, c: GerasPlayerColors, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.92f)
             .size(40.dp)
             .clip(RoundedCornerShape(50))
             .background(c.content.copy(alpha = 0.08f))
@@ -312,7 +313,7 @@ private fun StepButton(text: String, c: GerasPlayerColors, onClick: () -> Unit) 
 private fun Segment(text: String, selected: Boolean, c: GerasPlayerColors, modifier: Modifier, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
+        modifier = modifier.gerasBounce(0.92f)
             .height(38.dp)
             .clip(RoundedCornerShape(50))
             .background(if (selected) c.accent else Color.Transparent)
@@ -368,7 +369,7 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                 Text(stringResource(R.string.geras_eq_title), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c.content, modifier = Modifier.weight(1f))
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
+                    modifier = Modifier.gerasBounce(0.92f)
                         .padding(end = 10.dp)
                         .height(32.dp)
                         .clip(RoundedCornerShape(50))

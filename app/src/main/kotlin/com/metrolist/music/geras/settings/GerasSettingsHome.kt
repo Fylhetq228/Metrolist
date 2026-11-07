@@ -62,6 +62,8 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.AccountSettingsViewModel
 import kotlinx.coroutines.launch
+import com.metrolist.music.geras.ui.gerasAppear
+import com.metrolist.music.geras.ui.gerasBounce
 
 const val GerasSourceUrl = "https://github.com/Fylhetq228/metrolist"
 private const val UpstreamUrl = "https://github.com/MetrolistGroup/Metrolist"
@@ -115,6 +117,7 @@ fun GerasSettingsHome(navController: NavController) {
         Spacer(Modifier.height(10.dp))
         GerasSettingsGroup(
             title = stringResource(R.string.geras_section_look),
+            modifier = Modifier.gerasAppear(1),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.palette),
@@ -128,6 +131,7 @@ fun GerasSettingsHome(navController: NavController) {
         Spacer(Modifier.height(10.dp))
         GerasSettingsGroup(
             title = stringResource(R.string.geras_section_sound),
+            modifier = Modifier.gerasAppear(2),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.equalizer),
@@ -147,6 +151,7 @@ fun GerasSettingsHome(navController: NavController) {
         Spacer(Modifier.height(10.dp))
         GerasSettingsGroup(
             title = stringResource(R.string.geras_section_music),
+            modifier = Modifier.gerasAppear(3),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.history),
@@ -170,6 +175,7 @@ fun GerasSettingsHome(navController: NavController) {
         Spacer(Modifier.height(10.dp))
         GerasSettingsGroup(
             title = stringResource(R.string.geras_section_search),
+            modifier = Modifier.gerasAppear(4),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.delete_history),
@@ -184,6 +190,7 @@ fun GerasSettingsHome(navController: NavController) {
         Spacer(Modifier.height(10.dp))
         GerasSettingsGroup(
             title = stringResource(R.string.geras_section_about),
+            modifier = Modifier.gerasAppear(5),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.info),
@@ -311,7 +318,7 @@ private fun AccountCard(loggedIn: Boolean, name: String, email: String, onLogin:
         val primary = !loggedIn
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.92f)
                 .height(38.dp)
                 .gerasRaised(RoundedCornerShape(50), if (primary) scheme.onSurface else scheme.surfaceContainerHighest, elevation = 4.dp)
                 .clickable(onClick = if (loggedIn) onLogout else onLogin)

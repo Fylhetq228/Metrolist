@@ -61,6 +61,8 @@ import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.queues.YouTubeQueue
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.viewmodels.HomeViewModel
+import com.metrolist.music.geras.ui.gerasAppear
+import com.metrolist.music.geras.ui.gerasBounce
 
 private enum class WaveMode { USUAL, DISCOVER }
 
@@ -110,7 +112,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
-        Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.gerasAppear(0).fillMaxWidth().padding(top = 8.dp)) {
             Text(
                 text = stringResource(R.string.geras_my_wave),
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 52.sp, lineHeight = 50.sp),
@@ -123,6 +125,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
 
         Box(
             Modifier
+                .gerasAppear(1)
                 .fillMaxWidth()
                 .height(250.dp)
                 .padding(top = 12.dp),
@@ -144,7 +147,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
             Cover(covers.getOrNull(2), 60.dp, Modifier.align(Alignment.Center).offset(x = 38.dp, y = (-6).dp).graphicsLayer { translationY = bob * 4f }, circle = true)
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.94f)
                     .align(Alignment.BottomEnd)
                     .offset(x = (-6).dp)
                     .size(76.dp)
@@ -167,7 +170,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
         val recent = latest?.song
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
+            modifier = Modifier.gerasAppear(2).gerasBounce(0.94f)
                 .padding(top = 16.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
@@ -207,7 +210,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
 private fun HeaderIcon(icon: Int, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.94f)
             .padding(start = 2.dp, top = 6.dp)
             .size(40.dp)
             .clip(RoundedCornerShape(50))
@@ -222,7 +225,7 @@ private fun ModeChip(text: String, selected: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.94f)
             .height(32.dp)
             .clip(RoundedCornerShape(50))
             .background(if (selected) scheme.onSurface.copy(alpha = 0.12f) else Color.Transparent)

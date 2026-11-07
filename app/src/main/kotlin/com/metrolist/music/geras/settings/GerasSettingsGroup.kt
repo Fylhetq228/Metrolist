@@ -32,9 +32,9 @@ import com.metrolist.music.ui.component.Material3SettingsItem
  * plain icons and a chevron on rows that open something.
  */
 @Composable
-fun GerasSettingsGroup(title: String?, items: List<Material3SettingsItem>) {
+fun GerasSettingsGroup(title: String?, items: List<Material3SettingsItem>, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth()) {
         title?.let {
             Text(
                 text = it,

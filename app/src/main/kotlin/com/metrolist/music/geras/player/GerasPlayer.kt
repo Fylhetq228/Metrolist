@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -104,6 +105,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
+import com.metrolist.music.geras.ui.gerasBounce
+import com.metrolist.music.geras.ui.gerasPop
 
 enum class GerasDownloadState { NONE, ACTIVE, DONE }
 
@@ -402,9 +405,18 @@ fun GerasPlayerLayout(
                     ui.showClip -> 2
                     else -> 0
                 }
+                // Like Apple Music: the artwork sinks back a little while paused.
+                val pausedScale by animateFloatAsState(
+                    if (ui.isPlaying || ui.isBuffering) 1f else 0.86f,
+                    spring(dampingRatio = 0.55f, stiffness = 260f),
+                    label = "coverPaused",
+                )
                 AnimatedContent(
                     targetState = pane,
-                    transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
+                    transitionSpec = {
+                        (fadeIn(tween(260)) + scaleIn(spring(dampingRatio = 0.8f, stiffness = 320f), initialScale = 0.92f)) togetherWith
+                            (fadeOut(tween(180)) + scaleOut(tween(220), targetScale = 1.04f))
+                    },
                     label = "coverLyricsClip",
                 ) { target ->
                     if (target == 1) {
@@ -431,7 +443,7 @@ fun GerasPlayerLayout(
                                 .graphicsLayer {
                                     // Grows out of the mini player while the sheet is dragged up.
                                     val eased = FastOutSlowInEasing.transform(sheetProgress().coerceIn(0f, 1f))
-                                    val scale = 0.35f + 0.65f * eased
+                                    val scale = (0.35f + 0.65f * eased) * pausedScale
                                     scaleX = scale
                                     scaleY = scale
                                     transformOrigin = TransformOrigin(0.1f, 1f)
@@ -503,7 +515,7 @@ private fun RoundIcon(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
+        modifier = modifier.gerasBounce(0.9f)
             .size(size)
             .clip(RoundedCornerShape(50))
             .clickable(enabled = enabled, onClick = onClick),
@@ -533,7 +545,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.9f)
                     .size(40.dp)
                     .gerasRaised(RoundedCornerShape(50), if (ui.showClip) colors.accent else colors.surface.compositeOver(colors.background))
                     .clickable(enabled = ui.interactive, onClick = actions.onClip),
@@ -555,7 +567,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.9f)
                     .fillMaxHeight()
                     .clickable(onClick = actions.onSearch)
                     .padding(start = 14.dp, end = 4.dp),
@@ -566,7 +578,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.9f)
                     .fillMaxHeight()
                     .clickable(onClick = actions.onQueue)
                     .padding(start = 4.dp, end = 10.dp),
@@ -632,7 +644,7 @@ private fun TitleBlock(
         Spacer(Modifier.height(6.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.9f)
                 .clip(RoundedCornerShape(50))
                 .clickable(enabled = artistId != null) { artistId?.let(onArtistClick) }
                 .padding(end = 8.dp),
@@ -685,10 +697,10 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
             size = 52.dp, iconSize = 30.dp, enabled = ui.interactive && ui.canSkipPrevious,
         )
 
-        val playScale by animateFloatAsState(if (ui.isPlaying) 1f else 0.94f, label = "playScale")
+        val playScale by animateFloatAsState(if (ui.isPlaying) 1f else 0.94f, spring(dampingRatio = 0.45f, stiffness = 420f), label = "playScale")
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.9f)
                 .size(72.dp)
                 .graphicsLayer {
                     scaleX = playScale
@@ -699,7 +711,7 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
         ) {
             AnimatedContent(
                 targetState = ui.isPlaying,
-                transitionSpec = { (scaleIn(initialScale = 0.6f) + fadeIn()) togetherWith (scaleOut(targetScale = 0.6f) + fadeOut()) },
+                transitionSpec = { (scaleIn(spring(dampingRatio = 0.5f, stiffness = 520f), initialScale = 0.4f) + fadeIn(tween(120))) togetherWith (scaleOut(tween(140), targetScale = 0.4f) + fadeOut(tween(100))) },
                 label = "playPause",
             ) { playing ->
                 Icon(
@@ -742,6 +754,7 @@ private fun BottomBar(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: Ger
                 icon = if (ui.liked) R.drawable.favorite else R.drawable.favorite_border,
                 tint = if (ui.liked) MaterialTheme.colorScheme.error else colors.content,
                 onClick = actions.onLike,
+                modifier = Modifier.gerasPop(ui.liked),
             )
             DownloadButton(ui.download, ui.downloadPercent, colors, actions.onDownload)
         }
@@ -749,7 +762,7 @@ private fun BottomBar(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: Ger
         Capsule(colors) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.9f)
                     .size(44.dp)
                     .clip(RoundedCornerShape(50))
                     .background(if (ui.showLyrics) colors.accent else Color.Transparent)
@@ -773,7 +786,7 @@ private fun SpeedChip(speed: Float, colors: GerasPlayerColors, onClick: () -> Un
     val changed = kotlin.math.abs(speed - 1f) > 0.001f
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.9f)
             .padding(start = 2.dp, end = 4.dp)
             .height(32.dp)
             .clip(RoundedCornerShape(50))
@@ -799,7 +812,7 @@ private fun DownloadButton(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.9f)
             .size(44.dp)
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick),

@@ -34,7 +34,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -50,6 +53,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -167,49 +171,131 @@ class GerasNavTab(
 @Composable
 fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val selectedIndex = tabs.indexOfFirst { it.selected }
+    val scope = rememberCoroutineScope()
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
+        androidx.compose.foundation.layout.BoxWithConstraints(
+            Modifier
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth()
                 .height(62.dp)
                 .gerasGlass(RoundedCornerShape(50))
-                .padding(horizontal = 4.dp),
+                .padding(4.dp),
         ) {
-            tabs.forEach { tab ->
-                val bg by animateFloatAsState(if (tab.selected) 1f else 0f, spring(), label = "navSel")
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(scheme.onSurface.copy(alpha = 0.18f * bg), scheme.onSurface.copy(alpha = 0.08f * bg)),
-                            ),
+            val widthPx = with(density) { maxWidth.toPx() }
+            val tabW = widthPx / tabs.size.coerceAtLeast(1)
+            // Two edges on different springs: the leading edge runs ahead, the trailing one
+            // catches up, so the drop stretches while it travels and settles with a wobble.
+            val left = remember { Animatable(tabW * selectedIndex.coerceAtLeast(0)) }
+            val right = remember { Animatable(tabW * (selectedIndex.coerceAtLeast(0) + 1)) }
+            val visible by animateFloatAsState(if (selectedIndex >= 0) 1f else 0f, label = "dropVisible")
+            var dragging by remember { mutableStateOf(false) }
+            val lift by animateFloatAsState(if (dragging) 1f else 0f, spring(dampingRatio = 0.6f, stiffness = 500f), label = "dropLift")
+
+            fun moveTo(index: Int) {
+                if (index < 0) return
+                val l = tabW * index
+                val r = l + tabW
+                val goingRight = l > left.value
+                val fast = spring<Float>(dampingRatio = 0.72f, stiffness = 900f)
+                val slow = spring<Float>(dampingRatio = 0.68f, stiffness = 320f)
+                scope.launch { left.animateTo(l, if (goingRight) slow else fast) }
+                scope.launch { right.animateTo(r, if (goingRight) fast else slow) }
+            }
+            androidx.compose.runtime.LaunchedEffect(selectedIndex, tabW) { if (!dragging) moveTo(selectedIndex) }
+
+            val dropModifier = Modifier
+                .graphicsLayer {
+                    val w = (right.value - left.value).coerceAtLeast(1f)
+                    val stretch = ((w - tabW) / tabW).coerceIn(0f, 1.5f)
+                    translationX = left.value
+                    alpha = visible
+                    scaleY = (1f - stretch * 0.12f) * (1f + lift * 0.1f)
+                    scaleX = 1f + lift * 0.1f
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+                }
+                .layout { measurable, constraints ->
+                    val w = (right.value - left.value).coerceAtLeast(1f).toInt()
+                    val placeable = measurable.measure(constraints.copy(minWidth = w, maxWidth = w))
+                    layout(constraints.maxWidth, placeable.height) { placeable.place(0, 0) }
+                }
+            Box(
+                dropModifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(scheme.onSurface.copy(alpha = 0.20f + 0.06f * lift), scheme.onSurface.copy(alpha = 0.08f)),
+                        ),
+                    )
+                    .glassLighting(RoundedCornerShape(50), strength = 0.9f + lift * 0.4f),
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(tabs.size, tabW) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { dragging = true },
+                            onDragEnd = {
+                                dragging = false
+                                val index = (((left.value + right.value) / 2f) / tabW).toInt().coerceIn(0, tabs.lastIndex)
+                                moveTo(index)
+                                if (index != selectedIndex) tabs[index].onClick()
+                            },
+                            onDragCancel = {
+                                dragging = false
+                                moveTo(selectedIndex)
+                            },
+                        ) { change, _ ->
+                            change.consume()
+                            val center = change.position.x.coerceIn(tabW / 2f, widthPx - tabW / 2f)
+                            scope.launch { left.animateTo(center - tabW / 2f, spring(dampingRatio = 0.8f, stiffness = 1200f)) }
+                            scope.launch { right.animateTo(center + tabW / 2f, spring(dampingRatio = 0.8f, stiffness = 900f)) }
+                        }
+                    },
+            ) {
+                tabs.forEach { tab ->
+                    val sel by animateFloatAsState(if (tab.selected) 1f else 0f, spring(), label = "navSel")
+                    val pop = remember { Animatable(1f) }
+                    androidx.compose.runtime.LaunchedEffect(tab.selected) {
+                        if (tab.selected) {
+                            pop.snapTo(0.78f)
+                            pop.animateTo(1f, spring(dampingRatio = 0.38f, stiffness = 520f))
+                        }
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .gerasBounce(0.86f, dim = false)
+                            .pointerInput(tab.label) {
+                                detectTapGestures(onTap = { tab.onClick() }, onLongPress = { tab.onLongClick() })
+                            },
+                    ) {
+                        Icon(
+                            painter = painterResource(if (tab.selected) tab.iconActive else tab.icon),
+                            contentDescription = tab.label,
+                            tint = scheme.onSurface.copy(alpha = 0.6f + 0.4f * sel),
+                            modifier = Modifier
+                                .size(22.dp)
+                                .graphicsLayer {
+                                    scaleX = pop.value
+                                    scaleY = pop.value
+                                },
                         )
-                        .border(1.dp, Color.White.copy(alpha = 0.14f * bg), RoundedCornerShape(50))
-                        .pointerInput(tab.label) {
-                            detectTapGestures(onTap = { tab.onClick() }, onLongPress = { tab.onLongClick() })
-                        },
-                ) {
-                    Icon(
-                        painter = painterResource(if (tab.selected) tab.iconActive else tab.icon),
-                        contentDescription = tab.label,
-                        tint = scheme.onSurface.copy(alpha = 0.6f + 0.4f * bg),
-                        modifier = Modifier.size(22.dp),
-                    )
-                    Text(
-                        text = tab.label,
-                        fontSize = 10.sp,
-                        fontWeight = if (tab.selected) FontWeight.Bold else FontWeight.Medium,
-                        color = scheme.onSurface.copy(alpha = 0.6f + 0.4f * bg),
-                        maxLines = 1,
-                    )
+                        Text(
+                            text = tab.label,
+                            fontSize = 10.sp,
+                            fontWeight = if (tab.selected) FontWeight.Bold else FontWeight.Medium,
+                            color = scheme.onSurface.copy(alpha = 0.6f + 0.4f * sel),
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
@@ -237,7 +323,7 @@ fun GerasMiniPlayer(
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
+            modifier = Modifier.gerasBounce(0.96f)
                 .padding(horizontal = 12.dp)
                 .padding(top = 4.dp)
                 .fillMaxWidth()
@@ -307,12 +393,14 @@ fun GerasMiniPlayer(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            MiniButton(if (liked) R.drawable.favorite else R.drawable.favorite_border, if (liked) scheme.error else scheme.onSurface) {
-                playerConnection.toggleLike()
+            Box(Modifier.gerasPop(liked)) {
+                MiniButton(if (liked) R.drawable.favorite else R.drawable.favorite_border, if (liked) scheme.error else scheme.onSurface) {
+                    playerConnection.toggleLike()
+                }
             }
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
+                modifier = Modifier.gerasBounce(0.96f)
                     .size(44.dp)
                     .clip(RoundedCornerShape(50))
                     .clickable { playerConnection.togglePlayPause() },
@@ -349,7 +437,7 @@ private fun ProgressRing(position: MutableLongState, duration: MutableLongState,
 private fun MiniButton(icon: Int, tint: Color, size: Dp = 44.dp, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = Modifier.gerasBounce(0.96f)
             .size(size)
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick),
