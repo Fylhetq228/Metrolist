@@ -6,7 +6,7 @@
 package com.metrolist.music.ui.screens.wrapped
 
 object WrappedConstants {
-    // This is intentionally hardcoded to 2025 and should not be changed.
-    const val YEAR = 2025
-    const val PLAYLIST_NAME = "Metrolist 2025"
+    // Geras: the recap is for the current year (January still shows the year that just ended).
+    val YEAR: Int = java.time.LocalDate.now().let { if (it.monthValue == 1) it.year - 1 else it.year }
+    val PLAYLIST_NAME = "Geras $YEAR"
 }

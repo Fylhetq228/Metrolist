@@ -231,7 +231,7 @@
     <string name="wrapped_top_artist_title">Ο κορυφαίος καλλιτέχνης σας της χρονιάς είναι</string>
     <string name="wrapped_top_song_title">Το τραγούδι που παίζει πιο συχνά είναι</string>
     <string name="wrapped_top_song_listening_time">Έχετε ακούσει %d λεπτά</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">GERAS</string>
     <string name="wrapped_intro_subtitle">ήρθε η ώρα να δείτε τι έχετε ακούσει</string>
     <string name="wrapped_intro_button">Πάμε!</string>
     <string name="wrapped_logo_content_description">Λογότυπο Metrolist</string>

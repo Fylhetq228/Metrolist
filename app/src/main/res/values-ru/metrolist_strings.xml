@@ -231,7 +231,7 @@
     <string name="wrapped_total_artists_subtitle">уникальных исполнителей!</string>
     <string name="wrapped_total_songs_title">Вы послушали</string>
     <string name="wrapped_total_songs_subtitle">уникальных треков!</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">GERAS</string>
     <string name="wrapped_intro_subtitle">пришло время узнать, что вы слушали весь этот год…</string>
     <string name="wrapped_intro_button">поехали!</string>
     <string name="wrapped_logo_content_description">Логотип Metrolist</string>

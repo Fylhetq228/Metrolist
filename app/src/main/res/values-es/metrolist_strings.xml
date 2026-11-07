@@ -247,7 +247,7 @@
     <string name="failed_to_parse_proxy">Error al analizar la URL del proxy</string>
     <string name="lyrics_glow_effect">Habilitar efecto de brillo de la letra</string>
     <string name="lyrics_glow_effect_desc">Añadir animación de brillo y efecto de rebote a la letra activa</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">GERAS</string>
     <string name="wrapped_logo_content_description">Logo de Metrolist</string>
     <string name="wrapped_year">2025</string>
     <string name="show_artist_description">Mostrar descripción del artista</string>

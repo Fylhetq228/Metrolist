@@ -496,7 +496,7 @@
     <string name="wrapped_total_artists_subtitle">различни изпълнителя!</string>
     <string name="wrapped_total_songs_title">Слушали сте</string>
     <string name="wrapped_total_songs_subtitle">различни песни!</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">GERAS</string>
     <string name="wrapped_intro_subtitle">време е да видим какво сте слушали тази година…</string>
     <string name="listen_together_choose_server">Избери сървър</string>
     <string name="listen_together_custom_server">Друг сървър</string>

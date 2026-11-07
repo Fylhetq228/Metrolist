@@ -218,7 +218,7 @@
     <string name="equalizer_desc">オーディオイコライザーを調整します</string>
     <string name="listen_together">Listen Together</string>
     <string name="play_pause">再生/停止</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">GERAS</string>
     <string name="none">なし</string>
     <string name="cache_size_warning_confirm">続行</string>
     <string name="wrapped_top_song_album_art_content_description">アルバムアート</string>

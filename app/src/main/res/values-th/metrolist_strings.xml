@@ -253,7 +253,7 @@
     <string name="wrapped_total_artists_subtitle">ศิลปินที่ไม่ซ้ำกัน!</string>
     <string name="wrapped_total_songs_title">คุณฟังไปทั้งหมด</string>
     <string name="wrapped_total_songs_subtitle">เพลงที่ไม่ซ้ำกัน!</string>
-    <string name="wrapped_intro_title">METROLIST</string>
+    <string name="wrapped_intro_title">GERAS</string>
     <string name="wrapped_intro_subtitle">ได้เวลามาดูสิ่งที่คุณฟังไปตลอดปี</string>
     <string name="wrapped_intro_button">ไปดูกันเลย!</string>
     <string name="wrapped_logo_content_description">โลโก้ Metrolist</string>
