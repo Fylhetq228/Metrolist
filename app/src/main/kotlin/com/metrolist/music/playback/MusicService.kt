@@ -3811,6 +3811,7 @@ class MusicService :
         playerProvider: () -> ExoPlayer?,
     ): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+            com.metrolist.music.geras.source.soundcloud.GerasStreamResolver.resolve(dataSpec)?.let { return@Factory it }
             val mediaId = dataSpec.key ?: error("No media id")
             val storedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
             applyAudioNormalizationBeforePlayback(

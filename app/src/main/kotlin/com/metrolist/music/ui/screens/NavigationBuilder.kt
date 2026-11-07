@@ -377,6 +377,20 @@ fun NavGraphBuilder.navigationBuilder(
         PlayerSettings(navController)
     }
 
+    composable(
+        route = com.metrolist.music.geras.source.soundcloud.SoundCloudSource.ROUTE,
+        arguments = listOf(
+            androidx.navigation.navArgument("kind") { type = androidx.navigation.NavType.StringType },
+            androidx.navigation.navArgument("url") { type = androidx.navigation.NavType.StringType },
+        ),
+    ) { entry ->
+        com.metrolist.music.geras.source.soundcloud.SoundCloudCollectionScreen(
+            navController = navController,
+            kind = com.metrolist.music.geras.source.ItemKind.valueOf(entry.arguments?.getString("kind") ?: "PLAYLIST"),
+            url = entry.arguments?.getString("url").orEmpty(),
+        )
+    }
+
     composable(com.metrolist.music.geras.settings.GerasSettingsRoute) {
         com.metrolist.music.geras.settings.GerasSettings(navController)
     }

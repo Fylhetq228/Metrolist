@@ -310,6 +310,10 @@ fun GerasPlayerContent(
             onLike = playerConnection::toggleLike,
             onDownload = {
                 val metadata = mediaMetadata ?: return@GerasPlayerActions
+                if (com.metrolist.music.geras.source.soundcloud.SoundCloudSource.isScId(metadata.id)) {
+                    Toast.makeText(context, context.getString(R.string.geras_sc_download_unsupported), Toast.LENGTH_SHORT).show()
+                    return@GerasPlayerActions
+                }
                 when (download) {
                     GerasDownloadState.DONE -> Toast.makeText(context, downloadedText, Toast.LENGTH_SHORT).show()
                     GerasDownloadState.ACTIVE ->

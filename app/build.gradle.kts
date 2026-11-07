@@ -271,6 +271,8 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.palette)
     implementation("dev.chrisbanes.haze:haze:1.7.3")
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.0")
+    implementation("androidx.media3:media3-exoplayer-hls:1.10.1")
     implementation(libs.materialKolor)
 
     implementation(libs.appcompat)

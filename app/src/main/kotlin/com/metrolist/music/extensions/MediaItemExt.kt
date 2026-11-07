@@ -31,6 +31,12 @@ fun MediaMetadata.toMediaItem(): MediaItem {
         .setMediaId(resolvedMetadata.id)
         .setUri(resolvedMetadata.id)
         .setCustomCacheKey(resolvedMetadata.id)
+        .apply {
+            // SoundCloud only serves HLS; the mime type routes these items to HlsMediaSource.
+            if (com.metrolist.music.geras.source.soundcloud.SoundCloudSource.isScId(resolvedMetadata.id)) {
+                setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+            }
+        }
         .setTag(resolvedMetadata)
         .setMediaMetadata(
             androidx.media3.common.MediaMetadata.Builder()

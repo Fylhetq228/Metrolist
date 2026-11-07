@@ -61,7 +61,7 @@ interface MusicSource {
 }
 
 object MusicSources {
-    val all: List<MusicSource> by lazy { listOf(YouTubeMusicSource) }
+    val all: List<MusicSource> by lazy { listOf(YouTubeMusicSource, com.metrolist.music.geras.source.soundcloud.SoundCloudSource) }
 
     fun byId(id: String): MusicSource? = all.firstOrNull { it.id == id }
 

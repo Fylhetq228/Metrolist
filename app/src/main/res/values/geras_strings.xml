@@ -105,4 +105,9 @@
     <string name="geras_everything_saved">Everything saved</string>
     <string name="geras_downloaded_only">Downloaded only</string>
     <string name="geras_library_hint">Search your liked songs, albums, artists and playlists, including offline ones.</string>
+    <string name="geras_sc_download_unsupported">Downloading SoundCloud tracks is not supported yet</string>
+    <string name="geras_sc_unavailable">SoundCloud is unavailable. Check the connection or turn on a VPN.</string>
+    <string name="geras_sc_tracks_count">%1$d tracks</string>
+    <string name="geras_play">Play</string>
+    <string name="geras_shuffle">Shuffle</string>
 </resources>

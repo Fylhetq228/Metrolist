@@ -107,4 +107,9 @@
     <string name="geras_everything_saved">Вся библиотека</string>
     <string name="geras_downloaded_only">Только скачанное</string>
     <string name="geras_library_hint">Ищи по лайкнутым трекам, альбомам, артистам и плейлистам, в том числе офлайн.</string>
+    <string name="geras_sc_download_unsupported">Скачивание треков SoundCloud пока не поддерживается</string>
+    <string name="geras_sc_unavailable">SoundCloud недоступен. Проверь интернет или включи VPN.</string>
+    <string name="geras_sc_tracks_count">треков: %1$d</string>
+    <string name="geras_play">Слушать</string>
+    <string name="geras_shuffle">Вперемешку</string>
 </resources>

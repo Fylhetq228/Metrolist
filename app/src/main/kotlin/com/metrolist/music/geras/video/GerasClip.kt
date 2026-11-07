@@ -66,6 +66,7 @@ fun rememberClipSource(metadata: MediaMetadata?): ClipSource? {
     val source by produceState<ClipSource?>(initialValue = null, metadata?.id) {
         value = null
         if (metadata == null || metadata.isEpisode || metadata.uploadEntityId != null) return@produceState
+        if (com.metrolist.music.geras.source.soundcloud.SoundCloudSource.isScId(metadata.id)) return@produceState
         if (metadata.isVideoSong) {
             value = ClipSource(metadata.id, isCounterpart = false)
             return@produceState
