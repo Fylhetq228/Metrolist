@@ -30,32 +30,20 @@ import androidx.compose.ui.unit.dp
 fun Material3MenuGroup(
     items: List<Material3MenuItemData>
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        items.forEachIndexed { index, item ->
-            val shape = when {
-                items.size == 1 -> RoundedCornerShape(24.dp)
-                index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp)
-                index == items.size - 1 -> RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                else -> RoundedCornerShape(6.dp)
-            }
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(),
-                shape = shape,
-                colors = item.cardColors ?: CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Material3MenuItemRow(item = item)
-            }
-        }
-    }
+    // Geras: one rounded card with dividers instead of separate Material cards.
+    com.metrolist.music.geras.ui.GerasMenuCard(
+        items.map { item ->
+            com.metrolist.music.geras.ui.GerasMenuRow(
+                icon = item.icon,
+                title = item.title,
+                description = item.description,
+                trailing = item.trailingContent,
+                onClick = item.onClick,
+                tint = item.cardColors?.contentColor,
+            )
+        },
+        modifier = Modifier.padding(vertical = 4.dp),
+    )
 }
 
 @Composable

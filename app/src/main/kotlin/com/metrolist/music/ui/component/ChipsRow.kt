@@ -73,16 +73,7 @@ fun <E> ChipsRow(
         Spacer(Modifier.width(12.dp))
 
         chips.forEach { (value, label) ->
-            FilterChip(
-                label = { Text(label) },
-                selected = currentValue == value,
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = containerColor,
-                ),
-                onClick = { onValueUpdate(value) },
-                shape = RoundedCornerShape(16.dp),
-                border = null
-            )
+            com.metrolist.music.geras.ui.GerasPill(label, currentValue == value, { onValueUpdate(value) })
 
             Spacer(Modifier.width(8.dp))
         }
@@ -191,16 +182,7 @@ fun <Int> ChoiceChipsRow(
                 chips.forEach { (value, label) ->
                     Spacer(Modifier.width(8.dp))
 
-                    FilterChip(
-                        label = { Text(label) },
-                        selected = currentValue == value,
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = containerColor,
-                        ),
-                        onClick = { onValueUpdate(value) },
-                        shape = RoundedCornerShape(16.dp),
-                        border = null
-                    )
+                    com.metrolist.music.geras.ui.GerasPill(label, currentValue == value, { onValueUpdate(value) })
                 }
             }
         }

@@ -119,14 +119,29 @@ fun NewActionGrid(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         rows.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 row.forEach { action ->
-                    NewActionButton(
+                    // Geras: raised tiles with a bounce; the action itself still runs in composition.
+                    var perform by remember { mutableStateOf(false) }
+                    if (perform) {
+                        action.onClick()
+                        LaunchedEffect(Unit) { perform = false }
+                    }
+                    com.metrolist.music.geras.ui.GerasActionTile(
+                        icon = action.icon,
+                        text = action.text,
+                        onClick = { perform = true },
+                        modifier = Modifier.weight(1f),
+                        enabled = action.enabled,
+                        background = action.backgroundColor,
+                        content = action.contentColor,
+                    )
+                    if (false) NewActionButton(
                         icon = action.icon,
                         text = action.text,
                         onClick = action.onClick,
