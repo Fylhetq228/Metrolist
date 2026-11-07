@@ -85,6 +85,9 @@ fun GerasSettingsHome(navController: NavController) {
     val accountEmail by rememberPreference(AccountEmailKey, "")
     val loggedIn = remember(cookie) { "SAPISID" in parseCookieString(cookie) }
 
+    val (crossfade, onCrossfadeChange) = rememberPreference(com.metrolist.music.constants.CrossfadeEnabledKey, false)
+    val (crossfadeLen, onCrossfadeLenChange) = rememberPreference(com.metrolist.music.constants.CrossfadeDurationKey, 5f)
+    val (smartShuffle, onSmartShuffleChange) = rememberPreference(com.metrolist.music.geras.audio.GerasSmartShuffleKey, true)
     var showEq by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
@@ -145,7 +148,26 @@ fun GerasSettingsHome(navController: NavController) {
                     description = { Text(stringResource(R.string.geras_settings_speed_hint)) },
                     onClick = { showSpeed = true },
                 ),
-            ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.graphic_eq),
+                    title = { Text(stringResource(R.string.geras_crossfade)) },
+                    description = { Text(stringResource(R.string.geras_crossfade_hint)) },
+                    trailingContent = { androidx.compose.material3.Switch(checked = crossfade, onCheckedChange = onCrossfadeChange) },
+                    onClick = { onCrossfadeChange(!crossfade) },
+                ),
+            ) + if (crossfade) listOf(
+                Material3SettingsItem(
+                    title = {
+                        Column {
+                            Row {
+                                Text(stringResource(R.string.geras_crossfade_len), modifier = Modifier.weight(1f))
+                                Text("${crossfadeLen.toInt()} s", color = scheme.onSurfaceVariant)
+                            }
+                            androidx.compose.material3.Slider(value = crossfadeLen, onValueChange = onCrossfadeLenChange, valueRange = 1f..15f, steps = 13)
+                        }
+                    },
+                ),
+            ) else emptyList(),
         )
 
         Spacer(Modifier.height(10.dp))
@@ -168,6 +190,19 @@ fun GerasSettingsHome(navController: NavController) {
                     icon = painterResource(R.drawable.stats),
                     title = { Text(stringResource(R.string.stats)) },
                     onClick = { navController.navigate("stats") },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.shuffle),
+                    title = { Text(stringResource(R.string.geras_smart_shuffle)) },
+                    description = { Text(stringResource(R.string.geras_smart_shuffle_hint)) },
+                    trailingContent = { androidx.compose.material3.Switch(checked = smartShuffle, onCheckedChange = onSmartShuffleChange) },
+                    onClick = { onSmartShuffleChange(!smartShuffle) },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.trending_up),
+                    title = { Text(stringResource(R.string.geras_recap)) },
+                    description = { Text(stringResource(R.string.geras_recap_hint)) },
+                    onClick = { navController.navigate("wrapped") },
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.mic),

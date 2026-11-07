@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -69,6 +71,8 @@ fun GerasSeekBar(
     colors: GerasPlayerColors,
     onScrub: (Long?) -> Unit,
     modifier: Modifier = Modifier,
+    loopA: Long? = null,
+    loopB: Long? = null,
 ) {
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     val active by animateFloatAsState(if (dragFraction != null) 1f else 0f, label = "seekActive")
@@ -114,6 +118,13 @@ fun GerasSeekBar(
         val stroke = (3.dp + 3.dp * active).toPx()
         val y = size.height / 2
         drawLine(colors.contentMuted.copy(alpha = 0.25f), Offset(0f, y), Offset(size.width, y), stroke, StrokeCap.Round)
+        // A-B loop: shaded fragment and two ticks.
+        if (d > 0 && loopA != null) {
+            val ax = size.width * (loopA.toFloat() / d).coerceIn(0f, 1f)
+            val bx = loopB?.let { size.width * (it.toFloat() / d).coerceIn(0f, 1f) }
+            if (bx != null) drawLine(colors.accent.copy(alpha = 0.35f), Offset(ax, y), Offset(bx, y), stroke * 2.2f, StrokeCap.Round)
+            listOfNotNull(ax, bx).forEach { x -> drawLine(colors.accent, Offset(x, y - 7.dp.toPx()), Offset(x, y + 7.dp.toPx()), 2.dp.toPx(), StrokeCap.Round) }
+        }
         if (fraction > 0f) {
             drawLine(colors.accent, Offset(0f, y), Offset(size.width * fraction, y), stroke, StrokeCap.Round)
         }
@@ -132,6 +143,8 @@ fun GerasTimeRow(
     colors: GerasPlayerColors,
     onNextClick: () -> Unit,
     modifier: Modifier = Modifier,
+    loopActive: Boolean = false,
+    onClearLoop: () -> Unit = {},
 ) {
     val timeStyle = Modifier.widthIn(min = 40.dp)
     val latestPosition by androidx.compose.runtime.rememberUpdatedState(positionProvider)
@@ -153,8 +166,29 @@ fun GerasTimeRow(
             contentAlignment = Alignment.Center,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
         ) {
-            androidx.compose.animation.AnimatedVisibility(visible = next != null, enter = fadeIn(), exit = fadeOut()) {
-                if (next != null) NextCapsule(next, colors, onNextClick)
+            androidx.compose.animation.AnimatedContent(
+                targetState = loopActive,
+                transitionSpec = { com.metrolist.music.geras.ui.GerasTextSwap },
+                label = "loopOrNext",
+            ) { looping ->
+                if (looping) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.gerasBounce(0.92f)
+                            .clip(RoundedCornerShape(50))
+                            .background(colors.accent)
+                            .clickable(onClick = onClearLoop)
+                            .padding(horizontal = 12.dp, vertical = 5.dp),
+                    ) {
+                        Text("A-B", color = colors.onAccent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        Spacer(Modifier.width(6.dp))
+                        Icon(painterResource(R.drawable.close), null, tint = colors.onAccent, modifier = Modifier.size(14.dp))
+                    }
+                } else {
+                    androidx.compose.animation.AnimatedVisibility(visible = next != null, enter = fadeIn(), exit = fadeOut()) {
+                        if (next != null) NextCapsule(next, colors, onNextClick)
+                    }
+                }
             }
         }
         Text(

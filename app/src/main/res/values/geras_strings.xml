@@ -166,4 +166,23 @@
     <string name="geras_transfer_restore">Bring the track back</string>
     <string name="geras_transfer_link_title">Spotify playlist</string>
     <string name="geras_transfer_link_sub">Transfer it to Geras</string>
+    <string name="geras_loop_title">A-B repeat</string>
+    <string name="geras_loop_set_a">Mark A</string>
+    <string name="geras_loop_set_b">Mark B</string>
+    <string name="geras_loop_clear">Stop repeat</string>
+    <string name="geras_sleep_title">Sleep timer</string>
+    <string name="geras_sleep_end_of_track">Until the track ends</string>
+    <string name="geras_sleep_min">min</string>
+    <string name="geras_sleep_off">Turn off</string>
+    <string name="geras_sleep_in">Stop in</string>
+    <string name="geras_sleep_track">End of track</string>
+    <string name="geras_sleep_fade">Fade out</string>
+    <string name="geras_sleep_fade_hint">Volume slowly goes down in the last minute</string>
+    <string name="geras_smart_shuffle">Smart shuffle</string>
+    <string name="geras_smart_shuffle_hint">Same artist never plays twice in a row</string>
+    <string name="geras_recap">Year in music</string>
+    <string name="geras_recap_hint">Your top tracks and artists of the year</string>
+    <string name="geras_crossfade">Crossfade</string>
+    <string name="geras_crossfade_hint">Tracks blend into each other</string>
+    <string name="geras_crossfade_len">Length</string>
 </resources>

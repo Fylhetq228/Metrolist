@@ -177,6 +177,7 @@ object GerasAudio {
             },
         )
         onTrackChanged(player.currentMediaItem?.mediaId, force = true)
+        GerasLoop.attach(player)
     }
 
     private fun onTrackChanged(id: String?, force: Boolean = false) {

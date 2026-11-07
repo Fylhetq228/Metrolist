@@ -2900,7 +2900,7 @@ class MusicService :
                 (0 until originalQueueSize).shuffled().forEach { shuffledIndices[pos++] = it }
                 addedIndices.forEach { shuffledIndices[pos++] = it }
             }
-            player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+            player.setShuffleOrder(DefaultShuffleOrder(gerasSpread(shuffledIndices), System.currentTimeMillis()))
         } else {
             val shuffledIndices = IntArray(totalCount) { it }
             shuffledIndices.shuffle()
@@ -2911,8 +2911,18 @@ class MusicService :
                 shuffledIndices[0] = shuffledIndices[currentItemIndexInShuffled]
                 shuffledIndices[currentItemIndexInShuffled] = temp
             }
-            player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+            player.setShuffleOrder(DefaultShuffleOrder(gerasSpread(shuffledIndices), System.currentTimeMillis()))
         }
+    }
+
+    // Geras: smart shuffle spreads artists apart; off switch in Geras settings.
+    private fun gerasSpread(order: IntArray): IntArray {
+        if (!dataStore.get(com.metrolist.music.geras.audio.GerasSmartShuffleKey, true)) return order
+        return runCatching {
+            com.metrolist.music.geras.audio.GerasShuffle.spread(order) { i ->
+                com.metrolist.music.geras.audio.GerasShuffle.artistKey(player.getMediaItemAt(i))
+            }
+        }.getOrDefault(order)
     }
 
     override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {

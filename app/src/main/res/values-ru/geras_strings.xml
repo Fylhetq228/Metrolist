@@ -168,4 +168,23 @@
     <string name="geras_transfer_restore">Вернуть трек</string>
     <string name="geras_transfer_link_title">Плейлист Spotify</string>
     <string name="geras_transfer_link_sub">Перенести в Geras</string>
+    <string name="geras_loop_title">Повтор A-B</string>
+    <string name="geras_loop_set_a">Отметить A</string>
+    <string name="geras_loop_set_b">Отметить B</string>
+    <string name="geras_loop_clear">Остановить повтор</string>
+    <string name="geras_sleep_title">Таймер сна</string>
+    <string name="geras_sleep_end_of_track">До конца трека</string>
+    <string name="geras_sleep_min">мин</string>
+    <string name="geras_sleep_off">Выключить</string>
+    <string name="geras_sleep_in">Выключить через</string>
+    <string name="geras_sleep_track">Конец трека</string>
+    <string name="geras_sleep_fade">Плавное затухание</string>
+    <string name="geras_sleep_fade_hint">Громкость мягко снижается в последнюю минуту</string>
+    <string name="geras_smart_shuffle">Умное перемешивание</string>
+    <string name="geras_smart_shuffle_hint">Один исполнитель не играет два раза подряд</string>
+    <string name="geras_recap">Итоги года</string>
+    <string name="geras_recap_hint">Твои главные треки и артисты за год</string>
+    <string name="geras_crossfade">Плавный переход</string>
+    <string name="geras_crossfade_hint">Треки перетекают друг в друга</string>
+    <string name="geras_crossfade_len">Длительность</string>
 </resources>

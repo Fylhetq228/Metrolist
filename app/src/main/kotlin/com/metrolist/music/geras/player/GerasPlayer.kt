@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -132,6 +133,10 @@ data class GerasPlayerUi(
     val interactive: Boolean,
     val clipAvailable: Boolean = false,
     val showClip: Boolean = false,
+    val loopA: Long? = null,
+    val loopB: Long? = null,
+    /** Null when the sleep timer is off, -1 for "end of track", otherwise ms left. */
+    val sleepLeftMs: Long? = null,
 )
 
 class GerasPlayerActions(
@@ -151,6 +156,8 @@ class GerasPlayerActions(
     val onEqualizer: () -> Unit = {},
     val onSpeed: () -> Unit = {},
     val onClip: () -> Unit = {},
+    val onSleep: () -> Unit = {},
+    val onClearLoop: () -> Unit = {},
 )
 
 /**
@@ -248,6 +255,22 @@ fun GerasPlayerContent(
     }
 
     if (showSpeedSheet) GerasSpeedSheet(colors = colors, onDismiss = { showSpeedSheet = false })
+    var showSleepSheet by remember { mutableStateOf(false) }
+    if (showSleepSheet) com.metrolist.music.geras.audio.GerasSleepSheet(colors = colors, onDismiss = { showSleepSheet = false })
+    val loop by com.metrolist.music.geras.audio.GerasLoop.state.collectAsState()
+    val sleepTimer = playerConnection.service.sleepTimer
+    var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(sleepTimer?.isActive) {
+        while (sleepTimer?.isActive == true) {
+            sleepNow = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    val sleepLeft = when {
+        sleepTimer == null || !sleepTimer.isActive -> null
+        sleepTimer.pauseWhenSongEnd -> -1L
+        else -> (sleepTimer.triggerTime - sleepNow).coerceAtLeast(0)
+    }
     if (showEqSheet) {
         GerasEqualizerSheet(
             colors = colors,
@@ -279,6 +302,9 @@ fun GerasPlayerContent(
         interactive = !isListenTogetherGuest,
         clipAvailable = clipSource != null || swappedFrom != null,
         showClip = clipMode && mediaMetadata?.isVideoSong == true,
+        loopA = loop.a,
+        loopB = loop.b,
+        sleepLeftMs = sleepLeft,
     )
 
     val actions = remember(mediaMetadata, download, playbackState, clipMode, swappedFrom) {
@@ -327,6 +353,8 @@ fun GerasPlayerContent(
             onToggleLyrics = onToggleLyrics,
             onEqualizer = { showEqSheet = true },
             onSpeed = { showSpeedSheet = true },
+            onSleep = { showSleepSheet = true },
+            onClearLoop = { com.metrolist.music.geras.audio.GerasLoop.clear() },
             onClip = {
                 if (clipMode) {
                     swappedFrom?.let { original ->
@@ -466,6 +494,8 @@ fun GerasPlayerLayout(
                 enabled = ui.interactive,
                 colors = colors,
                 onScrub = { scrubPosition = it },
+                loopA = ui.loopA,
+                loopB = ui.loopB,
             )
             GerasTimeRow(
                 positionProvider = positionProvider,
@@ -474,6 +504,8 @@ fun GerasPlayerLayout(
                 next = ui.next,
                 colors = colors,
                 onNextClick = actions.onQueue,
+                loopActive = ui.loopA != null,
+                onClearLoop = actions.onClearLoop,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -757,6 +789,7 @@ private fun BottomBar(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: Ger
                 modifier = Modifier.gerasPop(ui.liked),
             )
             DownloadButton(ui.download, ui.downloadPercent, colors, actions.onDownload)
+            SleepButton(ui.sleepLeftMs, colors, actions.onSleep)
         }
         Spacer(Modifier.weight(1f))
         Capsule(colors) {
@@ -900,4 +933,35 @@ private fun rememberArtistAvatar(artistId: String?): String? {
         value = url
     }
     return avatar
+}
+
+
+@Composable
+private fun SleepButton(leftMs: Long?, colors: GerasPlayerColors, onClick: () -> Unit) {
+    val active = leftMs != null
+    val bg by androidx.compose.animation.animateColorAsState(if (active) colors.accent else Color.Transparent, label = "sleepBg")
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .gerasBounce(0.9f)
+            .height(44.dp)
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp)
+            .animateContentSize(androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 500f)),
+    ) {
+        Icon(painterResource(R.drawable.bedtime), null, tint = if (active) colors.onAccent else colors.content, modifier = Modifier.size(22.dp))
+        if (leftMs != null && leftMs >= 0) {
+            Spacer(Modifier.width(6.dp))
+            val min = ((leftMs + 59_999) / 60_000).toInt()
+            Text(
+                "$min",
+                color = colors.onAccent,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                style = androidx.compose.material3.LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
+            )
+        }
+    }
 }

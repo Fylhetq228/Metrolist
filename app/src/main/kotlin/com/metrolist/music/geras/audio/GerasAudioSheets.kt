@@ -248,6 +248,9 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
             LabeledSlider("8D", fx.eightD, percent(fx.eightD), c) { GerasAudio.setSpeedFx(fx.copy(eightD = it)) }
             LabeledSlider(stringResource(R.string.geras_bass_boost), fx.bass, percent(fx.bass), c) { GerasAudio.setSpeedFx(fx.copy(bass = it)) }
 
+            SectionTitle(stringResource(R.string.geras_loop_title), c)
+            LoopControls(c)
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.gerasBounce(0.92f)
@@ -649,6 +652,135 @@ internal fun EqGraph(
             val dx = (x - l2.size.width / 2f).coerceIn(0f, w - l2.size.width)
             drawText(l2, topLeft = Offset(dx, plotH + 2.dp.toPx()))
             drawText(l1, topLeft = Offset(lx, plotH + 2.dp.toPx() + l2.size.height))
+        }
+    }
+}
+
+
+private fun clock(ms: Long): String {
+    val t = (ms / 1000).coerceAtLeast(0)
+    return if (t >= 3600) "%d:%02d:%02d".format(t / 3600, t / 60 % 60, t % 60) else "%d:%02d".format(t / 60, t % 60)
+}
+
+/** A-B repeat: mark A, mark B, and the fragment loops until cleared or the track changes. */
+@Composable
+private fun LoopControls(c: GerasPlayerColors) {
+    val player = com.metrolist.music.LocalPlayerConnection.current?.player ?: return
+    val loop by GerasLoop.state.collectAsState()
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        val label = when {
+            loop.a == null -> stringResource(R.string.geras_loop_set_a)
+            loop.b == null -> stringResource(R.string.geras_loop_set_b)
+            else -> stringResource(R.string.geras_loop_clear)
+        }
+        val armed = loop.a != null
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .gerasBounce(0.92f)
+                .weight(1f)
+                .height(48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(androidx.compose.animation.animateColorAsState(if (armed) c.accent else c.content.copy(alpha = 0.08f), label = "loopBg").value)
+                .clickable { GerasLoop.tap(player.currentPosition) },
+        ) {
+            androidx.compose.animation.AnimatedContent(label, transitionSpec = { com.metrolist.music.geras.ui.GerasTextSwap }, label = "loopLabel") { text ->
+                Text(text, color = if (armed) c.onAccent else c.content, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(96.dp)) {
+            Text("A  " + (loop.a?.let(::clock) ?: "–"), color = c.content, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("B  " + (loop.b?.let(::clock) ?: "–"), color = c.contentMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/** Sleep timer with the fade-out Metrolist's timer already supports. */
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GerasSleepSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
+    val c = colors
+    val timer = com.metrolist.music.LocalPlayerConnection.current?.service?.sleepTimer ?: return
+    var fade by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    androidx.compose.runtime.LaunchedEffect(timer.isActive) {
+        while (timer.isActive) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(500)
+        }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = c.background,
+        contentColor = c.content,
+        dragHandle = { SheetHandle(c) },
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
+        ) {
+            Text(stringResource(R.string.geras_sleep_title), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c.content)
+            androidx.compose.animation.AnimatedVisibility(timer.isActive) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    Text(
+                        if (timer.pauseWhenSongEnd) stringResource(R.string.geras_sleep_end_of_track) else clock(timer.triggerTime - now),
+                        fontSize = if (timer.pauseWhenSongEnd) 24.sp else 56.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = c.accent,
+                        style = androidx.compose.material3.LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 12.dp)) {
+                        if (!timer.pauseWhenSongEnd) {
+                            Segment("+5 " + stringResource(R.string.geras_sleep_min), false, c, Modifier.width(110.dp)) {
+                                val left = ((timer.triggerTime - System.currentTimeMillis()) / 60_000L).toInt() + 5
+                                timer.start(left.coerceAtLeast(1), false, timer.fadeOutEnabled)
+                            }
+                        }
+                        Segment(stringResource(R.string.geras_sleep_off), true, c, Modifier.width(130.dp)) { timer.clear() }
+                    }
+                }
+            }
+            SectionTitle(stringResource(R.string.geras_sleep_in), c)
+            val options = listOf(5, 10, 15, 30, 45, 60, 90, -1)
+            options.chunked(4).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                    row.forEach { m ->
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .gerasBounce(0.9f)
+                                .weight(1f)
+                                .height(54.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(c.content.copy(alpha = 0.08f))
+                                .clickable {
+                                    timer.start(m, false, fade)
+                                    onDismiss()
+                                },
+                        ) {
+                            if (m == -1) {
+                                Text(stringResource(R.string.geras_sleep_track), color = c.content, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(m.toString(), color = c.content, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                                    Text(stringResource(R.string.geras_sleep_min), color = c.contentMuted, fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.geras_sleep_fade), color = c.content, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.geras_sleep_fade_hint), color = c.contentMuted, fontSize = 12.sp)
+                }
+                androidx.compose.material3.Switch(checked = fade, onCheckedChange = { fade = it }, colors = switchColors(c))
+            }
         }
     }
 }
