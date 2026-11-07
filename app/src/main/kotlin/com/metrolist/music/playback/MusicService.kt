@@ -3129,13 +3129,7 @@ class MusicService :
             }
         }
 
-        if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
-            Timber.tag(TAG).d("Auto-skipping to next track due to unrecoverable error")
-            skipOnError()
-        } else {
-            Timber.tag(TAG).d("Stopping playback due to unrecoverable error")
-            stopOnError()
-        }
+        handleFinalFailure()
     }
 
     /**
@@ -3470,6 +3464,13 @@ class MusicService :
      * Handles final failure when all recovery attempts have been exhausted.
      */
     private fun handleFinalFailure() {
+        // Geras: before giving up on a YouTube track, try the same song from SoundCloud.
+        val failedId = player.currentMediaItem?.mediaId
+        if (failedId != null && com.metrolist.music.geras.source.soundcloud.GerasRescue.tryRescue(this, player, failedId) { giveUpAfterFailure() }) return
+        giveUpAfterFailure()
+    }
+
+    private fun giveUpAfterFailure() {
         val autoSkipOnError = dataStore.get(AutoSkipNextOnErrorKey, false)
         val autoplay = dataStore.get(AutoplayKey, true)
         val canAdvance = player.hasNextMediaItem()

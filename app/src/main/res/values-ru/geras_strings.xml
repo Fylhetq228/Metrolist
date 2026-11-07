@@ -219,4 +219,5 @@
     <string name="geras_menu_remove_library">Убрать из медиатеки</string>
     <string name="geras_menu_speed_hint">Slowed, Nightcore, повтор A-B</string>
     <string name="geras_menu_details">О треке</string>
+    <string name="geras_rescue_toast">YouTube не отдаёт трек через это подключение, играю его с SoundCloud</string>
 </resources>
