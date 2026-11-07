@@ -115,6 +115,7 @@ fun GerasSettingsHome(navController: NavController) {
             email = accountEmail,
             onLogin = { navController.navigate("login") },
             onLogout = { confirmLogout = true },
+            onOpen = { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) },
         )
 
         Spacer(Modifier.height(10.dp))
@@ -188,8 +189,9 @@ fun GerasSettingsHome(navController: NavController) {
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.stats),
-                    title = { Text(stringResource(R.string.stats)) },
-                    onClick = { navController.navigate("stats") },
+                    title = { Text(stringResource(R.string.geras_profile_entry)) },
+                    description = { Text(stringResource(R.string.geras_profile_entry_hint)) },
+                    onClick = { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) },
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.shuffle),
@@ -315,13 +317,15 @@ fun GerasSettingsHome(navController: NavController) {
 }
 
 @Composable
-private fun AccountCard(loggedIn: Boolean, name: String, email: String, onLogin: () -> Unit, onLogout: () -> Unit) {
+private fun AccountCard(loggedIn: Boolean, name: String, email: String, onLogin: () -> Unit, onLogout: () -> Unit, onOpen: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .gerasBounce(0.97f)
             .gerasRaised(RoundedCornerShape(24.dp), scheme.surfaceContainerHigh, elevation = 10.dp)
+            .clickable(onClick = onOpen)
             .padding(16.dp),
     ) {
         Box(

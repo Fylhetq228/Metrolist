@@ -188,4 +188,19 @@
     <string name="geras_crossfade_hint">Треки перетекают друг в друга</string>
     <string name="geras_crossfade_len">Длительность</string>
     <string name="geras_search_by_lyrics">По строчке из текста</string>
+    <string name="geras_period_week">Неделя</string>
+    <string name="geras_period_month">Месяц</string>
+    <string name="geras_period_year">Год</string>
+    <string name="geras_period_all">Всё время</string>
+    <string name="geras_profile_listener">Слушатель</string>
+    <string name="geras_profile_minutes">минут</string>
+    <string name="geras_profile_tracks">в топе</string>
+    <string name="geras_profile_liked">в любимых</string>
+    <string name="geras_profile_top_artists">Топ артистов</string>
+    <string name="geras_profile_top_tracks">Топ треков</string>
+    <string name="geras_profile_empty">За этот период ещё ничего не слушал.</string>
+    <string name="geras_profile_details">Подробная статистика</string>
+    <string name="geras_profile_title">Профиль</string>
+    <string name="geras_profile_entry">Профиль и статистика</string>
+    <string name="geras_profile_entry_hint">Минуты, топ артистов и треков</string>
 </resources>

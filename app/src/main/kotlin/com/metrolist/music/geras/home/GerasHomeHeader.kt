@@ -120,7 +120,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
                 modifier = Modifier.weight(1f),
             )
             HeaderIcon(R.drawable.history) { navController.navigate("history") }
-            HeaderIcon(R.drawable.stats) { navController.navigate("stats") }
+            HeaderIcon(R.drawable.stats) { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) }
         }
 
         Box(

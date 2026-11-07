@@ -399,6 +399,10 @@ fun NavGraphBuilder.navigationBuilder(
         com.metrolist.music.geras.transfer.TransferScreen(navController, entry.arguments?.getString("url"))
     }
 
+    composable(com.metrolist.music.geras.profile.GerasProfileRoute) {
+        com.metrolist.music.geras.profile.GerasProfileScreen(navController)
+    }
+
     composable(com.metrolist.music.geras.settings.GerasSettingsRoute) {
         com.metrolist.music.geras.settings.GerasSettings(navController)
     }

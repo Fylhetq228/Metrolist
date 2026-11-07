@@ -186,4 +186,19 @@
     <string name="geras_crossfade_hint">Tracks blend into each other</string>
     <string name="geras_crossfade_len">Length</string>
     <string name="geras_search_by_lyrics">From the lyrics</string>
+    <string name="geras_period_week">Week</string>
+    <string name="geras_period_month">Month</string>
+    <string name="geras_period_year">Year</string>
+    <string name="geras_period_all">All time</string>
+    <string name="geras_profile_listener">Listener</string>
+    <string name="geras_profile_minutes">minutes</string>
+    <string name="geras_profile_tracks">in top</string>
+    <string name="geras_profile_liked">liked</string>
+    <string name="geras_profile_top_artists">Top artists</string>
+    <string name="geras_profile_top_tracks">Top tracks</string>
+    <string name="geras_profile_empty">Nothing played in this period yet.</string>
+    <string name="geras_profile_details">Detailed stats</string>
+    <string name="geras_profile_title">Profile</string>
+    <string name="geras_profile_entry">Profile and stats</string>
+    <string name="geras_profile_entry_hint">Minutes, top artists and tracks</string>
 </resources>
