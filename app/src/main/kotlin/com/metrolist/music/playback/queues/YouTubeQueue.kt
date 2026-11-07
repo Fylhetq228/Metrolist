@@ -111,7 +111,10 @@ class YouTubeQueue(
          * Creates a radio queue based on a song.
          * Explicitly requests the RDAMVM playlist to trigger automotive/radio mixing.
          */
-        fun radio(song: MediaMetadata): YouTubeQueue {
+        // Geras: "radio by track" is My Wave seeded from that track.
+        fun radio(song: MediaMetadata): Queue = com.metrolist.music.geras.wave.GerasWave.queue(song)
+
+        fun ytRadio(song: MediaMetadata): YouTubeQueue {
             return YouTubeQueue(
                 WatchEndpoint(
                     videoId = song.id,

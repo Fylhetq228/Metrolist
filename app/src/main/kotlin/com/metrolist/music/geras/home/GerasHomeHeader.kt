@@ -91,12 +91,20 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
         list.distinct().take(4).map { it.resize(400, 400) }
     }
 
+    val waveTitle = stringResource(R.string.geras_my_wave)
     val startWave: () -> Unit = {
-        val seed = when (mode) {
-            WaveMode.USUAL -> quickPicks?.randomOrNull()?.toMediaMetadata()
-            WaveMode.DISCOVER -> discover?.randomOrNull()?.seed?.toMediaMetadata()
-        } ?: latest?.song?.toMediaMetadata()
-        seed?.let { playerConnection.playQueue(YouTubeQueue.radio(it)) }
+        // Seeds come from your listening inside the wave itself; a seed track is only a fallback
+        // for a fresh install with no history yet.
+        val fallback = quickPicks?.randomOrNull()?.toMediaMetadata() ?: discover?.randomOrNull()?.seed?.toMediaMetadata()
+            ?: latest?.song?.toMediaMetadata()
+        playerConnection.playQueue(
+            com.metrolist.music.geras.wave.GerasWave.queue(
+                null,
+                if (mode == WaveMode.DISCOVER) com.metrolist.music.geras.wave.WaveMode.DISCOVER else com.metrolist.music.geras.wave.WaveMode.USUAL,
+                waveTitle,
+                fallbackSeed = fallback,
+            ),
+        )
     }
 
     // Home hides Metrolist's top bar; pull the header up into the space reserved for it.

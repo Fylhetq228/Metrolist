@@ -1343,6 +1343,7 @@ class MusicService :
                 .build()
         createdPlayer = player
         com.metrolist.music.geras.audio.GerasAudio.attach(this, player)
+        com.metrolist.music.geras.wave.GerasWave.database = database
 
         playerNormalizationProcessors[player] = normalizationProcessor
         playerSilenceProcessors[player] = silenceProcessor
