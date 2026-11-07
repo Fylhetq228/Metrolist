@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -70,10 +71,10 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * "Fat" iOS-style slider: the whole pill is the control. Label and value live inside and
- * switch colour where the fill passes under them. Drag is relative (precise), a tap jumps with
- * a spring, the pill swells while held and stretches like rubber past the ends.
- * [origin] makes the fill grow from a middle value (e.g. 0 dB or 0 semitones).
+ * iOS 26 slider: a thin track with a white knob that turns into a liquid-glass lens while it is
+ * held. The lens magnifies the track under it, swells with a spring, and the whole control
+ * stretches like rubber past the ends. Drag is relative (precise), a tap jumps with a spring,
+ * and light haptics mark the ends and the [origin] (0 dB, 1x, 0 semitones).
  */
 @Composable
 fun GerasSlider(
@@ -90,7 +91,7 @@ fun GerasSlider(
     track: Color,
     content: Color,
     onAccent: Color,
-    height: Dp = 46.dp,
+    @Suppress("UNUSED_PARAMETER") height: Dp = 46.dp,
     onValueChangeFinished: () -> Unit = {},
 ) {
     val haptic = LocalHapticFeedback.current
@@ -107,62 +108,57 @@ fun GerasSlider(
     val latestChange by rememberUpdatedState(onValueChange)
     val shown = remember { Animatable(frac(value)) }
     var dragging by remember { mutableStateOf(false) }
-    LaunchedEffect(value) { if (!dragging) shown.animateTo(frac(value), spring(dampingRatio = 0.8f, stiffness = 500f)) }
+    LaunchedEffect(value) { if (!dragging) shown.animateTo(frac(value), spring(dampingRatio = 0.75f, stiffness = 420f)) }
     var pressed by remember { mutableStateOf(false) }
+    val lens by animateFloatAsState(if (pressed) 1f else 0f, spring(dampingRatio = 0.5f, stiffness = 420f), label = "lens")
     var stretch by remember { mutableFloatStateOf(0f) }
     val stretchAnim by animateFloatAsState(stretch, spring(dampingRatio = 0.45f, stiffness = 380f), label = "rubber")
-    val h by animateDpAsState(if (pressed) height + 6.dp else height, spring(dampingRatio = 0.55f, stiffness = 500f), label = "swell")
-    val alpha = if (enabled) 1f else 0.45f
+    val alpha = if (enabled) 1f else 0.4f
 
-    BoxWithConstraints(
-        modifier
-            .fillMaxWidth()
-            .height(height + 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        val widthPx = constraints.maxWidth.toFloat()
-        Box(
+    Column(modifier.fillMaxWidth().graphicsLayer { this.alpha = alpha }) {
+        if (label != null || valueText != null) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(label.orEmpty(), color = content, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1)
+                Text(valueText.orEmpty(), color = content.copy(alpha = 0.6f), fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+        }
+        Canvas(
             Modifier
                 .fillMaxWidth()
-                .height(h)
+                .height(40.dp)
                 .graphicsLayer {
-                    // Rubber band: stretch towards the side being pulled.
-                    val s = 1f + abs(stretchAnim) / widthPx * 0.5f
+                    val s = 1f + abs(stretchAnim) / size.width.coerceAtLeast(1f) * 0.35f
                     scaleX = s
-                    scaleY = 1f - (s - 1f) * 0.6f
                     transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (stretchAnim > 0) 0f else 1f, 0.5f)
-                    this.alpha = alpha
                 }
-                .clip(RoundedCornerShape(50))
-                .background(track)
                 .pointerInput(enabled, valueRange, steps) {
                     if (!enabled) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         pressed = true
                         val startValue = latestValue
+                        val usable = size.width - 28.dp.toPx()
                         var moved = 0f
                         var lastSnap = snap(startValue)
                         while (true) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) break
-                            val dx = change.positionChange().x
-                            moved += dx
+                            moved += change.positionChange().x
                             if (abs(moved) > viewConfiguration.touchSlop || dragging) {
-                                if (!dragging) dragging = true
+                                dragging = true
                                 change.consume()
-                                val raw = startValue + moved / size.width * span
+                                val raw = startValue + moved / usable * span
                                 val v = snap(raw)
                                 stretch = when {
-                                    raw > valueRange.endInclusive -> (raw - valueRange.endInclusive) / span * size.width
-                                    raw < valueRange.start -> (raw - valueRange.start) / span * size.width
+                                    raw > valueRange.endInclusive -> (raw - valueRange.endInclusive) / span * usable
+                                    raw < valueRange.start -> (raw - valueRange.start) / span * usable
                                     else -> 0f
                                 }
                                 if (v != lastSnap) {
-                                    if (steps > 0 || v == valueRange.start || v == valueRange.endInclusive || (origin != null && (lastSnap - origin) * (v - origin) <= 0f)) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
+                                    val hitEnd = v == valueRange.start || v == valueRange.endInclusive
+                                    val crossed = origin != null && (lastSnap - origin) * (v - origin) <= 0f
+                                    if (steps > 0 || hitEnd || crossed) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     lastSnap = v
                                     scope.launch { shown.snapTo(frac(v)) }
                                     latestChange(v)
@@ -170,8 +166,8 @@ fun GerasSlider(
                             }
                         }
                         if (!dragging) {
-                            // Tap: jump to the finger with a spring.
-                            val v = snap(valueRange.start + down.position.x / size.width * span)
+                            val usable2 = size.width - 28.dp.toPx()
+                            val v = snap(valueRange.start + ((down.position.x - 14.dp.toPx()) / usable2) * span)
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             latestChange(v)
                         }
@@ -182,51 +178,47 @@ fun GerasSlider(
                     }
                 },
         ) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .drawBehind {
-                        val f = shown.value
-                        val o = origin?.let(::frac) ?: 0f
-                        val l = minOf(f, o) * size.width
-                        val r = maxOf(f, o) * size.width
-                        val rr = if (origin == null) size.height / 2f else 0f
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.82f))),
-                            topLeft = Offset(l, 0f),
-                            size = Size((r - l).coerceAtLeast(if (origin == null) size.height else 2.dp.toPx()), size.height),
-                            cornerRadius = CornerRadius(rr, rr),
-                        )
-                        if (origin != null) {
-                            drawLine(content.copy(alpha = 0.35f), Offset(o * size.width, size.height * 0.25f), Offset(o * size.width, size.height * 0.75f), 1.5.dp.toPx())
-                        }
-                        // Grip: a soft vertical bar at the end of the fill.
-                        val inward = if (f >= o) -6.dp.toPx() else 6.dp.toPx()
-                        val gx = (f * size.width + inward).coerceIn(8.dp.toPx(), size.width - 8.dp.toPx())
-                        if (abs(f - o) * size.width > 14.dp.toPx() || origin == null) {
-                            drawLine(onAccent.copy(alpha = 0.55f), Offset(gx, size.height * 0.3f), Offset(gx, size.height * 0.7f), 2.5.dp.toPx(), StrokeCap.Round)
-                        }
-                    },
-            )
-            if (label != null || valueText != null) {
-                @Composable
-                fun Labels(color: Color) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(label.orEmpty(), color = color, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1)
-                        Text(valueText.orEmpty(), color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    }
+            val edge = 14.dp.toPx()
+            val cy = size.height / 2f
+            val trackH = 6.dp.toPx()
+            val usable = size.width - edge * 2
+            val f = shown.value
+            val o = origin?.let(::frac) ?: 0f
+            val x = edge + usable * f
+            val ox = edge + usable * o
+
+            fun drawTrack(thickness: Float) {
+                val r = thickness / 2f
+                drawRoundRect(track, Offset(edge - r, cy - r), Size(usable + thickness, thickness), CornerRadius(r, r))
+                val l = minOf(x, ox)
+                val rr = maxOf(x, ox)
+                val left = if (origin == null) edge - r else l
+                drawRoundRect(accent, Offset(left, cy - r), Size((rr - left).coerceAtLeast(0f) + if (origin == null) 0f else 0f, thickness), CornerRadius(r, r))
+                if (origin != null) drawCircle(content.copy(alpha = 0.45f), 2.dp.toPx(), Offset(ox, cy))
+            }
+            drawTrack(trackH)
+
+            // Knob → lens.
+            val w = 28.dp.toPx() + 22.dp.toPx() * lens
+            val h = 28.dp.toPx() + 8.dp.toPx() * lens
+            val tl = Offset(x - w / 2f, cy - h / 2f)
+            val cr = CornerRadius(h / 2f, h / 2f)
+            drawRoundRect(Color.Black.copy(alpha = 0.28f), tl + Offset(0f, 3.dp.toPx()), Size(w, h), cr)
+            // Solid white knob fades out as the glass fades in.
+            drawRoundRect(Color.White.copy(alpha = 1f - 0.9f * lens.coerceIn(0f, 1f)), tl, Size(w, h), cr)
+            if (lens > 0.01f) {
+                val path = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(tl.x, tl.y, tl.x + w, tl.y + h, cr)) }
+                clipPath(path) {
+                    // Magnified track seen through the glass.
+                    drawRect(Color.White.copy(alpha = 0.06f * lens), tl, Size(w, h))
+                    drawTrack(trackH * (1f + 1.3f * lens))
+                    drawRect(
+                        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f * lens), Color.Transparent, Color.Black.copy(alpha = 0.12f * lens)), startY = tl.y, endY = tl.y + h),
+                        tl,
+                        Size(w, h),
+                    )
                 }
-                Box(Modifier.matchParentSize(), contentAlignment = Alignment.Center) { Labels(content) }
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .drawWithContent {
-                            val f = shown.value
-                            val o = origin?.let(::frac) ?: 0f
-                            clipRect(left = minOf(f, o) * size.width, right = maxOf(f, o) * size.width) { this@drawWithContent.drawContent() }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) { Labels(onAccent) }
+                drawRoundRect(Color.White.copy(alpha = 0.55f * lens.coerceIn(0f, 1f)), tl, Size(w, h), cr, style = Stroke(1.dp.toPx()))
             }
         }
     }

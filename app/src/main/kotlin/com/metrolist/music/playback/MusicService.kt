@@ -1345,6 +1345,7 @@ class MusicService :
         com.metrolist.music.geras.audio.GerasAudio.attach(this, player)
         com.metrolist.music.geras.wave.GerasWave.database = database
         com.metrolist.music.geras.wave.GerasWave.init(this)
+        com.metrolist.music.geras.source.soundcloud.GerasScFirst.init(this)
 
         playerNormalizationProcessors[player] = normalizationProcessor
         playerSilenceProcessors[player] = silenceProcessor
@@ -3057,6 +3058,8 @@ class MusicService :
         }
 
         val mediaId = player.currentMediaItem?.mediaId
+        // Geras: a SoundCloud substitute that fails goes back to YouTube on the retry.
+        com.metrolist.music.geras.source.soundcloud.GerasScFirst.onError(mediaId)
         val failedStreamClient = mediaId?.let(songUrlCache::clientName)
         Timber
             .tag(TAG)
@@ -3998,11 +4001,14 @@ class MusicService :
         normalizationProcessor: VolumeNormalizationAudioProcessor,
         playerProvider: () -> ExoPlayer?,
     ) =
-        DefaultMediaSourceFactory(
-            createDataSourceFactory(normalizationProcessor, playerProvider),
-            ExtractorsFactory {
-                arrayOf(MatroskaExtractor(), FragmentedMp4Extractor(), Mp4Extractor())
-            },
+        // Geras: tracks play from SoundCloud when the same recording is there in full.
+        com.metrolist.music.geras.source.soundcloud.GerasScFirst.Factory(
+            DefaultMediaSourceFactory(
+                createDataSourceFactory(normalizationProcessor, playerProvider),
+                ExtractorsFactory {
+                    arrayOf(MatroskaExtractor(), FragmentedMp4Extractor(), Mp4Extractor())
+                },
+            ),
         )
 
     private fun createRenderersFactory(

@@ -90,6 +90,10 @@ fun GerasSettingsHome(navController: NavController) {
     val (smartShuffle, onSmartShuffleChange) = rememberPreference(com.metrolist.music.geras.audio.GerasSmartShuffleKey, true)
     val (normalize, onNormalizeChange) = rememberPreference(com.metrolist.music.constants.AudioNormalizationKey, true)
     val (skipSilence, onSkipSilenceChange) = rememberPreference(com.metrolist.music.constants.SkipSilenceKey, false)
+    var scFirst by remember {
+        com.metrolist.music.geras.source.soundcloud.GerasScFirst.init(context)
+        mutableStateOf(com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled)
+    }
     var showEq by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
@@ -157,6 +161,16 @@ fun GerasSettingsHome(navController: NavController) {
                     description = { Text(stringResource(R.string.geras_crossfade_hint)) },
                     trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = crossfade, onCheckedChange = onCrossfadeChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
                     onClick = { onCrossfadeChange(!crossfade) },
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.cloud),
+                    title = { Text(stringResource(R.string.geras_sc_first)) },
+                    description = { Text(stringResource(R.string.geras_sc_first_hint)) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = scFirst, onCheckedChange = { scFirst = it; com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled = it }, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
+                    onClick = {
+                        scFirst = !scFirst
+                        com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled = scFirst
+                    },
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.volume_up),

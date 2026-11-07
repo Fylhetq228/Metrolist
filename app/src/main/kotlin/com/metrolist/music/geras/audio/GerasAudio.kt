@@ -1,5 +1,6 @@
 package com.metrolist.music.geras.audio
 
+import com.metrolist.music.extensions.metadata
 import android.content.Context
 import android.content.SharedPreferences
 import android.media.AudioDeviceCallback
@@ -184,11 +185,27 @@ object GerasAudio {
                     lastArtist = mediaItem?.mediaMetadata?.artist?.toString()?.substringBefore(',')
                     startedAt = System.currentTimeMillis()
                     onTrackChanged(mediaItem?.mediaId)
+                    prefetchUpcoming(player)
+                }
+
+                override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                    prefetchUpcoming(player)
                 }
             },
         )
         onTrackChanged(player.currentMediaItem?.mediaId, force = true)
         GerasLoop.attach(player)
+    }
+
+    /** Match the next couple of tracks on SoundCloud ahead of time so they start instantly. */
+    private fun prefetchUpcoming(player: Player) {
+        val i = player.currentMediaItemIndex
+        if (i < 0) return
+        for (k in 0..2) {
+            val idx = i + k
+            if (idx >= player.mediaItemCount) break
+            com.metrolist.music.geras.source.soundcloud.GerasScFirst.prefetch(player.getMediaItemAt(idx).metadata)
+        }
     }
 
     private fun onTrackChanged(id: String?, force: Boolean = false) {

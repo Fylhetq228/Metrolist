@@ -230,4 +230,6 @@
     <string name="geras_normalize_hint">Треки звучат примерно одинаково громко</string>
     <string name="geras_skip_silence">Пропуск тишины</string>
     <string name="geras_skip_silence_hint">Убирает паузы в начале и в конце треков</string>
+    <string name="geras_sc_first">Звук из SoundCloud</string>
+    <string name="geras_sc_first_hint">Если трек есть на SoundCloud целиком, играет оттуда, иначе с YouTube</string>
 </resources>
