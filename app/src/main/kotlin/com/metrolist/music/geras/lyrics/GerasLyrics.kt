@@ -204,10 +204,11 @@ fun GerasLyrics(
     val databaseForCheck = com.metrolist.music.LocalDatabase.current
     LaunchedEffect(lyricsEntity, mediaMetadata?.duration) {
         val entity = lyricsEntity ?: return@LaunchedEffect
-        val duration = mediaMetadata?.takeIf { it.id == entity.id }?.duration ?: return@LaunchedEffect
-        if (!GerasLyricsCheck.plausible(entity.lyrics, entity.provider, duration)) {
-            databaseForCheck.query { delete(entity) }
+        val meta = mediaMetadata?.takeIf { it.id == entity.id } ?: return@LaunchedEffect
+        val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            GerasLyricsVerify.accept(entity.id, entity.lyrics, entity.provider, meta.title, meta.artists.map { it.name }, meta.duration)
         }
+        if (!ok) databaseForCheck.query { delete(entity) }
     }
     val lines by lyricsViewModel.lines.collectAsStateWithLifecycle()
 
