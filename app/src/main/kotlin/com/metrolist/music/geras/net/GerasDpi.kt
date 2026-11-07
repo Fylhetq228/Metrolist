@@ -39,12 +39,41 @@ object GerasDpi {
             prefs?.edit()?.putBoolean("dpi", v)?.apply()
         }
 
-    /** Where the split happens: 0 = TLS record split + TCP split (default), 1 = TCP split only. */
+    /**
+     * 0 = disorder: the first piece is sent with TTL 1 so it dies on the way and is resent later,
+     *     the filter sees the pieces out of order (the strongest, like ByeDPI --disorder);
+     * 1 = TLS record split + TCP split; 2 = TCP split only.
+     */
     var method: Int
-        get() = prefs?.getInt("method", 0) ?: 0
+        get() = prefs?.getInt("method2", 0) ?: 0
         set(v) {
-            prefs?.edit()?.putInt("method", v)?.apply()
+            prefs?.edit()?.putInt("method2", v)?.apply()
         }
+
+    /**
+     * Installs a global ProxySelector, so every OkHttp/Ktor/HttpURLConnection client in the
+     * process goes through the bypass while it is on, and directly while it is off. Switching
+     * takes effect for new connections immediately, no restart.
+     */
+    fun install() {
+        val previous = java.net.ProxySelector.getDefault()
+        if (previous is Selector) return
+        java.net.ProxySelector.setDefault(Selector(previous))
+    }
+
+    private class Selector(private val fallback: java.net.ProxySelector?) : java.net.ProxySelector() {
+        override fun select(uri: java.net.URI?): MutableList<Proxy> {
+            val host = uri?.host.orEmpty()
+            val local = host == "localhost" || host.startsWith("127.") || host == "::1"
+            val scheme = uri?.scheme?.lowercase()
+            if (!local && (scheme == "https" || scheme == "http" || scheme == "socket")) proxy?.let { return mutableListOf(it) }
+            return fallback?.select(uri) ?: mutableListOf(Proxy.NO_PROXY)
+        }
+
+        override fun connectFailed(uri: java.net.URI?, sa: java.net.SocketAddress?, ioe: java.io.IOException?) {
+            fallback?.connectFailed(uri, sa, ioe)
+        }
+    }
 
     /** The proxy to give HTTP clients, or null when the bypass is off. Starts it on first use. */
     val proxy: Proxy?
@@ -87,7 +116,7 @@ object GerasDpi {
                 if (n <= 0) return
                 val first = buf.copyOf(n)
                 val up = upstream.getOutputStream()
-                if (first[0] == 0x16.toByte() && n > 5) sendDesync(up, first, host) else {
+                if (first[0] == 0x16.toByte() && n > 5) sendDesync(upstream, up, first, host) else {
                     up.write(first)
                     up.flush()
                 }
@@ -111,7 +140,10 @@ object GerasDpi {
         }
     }
 
-    private fun connect(host: String, port: Int): Socket = Socket().apply {
+    /** Test hook: lets unit tests reach the network through their own gateway. */
+    @Volatile internal var upstreamConnector: ((String, Int) -> Socket)? = null
+
+    private fun connect(host: String, port: Int): Socket = upstreamConnector?.invoke(host, port) ?: Socket(Proxy.NO_PROXY).apply {
         tcpNoDelay = true
         connect(InetSocketAddress(host, port), 12_000)
         soTimeout = 0
@@ -168,10 +200,11 @@ object GerasDpi {
         return -1
     }
 
-    private fun sendDesync(out: OutputStream, data: ByteArray, host: String) {
+    private fun sendDesync(socket: Socket, out: OutputStream, data: ByteArray, host: String) {
         val sni = sniOffset(data, host)
         val cut = if (sni > 5) sni + minOf(2, host.length / 2) else 6
-        val payload: ByteArray = if (method == 0) splitRecord(data, cut) ?: data else data
+        if (method == 0 && disorder(socket, out, data, cut)) return
+        val payload: ByteArray = if (method == 1) splitRecord(data, cut) ?: data else data
         val tcpCut = cut
         // Segment 1: one byte. Segment 2: up to the middle of the host name. Segment 3: the rest.
         writeSeg(out, payload, 0, 1)
@@ -186,6 +219,42 @@ object GerasDpi {
         // A short pause keeps the kernel from merging the pieces back into one packet.
         Thread.sleep(3)
     }
+
+    /**
+     * Disorder: the head of the ClientHello (up to the middle of the host name) leaves with
+     * TTL 1 and is dropped by the first router; the tail goes out normally. The phone's TCP stack
+     * then retransmits the head with the normal TTL, so the server gets everything, while the
+     * filter on the way only ever saw the tail first. Needs no root: TTL is a plain socket option.
+     */
+    private fun disorder(socket: Socket, out: OutputStream, data: ByteArray, cut: Int): Boolean {
+        val pfd = runCatching { android.os.ParcelFileDescriptor.fromSocket(socket) }.getOrNull() ?: return false
+        return try {
+            val fd = pfd.fileDescriptor
+            val v6 = socket.inetAddress is java.net.Inet6Address
+            fun ttl(v: Int) {
+                if (v6) {
+                    android.system.Os.setsockoptInt(fd, android.system.OsConstants.IPPROTO_IPV6, android.system.OsConstants.IPV6_UNICAST_HOPS, v)
+                } else {
+                    android.system.Os.setsockoptInt(fd, android.system.OsConstants.IPPROTO_IP, IP_TTL, v)
+                }
+            }
+            val payload = splitRecord(data, cut) ?: data
+            ttl(1)
+            out.write(payload, 0, cut)
+            out.flush()
+            Thread.sleep(5)
+            ttl(64)
+            out.write(payload, cut, payload.size - cut)
+            out.flush()
+            true
+        } catch (_: Exception) {
+            false
+        } finally {
+            runCatching { pfd.close() }
+        }
+    }
+
+    private const val IP_TTL = 2
 
     /** Splits the first TLS record into two records at [cut] (an offset in [data]). */
     private fun splitRecord(data: ByteArray, cut: Int): ByteArray? {

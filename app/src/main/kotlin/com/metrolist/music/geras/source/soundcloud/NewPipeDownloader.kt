@@ -48,7 +48,6 @@ class NewPipeDownloader private constructor(private val client: OkHttpClient) : 
             synchronized(this) {
                 if (initialized) return
                 val client = OkHttpClient.Builder()
-                    .proxy(com.metrolist.music.geras.net.GerasDpi.proxy)
                     .connectTimeout(15, TimeUnit.SECONDS)
                     .readTimeout(20, TimeUnit.SECONDS)
                     .build()

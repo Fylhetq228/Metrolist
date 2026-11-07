@@ -263,23 +263,23 @@ com.metrolist.music.geras.ui.GerasSlider(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.language),
                     title = { Text(stringResource(R.string.geras_dpi)) },
-                    description = { Text(stringResource(if (restartHint) R.string.geras_dpi_restart else R.string.geras_dpi_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = dpi, onCheckedChange = { dpi = it; com.metrolist.music.geras.net.GerasDpi.enabled = it; restartHint = true }, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
+                    description = { Text(stringResource(R.string.geras_dpi_hint)) },
+                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = dpi, onCheckedChange = { dpi = it; com.metrolist.music.geras.net.GerasDpi.enabled = it }, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
                     onClick = {
                         dpi = !dpi
                         com.metrolist.music.geras.net.GerasDpi.enabled = dpi
-                        restartHint = true
                     },
                 ),
             ) + if (dpi) listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.tune),
                     title = { Text(stringResource(R.string.geras_dpi_method)) },
-                    description = { Text(stringResource(if (dpiMethod == 0) R.string.geras_dpi_method_a else R.string.geras_dpi_method_b)) },
+                    description = {
+                        Text(stringResource(when (dpiMethod) { 0 -> R.string.geras_dpi_method_c; 1 -> R.string.geras_dpi_method_a; else -> R.string.geras_dpi_method_b }))
+                    },
                     onClick = {
-                        dpiMethod = 1 - dpiMethod
+                        dpiMethod = (dpiMethod + 1) % 3
                         com.metrolist.music.geras.net.GerasDpi.method = dpiMethod
-                        restartHint = true
                     },
                 ),
             ) else emptyList(),
