@@ -55,7 +55,7 @@
     <string name="geras_remember">Запомнить для трека</string>
     <string name="geras_remembered">Запомнено для трека</string>
     <string name="geras_appearance">Внешний вид</string>
-    <string name="geras_appearance_hint">Тема, стекло, шрифты, плеер</string>
+    <string name="geras_appearance_hint">Тема, цвета, стекло, шрифт</string>
     <string name="geras_theme_mode">Режим темы</string>
     <string name="geras_mode_system">Системная</string>
     <string name="geras_mode_system_hint">Следовать настройкам системы</string>
@@ -112,4 +112,28 @@
     <string name="geras_sc_tracks_count">треков: %1$d</string>
     <string name="geras_play">Слушать</string>
     <string name="geras_shuffle">Вперемешку</string>
+    <string name="geras_section_look">Оформление</string>
+    <string name="geras_section_sound">Звук</string>
+    <string name="geras_section_music">Музыка</string>
+    <string name="geras_section_search">Поиск</string>
+    <string name="geras_section_about">О приложении</string>
+    <string name="geras_settings_eq_hint">Пресеты, кривая, объёмный звук, наушники</string>
+    <string name="geras_settings_speed">Скорость и эффекты</string>
+    <string name="geras_settings_speed_hint">Slowed, Nightcore, тональность, реверб</string>
+    <string name="geras_settings_recognize">Распознать трек</string>
+    <string name="geras_settings_recognize_hint">Ещё: долгое нажатие на вкладку Поиск</string>
+    <string name="geras_settings_clear_search">Очистить историю поиска</string>
+    <string name="geras_settings_clear_search_hint">Запросы и недавно открытое</string>
+    <string name="geras_settings_clear_search_confirm">История запросов и недавно открытое будут удалены.</string>
+    <string name="geras_settings_clear">Очистить</string>
+    <string name="geras_settings_cleared">Очищено</string>
+    <string name="geras_settings_version">Версия %1$s</string>
+    <string name="geras_settings_source">Исходный код</string>
+    <string name="geras_settings_based_on">Основано на Metrolist, GPL-3.0</string>
+    <string name="geras_settings_logout_title">Выйти из YouTube Music?</string>
+    <string name="geras_settings_logout_text">Медиатека и загрузки останутся на устройстве.</string>
+    <string name="geras_settings_guest">Гость</string>
+    <string name="geras_settings_login_hint">Войди в YouTube Music, чтобы синхронизировать лайки и плейлисты</string>
+    <string name="geras_settings_login">Войти</string>
+    <string name="geras_font_sample">Съешь же ещё этих мягких булок · 123</string>
 </resources>

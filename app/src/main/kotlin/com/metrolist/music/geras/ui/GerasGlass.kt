@@ -155,14 +155,18 @@ private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f): Modifier
             shape = shape,
         )
 
+class GerasNavTab(
+    val label: String,
+    val icon: Int,
+    val iconActive: Int,
+    val selected: Boolean,
+    val onClick: () -> Unit,
+    val onLongClick: () -> Unit = {},
+)
+
 @Composable
-fun GerasNavBar(
-    navigationItems: List<Screens>,
-    isSelected: (Screens) -> Boolean,
-    onItemClick: (Screens) -> Unit,
-    onItemLongClick: (Screens) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -171,37 +175,40 @@ fun GerasNavBar(
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth()
                 .height(62.dp)
-                .gerasGlass(RoundedCornerShape(50)),
+                .gerasGlass(RoundedCornerShape(50))
+                .padding(horizontal = 4.dp),
         ) {
-            navigationItems.forEach { screen ->
-                val selected = isSelected(screen)
-                val bg by animateFloatAsState(if (selected) 1f else 0f, spring(), label = "navSel")
-                Box(
-                    contentAlignment = Alignment.Center,
+            tabs.forEach { tab ->
+                val bg by animateFloatAsState(if (tab.selected) 1f else 0f, spring(), label = "navSel")
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier
-                        .size(width = 64.dp, height = 46.dp)
+                        .weight(1f)
+                        .height(52.dp)
                         .clip(RoundedCornerShape(50))
                         .background(
                             Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f * bg),
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f * bg),
-                                ),
+                                listOf(scheme.onSurface.copy(alpha = 0.18f * bg), scheme.onSurface.copy(alpha = 0.08f * bg)),
                             ),
                         )
-                        .border(1.dp, Color.White.copy(alpha = 0.16f * bg), RoundedCornerShape(50))
-                        .pointerInput(screen) {
-                            detectTapGestures(
-                                onTap = { onItemClick(screen) },
-                                onLongPress = { onItemLongClick(screen) },
-                            )
+                        .border(1.dp, Color.White.copy(alpha = 0.14f * bg), RoundedCornerShape(50))
+                        .pointerInput(tab.label) {
+                            detectTapGestures(onTap = { tab.onClick() }, onLongPress = { tab.onLongClick() })
                         },
                 ) {
                     Icon(
-                        painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f + 0.45f * bg),
-                        modifier = Modifier.size(24.dp),
+                        painter = painterResource(if (tab.selected) tab.iconActive else tab.icon),
+                        contentDescription = tab.label,
+                        tint = scheme.onSurface.copy(alpha = 0.6f + 0.4f * bg),
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Text(
+                        text = tab.label,
+                        fontSize = 10.sp,
+                        fontWeight = if (tab.selected) FontWeight.Bold else FontWeight.Medium,
+                        color = scheme.onSurface.copy(alpha = 0.6f + 0.4f * bg),
+                        maxLines = 1,
                     )
                 }
             }

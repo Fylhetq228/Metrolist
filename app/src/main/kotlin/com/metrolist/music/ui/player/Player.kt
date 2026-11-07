@@ -227,7 +227,7 @@ fun BottomSheetPlayer(
             defaultValue = true,
         )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
-    val gerasPlayerEnabled by rememberPreference(com.metrolist.music.geras.GerasPlayerEnabledKey, true)
+    val gerasPlayerEnabled = true
     val useGerasPlayer = gerasPlayerEnabled && LocalConfiguration.current.orientation != Configuration.ORIENTATION_LANDSCAPE
     val (hideStatusBarOnFullscreen) = rememberPreference(HideStatusBarOnFullscreenKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)

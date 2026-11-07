@@ -119,7 +119,6 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
             )
             HeaderIcon(R.drawable.history) { navController.navigate("history") }
             HeaderIcon(R.drawable.stats) { navController.navigate("stats") }
-            HeaderIcon(R.drawable.settings) { navController.navigate("settings") }
         }
 
         Box(

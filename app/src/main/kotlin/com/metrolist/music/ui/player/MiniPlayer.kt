@@ -147,7 +147,7 @@ fun MiniPlayer(
     onClick: () -> Unit = {},
 ) {
     val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
-    val gerasPlayer by rememberPreference(com.metrolist.music.geras.GerasPlayerEnabledKey, true)
+    val gerasPlayer = true
     if (gerasPlayer) {
         com.metrolist.music.geras.ui.GerasMiniPlayer(positionState, durationState, onClick, modifier)
         return

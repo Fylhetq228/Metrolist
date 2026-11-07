@@ -139,21 +139,38 @@ fun AppNavigationBar(
     onSearchLongClick: (() -> Unit)? = null,
     onHomeLongHold: (() -> Unit)? = null,
 ) {
-    val gerasNavStyle by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasNavStyleKey, "FLOATING")
-    if (gerasNavStyle == "FLOATING") {
-        com.metrolist.music.geras.ui.GerasNavBar(
-            navigationItems = navigationItems,
-            isSelected = { isRouteSelected(currentRoute, it.route, navigationItems) },
-            onItemClick = { onItemClick(it, isRouteSelected(currentRoute, it.route, navigationItems)) },
-            onItemLongClick = {
-                when (it) {
-                    Screens.Search -> onSearchLongClick?.invoke()
-                    Screens.Home -> onHomeLongHold?.invoke()
-                    else -> Unit
+    run {
+        val navController = com.metrolist.music.LocalNavController.current
+        val tabs = navigationItems.filter { it != Screens.ListenTogether }.map { screen ->
+            val selected = isRouteSelected(currentRoute, screen.route, navigationItems)
+            com.metrolist.music.geras.ui.GerasNavTab(
+                label = androidx.compose.ui.res.stringResource(screen.titleId),
+                icon = screen.iconIdInactive,
+                iconActive = screen.iconIdActive,
+                selected = selected,
+                onClick = { onItemClick(screen, selected) },
+                onLongClick = {
+                    when (screen) {
+                        Screens.Search -> onSearchLongClick?.invoke()
+                        Screens.Home -> onHomeLongHold?.invoke()
+                        else -> Unit
+                    }
+                },
+            )
+        } + com.metrolist.music.geras.ui.GerasNavTab(
+            label = androidx.compose.ui.res.stringResource(com.metrolist.music.R.string.settings),
+            icon = com.metrolist.music.R.drawable.settings,
+            iconActive = com.metrolist.music.R.drawable.settings,
+            selected = currentRoute?.startsWith("settings") == true,
+            onClick = {
+                navController.navigate("settings") {
+                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
                 }
             },
-            modifier = modifier,
         )
+        com.metrolist.music.geras.ui.GerasNavBar(tabs = tabs, modifier = modifier)
         return
     }
 

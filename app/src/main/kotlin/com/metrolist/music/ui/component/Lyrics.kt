@@ -21,7 +21,7 @@ fun Lyrics(
     lyricsViewModel: LyricsViewModel = hiltViewModel()
 ) {
     val (experimentalLyrics, _) = rememberPreference(key = ExperimentalLyricsKey, defaultValue = true)
-    val (gerasLyrics, _) = rememberPreference(key = com.metrolist.music.geras.GerasLyricsEnabledKey, defaultValue = true)
+    val gerasLyrics = true
 
     if (gerasLyrics) {
         com.metrolist.music.geras.lyrics.GerasLyrics(

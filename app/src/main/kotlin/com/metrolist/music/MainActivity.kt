@@ -742,11 +742,8 @@ class MainActivity : FragmentActivity() {
                 val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
                 val navigationItems =
                     remember(listenTogetherInTopBar) {
-                        if (listenTogetherInTopBar) {
-                            Screens.MainScreens.filter { it != Screens.ListenTogether }
-                        } else {
-                            Screens.MainScreens
-                        }
+                        // Geras: Listen Together is kept in code but not shown as a tab.
+                        Screens.MainScreens.filter { it != Screens.ListenTogether }
                     }
                 val routeIndexMap = remember(navigationItems) {
                     navigationItems.mapIndexed { i, s -> s.route to i }.toMap()
@@ -823,6 +820,7 @@ class MainActivity : FragmentActivity() {
                     remember(currentRoute, navigationItemRoutes) {
                         currentRoute == null ||
                             navigationItemRoutes.contains(currentRoute) ||
+                            currentRoute == "settings" ||
                             currentRoute!!.startsWith("search/")
                     }
 
@@ -969,8 +967,8 @@ class MainActivity : FragmentActivity() {
                 }
 
                 var shouldShowTopBar by rememberSaveable { mutableStateOf(false) }
-                val gerasHomeEnabled by rememberPreference(com.metrolist.music.geras.GerasHomeEnabledKey, true)
-                val gerasSearchEnabled by rememberPreference(com.metrolist.music.geras.GerasSearchEnabledKey, true)
+                val gerasHomeEnabled = true
+                val gerasSearchEnabled = true
 
                 LaunchedEffect(navBackStackEntry, listenTogetherInTopBar, gerasHomeEnabled, gerasSearchEnabled) {
                     val currentRoute = navBackStackEntry?.destination?.route
@@ -1068,7 +1066,7 @@ class MainActivity : FragmentActivity() {
                                         title = {
                                             Text(
                                                 text = currentTitleRes?.let { stringResource(it) } ?: "",
-                                                style = MaterialTheme.typography.titleLarge,
+                                                style = MaterialTheme.typography.displaySmall.copy(fontSize = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp)),
                                             )
                                         },
                                         actions = {
@@ -1086,7 +1084,7 @@ class MainActivity : FragmentActivity() {
                                                     contentDescription = stringResource(R.string.stats),
                                                 )
                                             }
-                                            if (listenTogetherInTopBar) {
+                                            if (false && listenTogetherInTopBar) {
                                                 IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
                                                     Icon(
                                                         painter = painterResource(R.drawable.group_outlined),
@@ -1094,7 +1092,8 @@ class MainActivity : FragmentActivity() {
                                                     )
                                                 }
                                             }
-                                            IconButton(onClick = { showAccountDialog = true }) {
+                                            // Geras: account lives in the Settings tab now.
+                                            if (false) IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {
                                                         Badge()
@@ -1205,7 +1204,7 @@ class MainActivity : FragmentActivity() {
 
                             // Pre-calculate values for graphicsLayer to avoid reading state during composition
                             val navBarTotalHeight = bottomInset + NavigationBarHeight
-                            val gerasFloatingNav = rememberPreference(com.metrolist.music.geras.GerasNavStyleKey, "FLOATING").value == "FLOATING"
+                            val gerasFloatingNav = true
 
                             if (!showRail && currentRoute != "wrapped") {
                                 Box {

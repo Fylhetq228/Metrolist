@@ -36,7 +36,7 @@ fun MetrolistTheme(
     content: @Composable () -> Unit,
 ) {
     val gerasTheme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "COVER")
-    val gerasPreset = com.metrolist.music.geras.theme.GerasThemePreset.entries.firstOrNull { it.name == gerasTheme }
+    val gerasPreset: com.metrolist.music.geras.theme.GerasThemePreset? = com.metrolist.music.geras.theme.GerasThemePreset.entries.firstOrNull { it.name == gerasTheme } ?: com.metrolist.music.geras.theme.GerasThemePreset.COVER
     if (gerasPreset != null) {
         com.metrolist.music.geras.theme.GerasAppTheme(darkTheme, pureBlack, themeColor, gerasPreset, content)
         return

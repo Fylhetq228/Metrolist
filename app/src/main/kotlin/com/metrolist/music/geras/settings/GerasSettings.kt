@@ -44,11 +44,8 @@ import com.metrolist.music.geras.GerasFontKey
 import com.metrolist.music.geras.GerasGlassBlurKey
 import com.metrolist.music.geras.GerasGlassEnabledKey
 import com.metrolist.music.geras.GerasGlassOpacityKey
-import com.metrolist.music.geras.GerasHomeEnabledKey
-import com.metrolist.music.geras.GerasLyricsEnabledKey
-import com.metrolist.music.geras.GerasNavStyleKey
-import com.metrolist.music.geras.GerasPlayerEnabledKey
 import com.metrolist.music.geras.GerasThemeKey
+import com.metrolist.music.geras.theme.GerasFonts
 import com.metrolist.music.geras.theme.GerasThemePreset
 import com.metrolist.music.geras.theme.gerasColorScheme
 import com.metrolist.music.ui.component.Material3SettingsItem
@@ -62,12 +59,8 @@ const val GerasSettingsRoute = "settings/geras"
 
 @Composable
 fun GerasSettings(navController: NavController) {
-    val (playerEnabled, onPlayerEnabledChange) = rememberPreference(GerasPlayerEnabledKey, true)
-    val (lyricsEnabled, onLyricsEnabledChange) = rememberPreference(GerasLyricsEnabledKey, true)
-    val (homeEnabled, onHomeEnabledChange) = rememberPreference(GerasHomeEnabledKey, true)
     val (theme, onThemeChange) = rememberPreference(GerasThemeKey, "COVER")
     val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
-    val (navStyle, onNavStyleChange) = rememberPreference(GerasNavStyleKey, "FLOATING")
     val (glass, onGlassChange) = rememberPreference(GerasGlassEnabledKey, true)
     val (opacity, onOpacityChange) = rememberPreference(GerasGlassOpacityKey, 0.55f)
     val (blur, onBlurChange) = rememberPreference(GerasGlassBlurKey, 22f)
@@ -93,7 +86,7 @@ fun GerasSettings(navController: NavController) {
                     trailingContent = if (darkMode == mode) {
                         { Icon(painterResource(R.drawable.check), null, tint = scheme.primary) }
                     } else {
-                        null
+                        {}
                     },
                     onClick = { onDarkModeChange(mode) },
                 )
@@ -102,46 +95,20 @@ fun GerasSettings(navController: NavController) {
 
         GerasSettingsGroup(
             title = stringResource(R.string.geras_theme),
-            items = (GerasThemePreset.entries.map { it.name } + "MATERIAL").map { name ->
+            items = GerasThemePreset.entries.map { it.name }.map { name ->
                 val preset = GerasThemePreset.entries.firstOrNull { it.name == name }
                 Material3SettingsItem(
                     leadingContent = { Swatch(preset) },
                     title = { Text(presetLabel(name)) },
-                    trailingContent = if (theme == name) {
+                    trailingContent = if (theme == name || (name == "COVER" && GerasThemePreset.entries.none { it.name == theme })) {
                         { Icon(painterResource(R.drawable.check), null, tint = scheme.primary) }
                     } else {
-                        null
+                        {}
                     },
                     onClick = { onThemeChange(name) },
                 )
             },
         )
-
-        Text(
-            stringResource(R.string.geras_tab_style),
-            fontSize = 13.sp,
-            color = scheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp, top = 18.dp, bottom = 8.dp),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            listOf("STANDARD" to R.string.geras_tabs_standard, "FLOATING" to R.string.geras_tabs_floating).forEach { (id, label) ->
-                val selected = navStyle == id
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(if (selected) scheme.primary.copy(alpha = 0.18f) else scheme.surfaceContainer)
-                        .then(if (selected) Modifier.border(1.dp, scheme.primary, RoundedCornerShape(18.dp)) else Modifier)
-                        .clickable { onNavStyleChange(id) }
-                        .padding(vertical = 14.dp),
-                ) {
-                    Icon(painterResource(R.drawable.tab), null, tint = if (selected) scheme.primary else scheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
-                    Text(stringResource(label), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (selected) scheme.onSurface else scheme.onSurfaceVariant)
-                }
-            }
-        }
 
         GerasSettingsGroup(
             title = stringResource(R.string.geras_glass),
@@ -181,26 +148,19 @@ fun GerasSettings(navController: NavController) {
 
         GerasSettingsGroup(
             title = stringResource(R.string.geras_font),
-            items = listOf("MANROPE" to "Manrope", "SYSTEM" to stringResource(R.string.geras_font_system)).map { (id, label) ->
+            items = GerasFonts.choices.map { (id, family) ->
+                val label = if (id == "SYSTEM") stringResource(R.string.geras_font_system) else id.lowercase().replaceFirstChar { it.uppercase() }
                 Material3SettingsItem(
-                    title = { Text(label) },
-                    trailingContent = if (font == id) {
+                    title = { Text(label, fontFamily = family, fontWeight = FontWeight.Bold, fontSize = 17.sp) },
+                    description = { Text(stringResource(R.string.geras_font_sample), fontFamily = family) },
+                    trailingContent = if (font == id || (id == "MANROPE" && GerasFonts.choices.none { it.first == font })) {
                         { Icon(painterResource(R.drawable.check), null, tint = scheme.primary) }
                     } else {
-                        null
+                        {}
                     },
                     onClick = { onFontChange(id) },
                 )
             },
-        )
-
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_settings_player_section),
-            items = listOf(
-                toggle(R.drawable.play, R.string.geras_player_title, R.string.geras_player_description, playerEnabled, onPlayerEnabledChange),
-                toggle(R.drawable.lyrics, R.string.geras_lyrics_title, R.string.geras_lyrics_description, lyricsEnabled, onLyricsEnabledChange),
-                toggle(R.drawable.home_outlined, R.string.geras_home_title, R.string.geras_home_description, homeEnabled, onHomeEnabledChange),
-            ),
         )
         Spacer(Modifier.height(24.dp))
     }
@@ -209,19 +169,8 @@ fun GerasSettings(navController: NavController) {
 }
 
 @Composable
-private fun toggle(icon: Int, title: Int, description: Int, checked: Boolean, onChange: (Boolean) -> Unit) =
-    Material3SettingsItem(
-        icon = painterResource(icon),
-        title = { Text(stringResource(title)) },
-        description = { Text(stringResource(description)) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = onChange) },
-        onClick = { onChange(!checked) },
-    )
-
-@Composable
 private fun presetLabel(name: String): String = when (name) {
     "COVER" -> stringResource(R.string.geras_theme_cover)
-    "MATERIAL" -> stringResource(R.string.geras_theme_material)
     "NEUTRAL" -> "Neutral"
     "AMOLED" -> "AMOLED"
     else -> name.lowercase().replaceFirstChar { it.uppercase() }

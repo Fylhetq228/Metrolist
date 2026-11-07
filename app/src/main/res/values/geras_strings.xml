@@ -53,7 +53,7 @@
     <string name="geras_remember">Remember for this track</string>
     <string name="geras_remembered">Remembered for this track</string>
     <string name="geras_appearance">Appearance</string>
-    <string name="geras_appearance_hint">Theme, glass, fonts, player</string>
+    <string name="geras_appearance_hint">Theme, colors, glass, font</string>
     <string name="geras_theme_mode">Theme mode</string>
     <string name="geras_mode_system">System</string>
     <string name="geras_mode_system_hint">Follow system settings</string>
@@ -110,4 +110,28 @@
     <string name="geras_sc_tracks_count">%1$d tracks</string>
     <string name="geras_play">Play</string>
     <string name="geras_shuffle">Shuffle</string>
+    <string name="geras_section_look">Look</string>
+    <string name="geras_section_sound">Sound</string>
+    <string name="geras_section_music">Music</string>
+    <string name="geras_section_search">Search</string>
+    <string name="geras_section_about">About</string>
+    <string name="geras_settings_eq_hint">Presets, curve, surround, headphones</string>
+    <string name="geras_settings_speed">Speed and effects</string>
+    <string name="geras_settings_speed_hint">Slowed, Nightcore, pitch, reverb</string>
+    <string name="geras_settings_recognize">Recognize a song</string>
+    <string name="geras_settings_recognize_hint">Also: long press on Search tab</string>
+    <string name="geras_settings_clear_search">Clear search history</string>
+    <string name="geras_settings_clear_search_hint">Queries and recently opened</string>
+    <string name="geras_settings_clear_search_confirm">Search history and recently opened items will be deleted.</string>
+    <string name="geras_settings_clear">Clear</string>
+    <string name="geras_settings_cleared">Cleared</string>
+    <string name="geras_settings_version">Version %1$s</string>
+    <string name="geras_settings_source">Source code</string>
+    <string name="geras_settings_based_on">Based on Metrolist, GPL-3.0</string>
+    <string name="geras_settings_logout_title">Log out of YouTube Music?</string>
+    <string name="geras_settings_logout_text">Your library and downloads stay on the device.</string>
+    <string name="geras_settings_guest">Guest</string>
+    <string name="geras_settings_login_hint">Log in to YouTube Music to sync likes and playlists</string>
+    <string name="geras_settings_login">Log in</string>
+    <string name="geras_font_sample">The quick brown fox · 123</string>
 </resources>

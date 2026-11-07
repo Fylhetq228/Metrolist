@@ -78,7 +78,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(Screens.Search.route) { backStackEntry ->
-        val gerasSearch by rememberPreference(com.metrolist.music.geras.GerasSearchEnabledKey, defaultValue = true)
+        val gerasSearch = true
         if (gerasSearch) {
             com.metrolist.music.geras.search.GerasSearchScreen()
             return@composable
@@ -350,7 +350,8 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable("settings") {
-        SettingsScreen(navController, latestVersionName)
+        // Geras: own settings tab; Metrolist's SettingsScreen stays reachable in code only.
+        com.metrolist.music.geras.settings.GerasSettingsHome(navController)
     }
 
     composable("settings/appearance") {
