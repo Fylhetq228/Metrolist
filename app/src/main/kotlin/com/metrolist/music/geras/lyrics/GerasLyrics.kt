@@ -205,6 +205,10 @@ fun GerasLyrics(
     LaunchedEffect(lyricsEntity, mediaMetadata?.duration) {
         val entity = lyricsEntity ?: return@LaunchedEffect
         val meta = mediaMetadata?.takeIf { it.id == entity.id } ?: return@LaunchedEffect
+        if (entity.lyrics == com.metrolist.music.db.entities.LyricsEntity.LYRICS_NOT_FOUND) {
+            if (GerasLyricsVerify.shouldRetryNotFound(entity.id)) databaseForCheck.query { delete(entity) }
+            return@LaunchedEffect
+        }
         val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             GerasLyricsVerify.accept(entity.id, entity.lyrics, entity.provider, meta.title, meta.artists.map { it.name }, meta.duration)
         }
@@ -218,8 +222,20 @@ fun GerasLyrics(
     // Timing is judged on the parsed lines (TTML has no LRC brackets); untimed lyrics get an
     // estimated flow over the track instead of sitting still.
     val timed = remember(lines) { linesAreTimed(lines) }
-    val durationMs = (mediaMetadata?.duration ?: 0) * 1000L
-    val estimated = !timed && lines.count { it.text.isNotBlank() } >= 4 && durationMs >= 30_000
+    // Metadata sometimes has no length (-1); the player knows it once the track is loaded.
+    var playerDurationMs by remember(mediaMetadata?.id) { mutableLongStateOf(0L) }
+    LaunchedEffect(mediaMetadata?.id) {
+        repeat(20) {
+            val d = player.duration
+            if (d > 0) {
+                playerDurationMs = d
+                return@LaunchedEffect
+            }
+            kotlinx.coroutines.delay(500)
+        }
+    }
+    val durationMs = ((mediaMetadata?.duration ?: 0) * 1000L).takeIf { it > 0 } ?: playerDurationMs
+    val estimated = !timed && lines.count { it.text.isNotBlank() } >= 2 && durationMs >= 30_000
     val timedLines = remember(lines, estimated, durationMs) { if (estimated) estimateTiming(lines, durationMs) else lines }
     val synced = timed || estimated
     val items = remember(timedLines, synced) { buildKaraoke(timedLines, synced) }

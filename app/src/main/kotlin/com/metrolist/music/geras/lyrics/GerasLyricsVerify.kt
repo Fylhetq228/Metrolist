@@ -29,10 +29,21 @@ object GerasLyricsVerify {
     private val verdicts = ConcurrentHashMap<String, Boolean>()
 
     fun init(context: Context) {
-        if (prefs == null) prefs = context.applicationContext.getSharedPreferences("geras_lyrics_ok", Context.MODE_PRIVATE)
+        if (prefs == null) prefs = context.applicationContext.getSharedPreferences("geras_lyrics_ok2", Context.MODE_PRIVATE)
     }
 
     fun isTrusted(provider: String?) = provider in trusted
+
+    /**
+     * The first, too strict version turned some good lyrics into "not found". Each such track
+     * gets one fresh search with the current rules.
+     */
+    fun shouldRetryNotFound(id: String): Boolean {
+        val p = prefs ?: return false
+        if (p.getBoolean("retried_$id", false)) return false
+        p.edit().putBoolean("retried_$id", true).apply()
+        return true
+    }
 
     /** Cached verdict for a stored lyrics row, or null when it has not been checked yet. */
     fun knownVerdict(id: String, lyricsHash: Int): Boolean? =
@@ -51,49 +62,50 @@ object GerasLyricsVerify {
         val ok = confirm(lyrics, title, artists, durationSec)
         // Only remember answers we actually got; a network failure is retried later.
         ok?.let { remember(id, lyrics.hashCode(), it) }
-        return ok ?: false
+        // Could not reach LRCLIB: show the lyrics rather than nothing; checked again next time.
+        return ok ?: true
     }
 
-    /** true = confirmed, false = belongs to another song or cannot be confirmed, null = network failed. */
+    /**
+     * true = fine to show, false = evidence it is another song, null = could not ask LRCLIB.
+     * Lyrics are rejected only on evidence: LRCLIB knows this artist's song and the words differ,
+     * or the words match a song with the same title by a different artist. Unknown songs pass.
+     */
     private suspend fun confirm(lyrics: String, title: String, artists: List<String>, durationSec: Int): Boolean? = withContext(Dispatchers.IO) {
         val cleanTitle = com.metrolist.music.lyrics.LyricsUtils.cleanTitleForSearch(title)
         val artist = artists.firstOrNull().orEmpty()
-        val queries = listOf(
-            "track_name=${enc(cleanTitle)}&artist_name=${enc(artist)}",
-            "q=${enc("$artist $cleanTitle")}",
-        )
-        var reached = false
-        val entries = ArrayList<JsonObject>()
-        for (q in queries) {
-            val raw = fetch("https://lrclib.net/api/search?$q") ?: continue
-            reached = true
-            (runCatching { Json.parseToJsonElement(raw) }.getOrNull() as? JsonArray)?.forEach { (it as? JsonObject)?.let(entries::add) }
-            if (entries.isNotEmpty()) break
+        val mine = words(lyrics)
+        if (mine.size < 6) return@withContext true
+
+        fun overlap(e: JsonObject): Float {
+            val theirs = words((e.str("plainLyrics") ?: e.str("syncedLyrics")).orEmpty())
+            if (theirs.isEmpty()) return -1f
+            return mine.intersect(theirs).size.toFloat() / minOf(mine.size, theirs.size)
         }
-        if (!reached) return@withContext null
-        val sameSong = entries.filter { e ->
+        fun sameArtist(e: JsonObject): Boolean {
             val eArtist = e.str("artistName").orEmpty()
-            val eTitle = e.str("trackName").orEmpty()
-            val eDur = (e["duration"] as? JsonPrimitive)?.doubleOrNull
-            val artistOk = artists.any { a ->
+            return artists.any { a ->
                 eArtist.split(",", "&", " feat", " ft.", " x ", ";").any { part -> TransferMatcher.similarity(a, part.trim()) >= 0.72f }
             }
-            val titleOk = TransferMatcher.similarity(cleanTitle, eTitle) >= 0.7f
-            val durOk = eDur == null || durationSec <= 0 || kotlin.math.abs(eDur - durationSec) <= 6
-            artistOk && titleOk && durOk
         }
-        if (sameSong.isEmpty()) return@withContext false
-        val mine = words(lyrics)
-        if (mine.isEmpty()) return@withContext false
-        sameSong.any { e ->
-            val theirs = words((e.str("plainLyrics") ?: e.str("syncedLyrics")).orEmpty())
-            if (theirs.isEmpty()) {
-                false
-            } else {
-                val overlap = mine.intersect(theirs).size.toFloat() / minOf(mine.size, theirs.size)
-                overlap >= 0.35f
-            }
+        fun sameTitle(e: JsonObject) = TransferMatcher.similarity(cleanTitle, e.str("trackName").orEmpty()) >= 0.7f
+
+        val byArtist = search("track_name=${enc(cleanTitle)}&artist_name=${enc(artist)}") ?: return@withContext null
+        val mineEntries = byArtist.filter { sameArtist(it) && sameTitle(it) }
+        if (mineEntries.isNotEmpty()) {
+            val scored = mineEntries.map(::overlap).filter { it >= 0f }
+            // LRCLIB knows this exact song: the words must match it.
+            if (scored.isNotEmpty()) return@withContext scored.max() >= 0.3f
         }
+        // Same title by someone else with these very words: that is the wrong song.
+        val byTitle = search("track_name=${enc(cleanTitle)}") ?: return@withContext null
+        val stranger = byTitle.any { e -> !sameArtist(e) && sameTitle(e) && overlap(e) >= 0.5f }
+        !stranger
+    }
+
+    private fun search(query: String): List<JsonObject>? {
+        val raw = fetch("https://lrclib.net/api/search?$query") ?: return null
+        return (runCatching { Json.parseToJsonElement(raw) }.getOrNull() as? JsonArray)?.mapNotNull { it as? JsonObject } ?: emptyList()
     }
 
     private val stamp = Regex("""\[[^\]]*]|<[^>]*>""")
