@@ -79,7 +79,9 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
     if (source.isEmpty()) return emptyList()
     // Blank timestamps and "♪"/"(instrumental)" lines mark where singing stops: they end the
     // previous line so the break shows as a gap instead of a line still being "sung".
-    val boundaries = entries.map { it.time }.distinct().sorted()
+    val boundaries = entries
+        .filter { it.words.isNullOrEmpty() && (it.text.isBlank() || isInstrumentalMarker(it.text)) && it.time > 0 }
+        .map { it.time }.distinct().sorted()
     if (!synced) {
         return source.map { e ->
             KItem.Line(KLine(e, e.text, Long.MAX_VALUE, Long.MAX_VALUE, emptyList(), parenRanges(e.text), e.isBackground, e.agent, true))
@@ -87,7 +89,7 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
     }
 
     val lines = source.mapIndexed { i, e ->
-        val nextLine = source.drop(i + 1).firstOrNull { !it.isBackground || !e.isBackground }?.time
+        val nextLine = source.drop(i + 1).firstOrNull { !it.isBackground }?.time // backing vocals overlap the lead, they do not end it
         val nextMark = boundaries.firstOrNull { it > e.time }
         val nextStart = listOfNotNull(nextLine, nextMark).minOrNull()
         val words = e.words?.filter { it.text.isNotEmpty() }?.takeIf { ws ->
