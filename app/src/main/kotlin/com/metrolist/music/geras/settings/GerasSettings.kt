@@ -55,6 +55,8 @@ import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import java.util.Locale
 import com.metrolist.music.geras.ui.gerasAppear
+import com.metrolist.music.geras.ui.GerasLensBlur
+import com.metrolist.music.geras.ui.GerasLensOpacity
 import com.metrolist.music.geras.ui.gerasBounce
 
 const val GerasSettingsRoute = "settings/geras"
@@ -64,8 +66,8 @@ fun GerasSettings(navController: NavController) {
     val (theme, onThemeChange) = rememberPreference(GerasThemeKey, "COVER")
     val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
     val (glass, onGlassChange) = rememberPreference(GerasGlassEnabledKey, true)
-    val (opacity, onOpacityChange) = rememberPreference(GerasGlassOpacityKey, 0.55f)
-    val (blur, onBlurChange) = rememberPreference(GerasGlassBlurKey, 22f)
+    val (opacity, onOpacityChange) = rememberPreference(GerasGlassOpacityKey, GerasLensOpacity)
+    val (blur, onBlurChange) = rememberPreference(GerasGlassBlurKey, GerasLensBlur)
     val (font, onFontChange) = rememberPreference(GerasFontKey, "MANROPE")
     val scheme = MaterialTheme.colorScheme
 

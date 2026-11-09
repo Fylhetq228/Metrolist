@@ -85,18 +85,22 @@ object GerasGlass {
 /** Marks the content that glass surfaces blur. Applied to the main content in MainActivity. */
 fun Modifier.gerasGlassSource(): Modifier = hazeSource(GerasGlass.state)
 
+/** Defaults of the "lens" glass picked in the design round: thin blur, light tint, bright rim. */
+const val GerasLensOpacity = 0.24f
+const val GerasLensBlur = 9f
+
 /**
- * "Liquid glass": a soft drop shadow lifts the surface, the backdrop is blurred and tinted,
- * a specular sheen sits on the top-left, the lower part is slightly shaded and the rim
- * catches light at the top and, more faintly, at the bottom like a thick glass lens.
+ * "Liquid glass", lens variant: the backdrop is only slightly blurred and lightly tinted, so
+ * the cover and colors under the bar stay visible and get brighter, like through a thick lens.
+ * A bright rim runs around the edge, strongest at the top, with a specular bloom top-left.
  */
 @Composable
 fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surfaceContainer): Modifier {
     val enabled by rememberPreference(GerasGlassEnabledKey, true)
-    val opacity by rememberPreference(GerasGlassOpacityKey, 0.55f)
-    val blur by rememberPreference(GerasGlassBlurKey, 22f)
+    val opacity by rememberPreference(GerasGlassOpacityKey, GerasLensOpacity)
+    val blur by rememberPreference(GerasGlassBlurKey, GerasLensBlur)
     return this
-        .shadow(elevation = 22.dp, shape = shape, ambientColor = Color.Black.copy(alpha = 0.5f), spotColor = Color.Black.copy(alpha = 0.6f))
+        .shadow(elevation = 18.dp, shape = shape, ambientColor = Color.Black.copy(alpha = 0.45f), spotColor = Color.Black.copy(alpha = 0.55f))
         .clip(shape)
         .then(
             if (enabled) {
@@ -106,14 +110,18 @@ fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.su
                         backgroundColor = tint,
                         tints = listOf(HazeTint(tint.copy(alpha = opacity))),
                         blurRadius = blur.dp,
-                        noiseFactor = 0.05f,
+                        noiseFactor = 0.02f,
                     ),
-                )
+                ).drawWithContent {
+                    // Lift what shows through, so colors under the lens glow instead of muddying.
+                    drawRect(Color.White.copy(alpha = 0.07f), blendMode = androidx.compose.ui.graphics.BlendMode.Screen)
+                    drawContent()
+                }
             } else {
                 Modifier.background(tint.copy(alpha = 0.96f))
             },
         )
-        .glassLighting(shape)
+        .glassLighting(shape, lens = true)
 }
 
 /** Opaque raised surface with the same lighting, for cards and buttons that sit on a background. */
@@ -125,14 +133,14 @@ fun Modifier.gerasRaised(shape: Shape, color: Color, elevation: Dp = 10.dp): Mod
         .background(color)
         .glassLighting(shape, strength = 0.7f)
 
-private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f): Modifier =
+private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f, lens: Boolean = false): Modifier =
     this
         .drawWithContent {
             drawContent()
             // Specular bloom near the top-left corner.
             drawRect(
                 Brush.radialGradient(
-                    0f to Color.White.copy(alpha = 0.13f * strength),
+                    0f to Color.White.copy(alpha = (if (lens) 0.22f else 0.13f) * strength),
                     1f to Color.Transparent,
                     center = Offset(size.width * 0.18f, 0f),
                     radius = size.maxDimension * 0.55f,
@@ -141,20 +149,20 @@ private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f): Modifier
             // Top sheen and a slightly darker belly give the surface thickness.
             drawRect(
                 Brush.verticalGradient(
-                    0f to Color.White.copy(alpha = 0.09f * strength),
+                    0f to Color.White.copy(alpha = (if (lens) 0.12f else 0.09f) * strength),
                     0.42f to Color.Transparent,
                     0.7f to Color.Transparent,
-                    1f to Color.Black.copy(alpha = 0.16f * strength),
+                    1f to Color.Black.copy(alpha = (if (lens) 0.08f else 0.16f) * strength),
                 ),
             )
         }
         .border(
-            width = 1.dp,
+            width = if (lens) 1.2.dp else 1.dp,
             brush = Brush.verticalGradient(
-                0f to Color.White.copy(alpha = 0.32f * strength),
-                0.35f to Color.White.copy(alpha = 0.06f * strength),
-                0.75f to Color.White.copy(alpha = 0.03f * strength),
-                1f to Color.White.copy(alpha = 0.14f * strength),
+                0f to Color.White.copy(alpha = (if (lens) 0.55f else 0.32f) * strength),
+                0.35f to Color.White.copy(alpha = (if (lens) 0.14f else 0.06f) * strength),
+                0.75f to Color.White.copy(alpha = (if (lens) 0.08f else 0.03f) * strength),
+                1f to Color.White.copy(alpha = (if (lens) 0.22f else 0.14f) * strength),
             ),
             shape = shape,
         )
