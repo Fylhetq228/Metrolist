@@ -105,13 +105,14 @@ object GerasTransitions {
     private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
         initialState.destination.route in tabRoutes && targetState.destination.route in tabRoutes
 
-    private val slide = spring(dampingRatio = 1f, stiffness = 380f, visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1))
+    private val slide = spring(dampingRatio = 1f, stiffness = 320f, visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1))
 
     val enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         if (isTabSwitch()) {
             fadeIn(tween(260, delayMillis = 40)) + scaleIn(spring(dampingRatio = 0.85f, stiffness = 300f), initialScale = 0.965f)
         } else {
-            slideInHorizontally(slide) { it / 3 } + fadeIn(tween(220))
+            // iOS push: the new screen slides in over the whole width.
+            slideInHorizontally(slide) { it } + fadeIn(tween(140))
         }
     }
 
@@ -119,7 +120,8 @@ object GerasTransitions {
         if (isTabSwitch()) {
             fadeOut(tween(160)) + scaleOut(tween(220, easing = FastOutSlowInEasing), targetScale = 1.02f)
         } else {
-            slideOutHorizontally(slide) { -it / 6 } + fadeOut(tween(200)) + scaleOut(tween(300), targetScale = 0.97f)
+            // The old screen drifts a quarter to the left and dims under the new one.
+            slideOutHorizontally(slide) { -it / 4 } + fadeOut(tween(380), targetAlpha = 0.25f)
         }
     }
 
@@ -127,7 +129,7 @@ object GerasTransitions {
         if (isTabSwitch()) {
             fadeIn(tween(260, delayMillis = 40)) + scaleIn(spring(dampingRatio = 0.85f, stiffness = 300f), initialScale = 0.965f)
         } else {
-            slideInHorizontally(slide) { -it / 6 } + fadeIn(tween(240)) + scaleIn(tween(300), initialScale = 0.97f)
+            slideInHorizontally(slide) { -it / 4 } + fadeIn(tween(300), initialAlpha = 0.25f)
         }
     }
 
@@ -135,7 +137,7 @@ object GerasTransitions {
         if (isTabSwitch()) {
             fadeOut(tween(160))
         } else {
-            slideOutHorizontally(slide) { it / 3 } + fadeOut(tween(180))
+            slideOutHorizontally(slide) { it } + fadeOut(tween(260, delayMillis = 120))
         }
     }
 }
