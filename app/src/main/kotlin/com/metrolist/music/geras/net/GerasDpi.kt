@@ -33,11 +33,53 @@ object GerasDpi {
         if (prefs == null) prefs = context.applicationContext.getSharedPreferences("geras_net", Context.MODE_PRIVATE)
     }
 
-    var enabled: Boolean
-        get() = prefs?.getBoolean("dpi", false) ?: false
+    /** 0 = direct, 1 = built-in bypass (no VPN), 2 = the user's own HTTP/SOCKS5 proxy. */
+    var mode: Int
+        get() = prefs?.let { p -> if (p.contains("mode")) p.getInt("mode", 0) else if (p.getBoolean("dpi", false)) 1 else 0 } ?: 0
         set(v) {
-            prefs?.edit()?.putBoolean("dpi", v)?.apply()
+            prefs?.edit()?.putInt("mode", v)?.apply()
         }
+
+    /** Kept for older callers: true when any proxying is on. */
+    var enabled: Boolean
+        get() = mode != 0
+        set(v) {
+            mode = if (v) 1 else 0
+        }
+
+    /** The user's own proxy. type 0 = HTTP, 1 = SOCKS5. */
+    data class Custom(val type: Int, val host: String, val port: Int, val user: String, val pass: String) {
+        val valid get() = host.isNotBlank() && port in 1..65535
+    }
+
+    var custom: Custom
+        get() = prefs?.let { p ->
+            Custom(p.getInt("px_type", 1), p.getString("px_host", "").orEmpty(), p.getInt("px_port", 1080), p.getString("px_user", "").orEmpty(), p.getString("px_pass", "").orEmpty())
+        } ?: Custom(1, "", 1080, "", "")
+        set(c) {
+            prefs?.edit()?.putInt("px_type", c.type)?.putString("px_host", c.host.trim())?.putInt("px_port", c.port)
+                ?.putString("px_user", c.user)?.putString("px_pass", c.pass)?.apply()
+        }
+
+    /** Which services go through the proxy: "yt", "sc", "other". */
+    fun service(key: String): Boolean = prefs?.getBoolean("svc_$key", true) ?: true
+
+    fun setService(key: String, on: Boolean) {
+        prefs?.edit()?.putBoolean("svc_$key", on)?.apply()
+    }
+
+    private val ytHosts = listOf("youtube.com", "googlevideo.com", "ytimg.com", "ggpht.com", "googleapis.com", "youtu.be", "googleusercontent.com", "google.com")
+    private val scHosts = listOf("soundcloud.com", "sndcdn.com", "soundcloud.cloud")
+
+    internal fun serviceOf(host: String): String {
+        val h = host.lowercase()
+        fun under(list: List<String>) = list.any { h == it || h.endsWith(".$it") }
+        return when {
+            under(ytHosts) -> "yt"
+            under(scHosts) -> "sc"
+            else -> "other"
+        }
+    }
 
     /**
      * 0 = disorder: the first piece is sent with TTL 1 so it dies on the way and is resent later,
@@ -66,7 +108,7 @@ object GerasDpi {
             val host = uri?.host.orEmpty()
             val local = host == "localhost" || host.startsWith("127.") || host == "::1"
             val scheme = uri?.scheme?.lowercase()
-            if (!local && (scheme == "https" || scheme == "http" || scheme == "socket")) proxy?.let { return mutableListOf(it) }
+            if (!local && (scheme == "https" || scheme == "http" || scheme == "socket") && service(serviceOf(host))) proxy?.let { return mutableListOf(it) }
             return fallback?.select(uri) ?: mutableListOf(Proxy.NO_PROXY)
         }
 
@@ -78,7 +120,8 @@ object GerasDpi {
     /** The proxy to give HTTP clients, or null when the bypass is off. Starts it on first use. */
     val proxy: Proxy?
         get() {
-            if (!enabled) return null
+            val m = mode
+            if (m == 0 || (m == 2 && !custom.valid)) return null
             val s = server ?: synchronized(this) { server ?: start() } ?: return null
             return Proxy(Proxy.Type.HTTP, InetSocketAddress(InetAddress.getLoopbackAddress(), s.localPort))
         }
@@ -116,7 +159,7 @@ object GerasDpi {
                 if (n <= 0) return
                 val first = buf.copyOf(n)
                 val up = upstream.getOutputStream()
-                if (first[0] == 0x16.toByte() && n > 5) sendDesync(upstream, up, first, host) else {
+                if (mode == 1 && first[0] == 0x16.toByte() && n > 5) sendDesync(upstream, up, first, host) else {
                     up.write(first)
                     up.flush()
                 }
@@ -143,10 +186,109 @@ object GerasDpi {
     /** Test hook: lets unit tests reach the network through their own gateway. */
     @Volatile internal var upstreamConnector: ((String, Int) -> Socket)? = null
 
-    private fun connect(host: String, port: Int): Socket = upstreamConnector?.invoke(host, port) ?: Socket(Proxy.NO_PROXY).apply {
+    private fun connect(host: String, port: Int): Socket {
+        upstreamConnector?.let { return it(host, port) }
+        val c = custom
+        if (mode == 2 && c.valid) return if (c.type == 0) viaHttp(c, host, port) else viaSocks(c, host, port)
+        return Socket(Proxy.NO_PROXY).apply {
+            tcpNoDelay = true
+            connect(InetSocketAddress(host, port), 12_000)
+            soTimeout = 0
+        }
+    }
+
+    private fun rawTo(c: Custom): Socket = Socket(Proxy.NO_PROXY).apply {
         tcpNoDelay = true
-        connect(InetSocketAddress(host, port), 12_000)
-        soTimeout = 0
+        connect(InetSocketAddress(c.host, c.port), 12_000)
+        soTimeout = 15_000
+    }
+
+    /** CONNECT through the user's HTTP proxy, with Basic auth when a login is set. */
+    internal fun viaHttp(c: Custom, host: String, port: Int): Socket {
+        val s = rawTo(c)
+        try {
+            val auth = if (c.user.isNotEmpty()) {
+                "Proxy-Authorization: Basic " + android.util.Base64.encodeToString("${c.user}:${c.pass}".toByteArray(), android.util.Base64.NO_WRAP) + "\r\n"
+            } else ""
+            s.getOutputStream().apply {
+                write("CONNECT $host:$port HTTP/1.1\r\nHost: $host:$port\r\n$auth\r\n".toByteArray())
+                flush()
+            }
+            val head = readHead(s.getInputStream()) ?: error("proxy closed")
+            val code = head.substringBefore("\r\n").split(' ').getOrNull(1)?.toIntOrNull()
+            if (code != 200) error("proxy answered $code")
+            s.soTimeout = 0
+            return s
+        } catch (e: Exception) {
+            runCatching { s.close() }
+            throw e
+        }
+    }
+
+    /** SOCKS5 with optional username/password (RFC 1928/1929); the proxy resolves the name. */
+    internal fun viaSocks(c: Custom, host: String, port: Int): Socket {
+        val s = rawTo(c)
+        try {
+            val out = s.getOutputStream()
+            val inp = java.io.DataInputStream(s.getInputStream())
+            val withAuth = c.user.isNotEmpty()
+            out.write(if (withAuth) byteArrayOf(5, 2, 0, 2) else byteArrayOf(5, 1, 0))
+            out.flush()
+            if (inp.readUnsignedByte() != 5) error("not socks5")
+            when (inp.readUnsignedByte()) {
+                0 -> Unit
+                2 -> {
+                    val u = c.user.toByteArray()
+                    val p = c.pass.toByteArray()
+                    out.write(byteArrayOf(1, u.size.toByte()) + u + byteArrayOf(p.size.toByte()) + p)
+                    out.flush()
+                    inp.readUnsignedByte()
+                    if (inp.readUnsignedByte() != 0) error("socks login rejected")
+                }
+                else -> error("socks auth not accepted")
+            }
+            val h = host.toByteArray()
+            out.write(byteArrayOf(5, 1, 0, 3, h.size.toByte()) + h + byteArrayOf((port shr 8).toByte(), port.toByte()))
+            out.flush()
+            if (inp.readUnsignedByte() != 5) error("bad socks reply")
+            val rep = inp.readUnsignedByte()
+            if (rep != 0) error("socks connect failed $rep")
+            inp.readUnsignedByte()
+            val skip = when (inp.readUnsignedByte()) {
+                1 -> 4
+                4 -> 16
+                3 -> inp.readUnsignedByte()
+                else -> error("bad socks address")
+            }
+            inp.readFully(ByteArray(skip + 2))
+            s.soTimeout = 0
+            return s
+        } catch (e: Exception) {
+            runCatching { s.close() }
+            throw e
+        }
+    }
+
+    /**
+     * Checks the current setting the way the app will use it: one request to YouTube and one to
+     * SoundCloud. Returns milliseconds per service, or null when that one failed.
+     */
+    fun check(): Map<String, Long?> = listOf(
+        "yt" to "https://www.youtube.com/generate_204",
+        "sc" to "https://soundcloud.com/robots.txt",
+    ).associate { (key, url) ->
+        key to runCatching {
+            val t0 = System.nanoTime()
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            try {
+                if (conn.responseCode !in 200..399) error("http ${conn.responseCode}")
+            } finally {
+                conn.disconnect()
+            }
+            (System.nanoTime() - t0) / 1_000_000
+        }.getOrNull()
     }
 
     private fun readHead(input: InputStream): String? {

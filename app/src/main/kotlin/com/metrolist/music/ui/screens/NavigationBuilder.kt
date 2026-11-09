@@ -354,6 +354,13 @@ fun NavGraphBuilder.navigationBuilder(
         com.metrolist.music.geras.settings.GerasSettingsHome(navController)
     }
 
+    composable(
+        route = "${com.metrolist.music.geras.settings.GerasSettingsSectionRoute}/{id}",
+        arguments = listOf(navArgument("id") { type = NavType.StringType }),
+    ) { entry ->
+        com.metrolist.music.geras.settings.GerasSettingsHome(navController, entry.arguments?.getString("id") ?: "about")
+    }
+
     composable("settings/appearance") {
         AppearanceSettings(navController, snackbarHostState)
     }

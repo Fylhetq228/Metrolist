@@ -5,6 +5,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,14 +68,18 @@ import com.metrolist.music.geras.ui.gerasAppear
 import com.metrolist.music.geras.ui.gerasBounce
 
 const val GerasSourceUrl = "https://github.com/Fylhetq228/metrolist"
+const val GerasSettingsSectionRoute = "geras/settings/section"
+
+fun gerasSettingsSection(id: String) = "$GerasSettingsSectionRoute/$id"
 private const val UpstreamUrl = "https://github.com/MetrolistGroup/Metrolist"
 
 /**
- * The Settings tab: account on top, then only what Geras itself adds. Metrolist's own settings
+ * The Settings tab: account on top, then sections with a line on what each holds. A section
+ * opens as its own screen (same composable with [section] set). Metrolist's own settings
  * screens are still in the code and routes, just not linked from here.
  */
 @Composable
-fun GerasSettingsHome(navController: NavController) {
+fun GerasSettingsHome(navController: NavController, section: String? = null) {
     val context = LocalContext.current
     val database = LocalDatabase.current
     val scheme = MaterialTheme.colorScheme
@@ -94,12 +100,6 @@ fun GerasSettingsHome(navController: NavController) {
         com.metrolist.music.geras.source.soundcloud.GerasScFirst.init(context)
         mutableStateOf(com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled)
     }
-    var dpi by remember {
-        com.metrolist.music.geras.net.GerasDpi.init(context)
-        mutableStateOf(com.metrolist.music.geras.net.GerasDpi.enabled)
-    }
-    var dpiMethod by remember { mutableStateOf(com.metrolist.music.geras.net.GerasDpi.method) }
-    var restartHint by remember { mutableStateOf(false) }
     var showEq by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
@@ -114,216 +114,204 @@ fun GerasSettingsHome(navController: NavController) {
             .windowInsetsPadding(bottom)
             .padding(horizontal = 16.dp),
     ) {
-        Text(
-            stringResource(R.string.settings),
-            style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp),
-            color = scheme.onSurface,
-            modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 18.dp),
-        )
+        if (section == null) {
+            Text(
+                stringResource(R.string.settings),
+                style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp),
+                color = scheme.onSurface,
+                modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 18.dp),
+            )
 
-        AccountCard(
-            loggedIn = loggedIn,
-            name = accountName,
-            email = accountEmail,
-            onLogin = { navController.navigate("login") },
-            onLogout = { confirmLogout = true },
-            onOpen = { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) },
-        )
-
-        Spacer(Modifier.height(10.dp))
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_section_look),
-            modifier = Modifier.gerasAppear(1),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.palette),
-                    title = { Text(stringResource(R.string.geras_appearance)) },
-                    description = { Text(stringResource(R.string.geras_appearance_hint)) },
-                    onClick = { navController.navigate(GerasSettingsRoute) },
+            AccountCard(
+                loggedIn = loggedIn,
+                name = accountName,
+                email = accountEmail,
+                onLogin = { navController.navigate("login") },
+                onLogout = { confirmLogout = true },
+                onOpen = { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) },
+            )
+            Spacer(Modifier.height(6.dp))
+            CategoryGroup(stringResource(R.string.geras_grp_sound_play), 1, listOf(
+                Category(R.drawable.equalizer, Color(0xFFE8642A), stringResource(R.string.geras_cat_sound), stringResource(R.string.geras_cat_sound_hint)) { navController.navigate(gerasSettingsSection("sound")) },
+                Category(R.drawable.play, Color(0xFFC2452F), stringResource(R.string.geras_cat_playback), stringResource(R.string.geras_cat_playback_hint)) { navController.navigate(gerasSettingsSection("playback")) },
+            ))
+            CategoryGroup(stringResource(R.string.geras_grp_screen), 2, listOf(
+                Category(R.drawable.palette, Color(0xFF7B52D6), stringResource(R.string.geras_appearance), stringResource(R.string.geras_cat_look_hint)) { navController.navigate(GerasSettingsRoute) },
+            ))
+            CategoryGroup(stringResource(R.string.geras_section_music), 3, listOf(
+                Category(R.drawable.library_music, Color(0xFF2F8F6A), stringResource(R.string.geras_cat_library), stringResource(R.string.geras_cat_library_hint)) { navController.navigate(gerasSettingsSection("library")) },
+            ))
+            CategoryGroup(stringResource(R.string.geras_grp_network), 4, listOf(
+                Category(R.drawable.wifi_proxy, Color(0xFF2C6FD6), stringResource(R.string.geras_cat_network), stringResource(R.string.geras_cat_network_hint)) { navController.navigate(gerasSettingsSection("network")) },
+            ))
+            CategoryGroup(stringResource(R.string.geras_grp_other), 5, listOf(
+                Category(R.drawable.info, Color(0xFF6B645D), stringResource(R.string.geras_section_about), stringResource(R.string.geras_cat_about_hint)) { navController.navigate(gerasSettingsSection("about")) },
+            ))
+        } else {
+            SectionHeader(
+                when (section) {
+                    "sound" -> stringResource(R.string.geras_cat_sound)
+                    "playback" -> stringResource(R.string.geras_cat_playback)
+                    "library" -> stringResource(R.string.geras_cat_library)
+                    "network" -> stringResource(R.string.geras_cat_network)
+                    else -> stringResource(R.string.geras_section_about)
+                },
+                onBack = { navController.navigateUp() },
+            )
+        }
+        val accent = MaterialTheme.colorScheme.primary
+        val off = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+        fun sw(on: Boolean, change: (Boolean) -> Unit): @Composable () -> Unit = {
+            com.metrolist.music.geras.ui.GerasSwitch(checked = on, onCheckedChange = change, accent = accent, track = off)
+        }
+        when (section) {
+            "sound" -> GerasSettingsGroup(
+                title = stringResource(R.string.geras_section_sound),
+                modifier = Modifier.gerasAppear(1),
+                items = listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.equalizer),
+                        title = { Text(stringResource(R.string.geras_eq_title)) },
+                        description = { Text(stringResource(R.string.geras_settings_eq_hint)) },
+                        onClick = { showEq = true },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.speed),
+                        title = { Text(stringResource(R.string.geras_settings_speed)) },
+                        description = { Text(stringResource(R.string.geras_settings_speed_hint)) },
+                        onClick = { showSpeed = true },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.volume_up),
+                        title = { Text(stringResource(R.string.geras_normalize)) },
+                        description = { Text(stringResource(R.string.geras_normalize_hint)) },
+                        trailingContent = sw(normalize, onNormalizeChange),
+                        onClick = { onNormalizeChange(!normalize) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.fast_forward),
+                        title = { Text(stringResource(R.string.geras_skip_silence)) },
+                        description = { Text(stringResource(R.string.geras_skip_silence_hint)) },
+                        trailingContent = sw(skipSilence, onSkipSilenceChange),
+                        onClick = { onSkipSilenceChange(!skipSilence) },
+                    ),
                 ),
-            ),
-        )
-
-        Spacer(Modifier.height(10.dp))
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_section_sound),
-            modifier = Modifier.gerasAppear(2),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.equalizer),
-                    title = { Text(stringResource(R.string.geras_eq_title)) },
-                    description = { Text(stringResource(R.string.geras_settings_eq_hint)) },
-                    onClick = { showEq = true },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.speed),
-                    title = { Text(stringResource(R.string.geras_settings_speed)) },
-                    description = { Text(stringResource(R.string.geras_settings_speed_hint)) },
-                    onClick = { showSpeed = true },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.graphic_eq),
-                    title = { Text(stringResource(R.string.geras_crossfade)) },
-                    description = { Text(stringResource(R.string.geras_crossfade_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = crossfade, onCheckedChange = onCrossfadeChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
-                    onClick = { onCrossfadeChange(!crossfade) },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.cloud),
-                    title = { Text(stringResource(R.string.geras_sc_first)) },
-                    description = { Text(stringResource(R.string.geras_sc_first_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = scFirst, onCheckedChange = { scFirst = it; com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled = it }, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
-                    onClick = {
-                        scFirst = !scFirst
-                        com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled = scFirst
-                    },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.volume_up),
-                    title = { Text(stringResource(R.string.geras_normalize)) },
-                    description = { Text(stringResource(R.string.geras_normalize_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = normalize, onCheckedChange = onNormalizeChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
-                    onClick = { onNormalizeChange(!normalize) },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.fast_forward),
-                    title = { Text(stringResource(R.string.geras_skip_silence)) },
-                    description = { Text(stringResource(R.string.geras_skip_silence_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = skipSilence, onCheckedChange = onSkipSilenceChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
-                    onClick = { onSkipSilenceChange(!skipSilence) },
-                ),
-            ) + if (crossfade) listOf(
-                Material3SettingsItem(
-                    title = {
-com.metrolist.music.geras.ui.GerasSlider(
+            )
+            "playback" -> GerasSettingsGroup(
+                title = stringResource(R.string.geras_cat_playback),
+                modifier = Modifier.gerasAppear(1),
+                items = listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.cloud),
+                        title = { Text(stringResource(R.string.geras_sc_first)) },
+                        description = { Text(stringResource(R.string.geras_sc_first_hint)) },
+                        trailingContent = sw(scFirst) { scFirst = it; com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled = it },
+                        onClick = {
+                            scFirst = !scFirst
+                            com.metrolist.music.geras.source.soundcloud.GerasScFirst.enabled = scFirst
+                        },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.shuffle),
+                        title = { Text(stringResource(R.string.geras_smart_shuffle)) },
+                        description = { Text(stringResource(R.string.geras_smart_shuffle_hint)) },
+                        trailingContent = sw(smartShuffle, onSmartShuffleChange),
+                        onClick = { onSmartShuffleChange(!smartShuffle) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.graphic_eq),
+                        title = { Text(stringResource(R.string.geras_crossfade)) },
+                        description = { Text(stringResource(R.string.geras_crossfade_hint)) },
+                        trailingContent = sw(crossfade, onCrossfadeChange),
+                        onClick = { onCrossfadeChange(!crossfade) },
+                    ),
+                ) + if (crossfade) listOf(
+                    Material3SettingsItem(
+                        title = {
+                            com.metrolist.music.geras.ui.GerasSlider(
                                 value = crossfadeLen,
                                 onValueChange = onCrossfadeLenChange,
                                 valueRange = 1f..15f,
                                 label = stringResource(R.string.geras_crossfade_len),
                                 valueText = "${crossfadeLen.toInt()} s",
                                 steps = 13,
-                                accent = MaterialTheme.colorScheme.primary,
+                                accent = accent,
                                 track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                                 content = MaterialTheme.colorScheme.onSurface,
                                 onAccent = MaterialTheme.colorScheme.onPrimary,
                             )
-                    },
+                        },
+                    ),
+                ) else emptyList(),
+            )
+            "library" -> GerasSettingsGroup(
+                title = stringResource(R.string.geras_cat_library),
+                modifier = Modifier.gerasAppear(1),
+                items = listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.geras_transfer),
+                        title = { Text(stringResource(R.string.geras_transfer_title)) },
+                        description = { Text(stringResource(R.string.geras_transfer_menu_hint)) },
+                        onClick = { navController.navigate(com.metrolist.music.geras.transfer.transferRoute()) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.history),
+                        title = { Text(stringResource(R.string.history)) },
+                        onClick = { navController.navigate("history") },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.stats),
+                        title = { Text(stringResource(R.string.geras_profile_entry)) },
+                        description = { Text(stringResource(R.string.geras_profile_entry_hint)) },
+                        onClick = { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.trending_up),
+                        title = { Text(stringResource(R.string.geras_recap)) },
+                        description = { Text(stringResource(R.string.geras_recap_hint)) },
+                        onClick = { navController.navigate("wrapped") },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.mic),
+                        title = { Text(stringResource(R.string.geras_settings_recognize)) },
+                        description = { Text(stringResource(R.string.geras_settings_recognize_hint)) },
+                        onClick = { navController.navigate("recognition") },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.delete_history),
+                        title = { Text(stringResource(R.string.geras_settings_clear_search)) },
+                        description = { Text(stringResource(R.string.geras_settings_clear_search_hint)) },
+                        trailingContent = {},
+                        onClick = { confirmClearSearch = true },
+                    ),
                 ),
-            ) else emptyList(),
-        )
-
-        Spacer(Modifier.height(10.dp))
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_section_music),
-            modifier = Modifier.gerasAppear(3),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.geras_transfer),
-                    title = { Text(stringResource(R.string.geras_transfer_title)) },
-                    description = { Text(stringResource(R.string.geras_transfer_menu_hint)) },
-                    onClick = { navController.navigate(com.metrolist.music.geras.transfer.transferRoute()) },
+            )
+            "network" -> GerasProxySection()
+            "about" -> GerasSettingsGroup(
+                title = stringResource(R.string.geras_section_about),
+                modifier = Modifier.gerasAppear(1),
+                items = listOf(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.info),
+                        title = { Text("Geras") },
+                        description = { Text(stringResource(R.string.geras_settings_version, BuildConfig.VERSION_NAME)) },
+                        trailingContent = {},
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.github),
+                        title = { Text(stringResource(R.string.geras_settings_source)) },
+                        description = { Text(stringResource(R.string.geras_settings_based_on)) },
+                        onClick = { openUrl(context, GerasSourceUrl) },
+                    ),
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.music_note),
+                        title = { Text("Metrolist") },
+                        description = { Text("GPL-3.0") },
+                        onClick = { openUrl(context, UpstreamUrl) },
+                    ),
                 ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.history),
-                    title = { Text(stringResource(R.string.history)) },
-                    onClick = { navController.navigate("history") },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.stats),
-                    title = { Text(stringResource(R.string.geras_profile_entry)) },
-                    description = { Text(stringResource(R.string.geras_profile_entry_hint)) },
-                    onClick = { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.shuffle),
-                    title = { Text(stringResource(R.string.geras_smart_shuffle)) },
-                    description = { Text(stringResource(R.string.geras_smart_shuffle_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = smartShuffle, onCheckedChange = onSmartShuffleChange, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
-                    onClick = { onSmartShuffleChange(!smartShuffle) },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.trending_up),
-                    title = { Text(stringResource(R.string.geras_recap)) },
-                    description = { Text(stringResource(R.string.geras_recap_hint)) },
-                    onClick = { navController.navigate("wrapped") },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.mic),
-                    title = { Text(stringResource(R.string.geras_settings_recognize)) },
-                    description = { Text(stringResource(R.string.geras_settings_recognize_hint)) },
-                    onClick = { navController.navigate("recognition") },
-                ),
-            ),
-        )
-
-        Spacer(Modifier.height(10.dp))
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_section_network),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.language),
-                    title = { Text(stringResource(R.string.geras_dpi)) },
-                    description = { Text(stringResource(R.string.geras_dpi_hint)) },
-                    trailingContent = { com.metrolist.music.geras.ui.GerasSwitch(checked = dpi, onCheckedChange = { dpi = it; com.metrolist.music.geras.net.GerasDpi.enabled = it }, accent = MaterialTheme.colorScheme.primary, track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)) },
-                    onClick = {
-                        dpi = !dpi
-                        com.metrolist.music.geras.net.GerasDpi.enabled = dpi
-                    },
-                ),
-            ) + if (dpi) listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.tune),
-                    title = { Text(stringResource(R.string.geras_dpi_method)) },
-                    description = {
-                        Text(stringResource(when (dpiMethod) { 0 -> R.string.geras_dpi_method_c; 1 -> R.string.geras_dpi_method_a; else -> R.string.geras_dpi_method_b }))
-                    },
-                    onClick = {
-                        dpiMethod = (dpiMethod + 1) % 3
-                        com.metrolist.music.geras.net.GerasDpi.method = dpiMethod
-                    },
-                ),
-            ) else emptyList(),
-        )
-        Spacer(Modifier.height(10.dp))
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_section_search),
-            modifier = Modifier.gerasAppear(4),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.delete_history),
-                    title = { Text(stringResource(R.string.geras_settings_clear_search)) },
-                    description = { Text(stringResource(R.string.geras_settings_clear_search_hint)) },
-                    trailingContent = {},
-                    onClick = { confirmClearSearch = true },
-                ),
-            ),
-        )
-
-        Spacer(Modifier.height(10.dp))
-        GerasSettingsGroup(
-            title = stringResource(R.string.geras_section_about),
-            modifier = Modifier.gerasAppear(5),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.info),
-                    title = { Text("Geras") },
-                    description = { Text(stringResource(R.string.geras_settings_version, BuildConfig.VERSION_NAME)) },
-                    trailingContent = {},
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.github),
-                    title = { Text(stringResource(R.string.geras_settings_source)) },
-                    description = { Text(stringResource(R.string.geras_settings_based_on)) },
-                    onClick = { openUrl(context, GerasSourceUrl) },
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.music_note),
-                    title = { Text("Metrolist") },
-                    description = { Text("GPL-3.0") },
-                    onClick = { openUrl(context, UpstreamUrl) },
-                ),
-            ),
-        )
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
 
@@ -450,4 +438,82 @@ private fun AccountCard(loggedIn: Boolean, name: String, email: String, onLogin:
 
 private fun openUrl(context: Context, url: String) {
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+}
+
+private class Category(val icon: Int, val color: Color, val title: String, val hint: String, val onClick: () -> Unit)
+
+/** A titled card of sections: colored icon, name, a line on what is inside, chevron. */
+@Composable
+private fun CategoryGroup(title: String, index: Int, rows: List<Category>) {
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.gerasAppear(index)) {
+        Text(
+            title.uppercase(),
+            fontSize = 12.sp,
+            letterSpacing = 0.8.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = scheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, top = 18.dp, bottom = 8.dp),
+        )
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(scheme.surfaceContainer),
+        ) {
+            rows.forEachIndexed { i, c ->
+                if (i > 0) Box(Modifier.padding(start = 62.dp).fillMaxWidth().height(1.dp).background(scheme.onSurface.copy(alpha = 0.07f)))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .gerasBounce(0.98f)
+                        .clickable(onClick = c.onClick)
+                        .padding(horizontal = 14.dp, vertical = 13.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Brush.verticalGradient(listOf(c.color, c.color.copy(alpha = 0.78f)))),
+                    ) {
+                        Icon(painterResource(c.icon), null, tint = Color.White, modifier = Modifier.size(19.dp))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(c.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = scheme.onSurface)
+                        Text(c.hint, fontSize = 12.5.sp, color = scheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    Icon(painterResource(R.drawable.navigate_next), null, tint = scheme.onSurfaceVariant.copy(alpha = 0.6f), modifier = Modifier.size(22.dp))
+                }
+            }
+        }
+    }
+}
+
+/** "‹ Settings" back link and the section's large title, like a pushed iOS screen. */
+@Composable
+private fun SectionHeader(title: String, onBack: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.padding(top = 10.dp, bottom = 12.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .gerasBounce(0.94f)
+                .clickable(onClick = onBack)
+                .padding(end = 10.dp, top = 6.dp, bottom = 6.dp),
+        ) {
+            Icon(painterResource(R.drawable.arrow_back), null, tint = scheme.primary, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(stringResource(R.string.geras_settings_back), color = scheme.primary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Text(
+            title,
+            style = MaterialTheme.typography.displaySmall.copy(fontSize = 30.sp),
+            color = scheme.onSurface,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+        )
+    }
 }
