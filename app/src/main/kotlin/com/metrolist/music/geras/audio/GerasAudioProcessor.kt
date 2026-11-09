@@ -96,12 +96,14 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         lowRoomIdx = 0
         lowSplit.setLowPass(sampleRate, 190.0)
         bodyDb = Double.NaN
+        GerasPulse.configure(sampleRate)
         return inputAudioFormat
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
+        analyze(inputBuffer)
         val p = params
         val out = replaceOutputBuffer(remaining)
         if (p.isNeutral && reverbMix < 1e-4 && eightDMix < 1e-4 && surroundMix < 1e-4 && muffleMix < 1e-4) {
@@ -221,6 +223,17 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         out.flip()
     }
 
+    /** Feeds the drop/kick listener a mono copy; the buffer itself is not consumed. */
+    private fun analyze(input: ByteBuffer) {
+        val b = input.duplicate().order(ByteOrder.nativeOrder())
+        val frameBytes = (if (isFloat) 4 else 2) * channels
+        repeat(b.remaining() / frameBytes) {
+            val l = read(b)
+            val r = if (channels == 2) read(b) else l
+            GerasPulse.sample((l + r) * 0.5)
+        }
+    }
+
     private fun read(buf: ByteBuffer): Double =
         if (isFloat) buf.getFloat().toDouble() else buf.getShort() / 32768.0
 
@@ -259,6 +272,7 @@ class GerasAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
+        GerasPulse.reset()
         eqL.forEach { it.clear() }
         eqR.forEach { it.clear() }
         bassL.clear()

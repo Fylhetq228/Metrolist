@@ -73,6 +73,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -267,6 +269,42 @@ fun GerasLyrics(
         }
     }
 
+    // Reaction to the music: seconds since the drop / last kick became audible (large = none).
+    val dropStyle by rememberPreference(com.metrolist.music.geras.GerasDropStyleKey, 1)
+    val kickPulse by rememberPreference(com.metrolist.music.geras.GerasKickPulseKey, false)
+    val sinceDrop = remember { mutableFloatStateOf(99f) }
+    val sinceKick = remember { mutableFloatStateOf(99f) }
+    val kickPower = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(player, synced, dropStyle, kickPulse) {
+        val P = com.metrolist.music.geras.audio.GerasPulse
+        var seenDrop = P.dropAtNanos
+        var seenKick = P.kickAtNanos
+        var dropShown = 0L
+        var kickShown = 0L
+        while (isActive) {
+            withFrameMillis {
+                val now = System.nanoTime()
+                val lat = com.metrolist.music.geras.audio.GerasPulse.OUTPUT_LATENCY_NS
+                val d = P.dropAtNanos
+                if (d != seenDrop && now >= d + lat) {
+                    seenDrop = d
+                    // Not at the very start of a track, not while paused, only over synced text.
+                    if (dropStyle != 0 && synced && player.isPlaying && player.currentPosition > 4_000) dropShown = now
+                }
+                val k = P.kickAtNanos
+                if (k != seenKick && now >= k + lat) {
+                    seenKick = k
+                    if (kickPulse && player.isPlaying) {
+                        kickShown = now
+                        kickPower.floatValue = P.kickStrength
+                    }
+                }
+                sinceDrop.floatValue = if (dropShown == 0L) 99f else (now - dropShown) / 1e9f
+                sinceKick.floatValue = if (kickShown == 0L) 99f else (now - kickShown) / 1e9f
+            }
+        }
+    }
+
     val activeIdx by remember(items) { derivedStateOf { activeIndex(items, clock.longValue) } }
 
     val scrollState = rememberScrollState()
@@ -321,7 +359,34 @@ fun GerasLyrics(
                 verticalArrangement = Arrangement.spacedBy(22.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawBehind {
+                        // Warm flash behind the text on the drop (and faintly on kicks).
+                        val a = dropFlash(dropStyle, sinceDrop.floatValue) + kickFlash(kickPulse, dropStyle, sinceKick.floatValue, kickPower.floatValue)
+                        if (a > 0.01f) {
+                            drawRect(
+                                Brush.radialGradient(
+                                    0f to colors.active.copy(alpha = 0.32f * a.coerceAtMost(1f)),
+                                    1f to Color.Transparent,
+                                    center = androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height * ANCHOR_RATIO),
+                                    radius = size.maxDimension * 0.6f,
+                                ),
+                            )
+                        }
+                    }
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                        // Punch: the whole text jumps toward you and back.
+                        if (dropStyle == 1) {
+                            val t = sinceDrop.floatValue
+                            if (t < PUNCH_S) {
+                                val p = t / PUNCH_S
+                                val k = kotlin.math.sin(p * Math.PI).toFloat() * (1f - 0.3f * p)
+                                scaleX = 1f + 0.07f * k
+                                scaleY = 1f + 0.07f * k
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.3f, ANCHOR_RATIO)
+                            }
+                        }
+                    }
                     .drawWithContent {
                         drawContent()
                         drawRect(
@@ -351,7 +416,42 @@ fun GerasLyrics(
             ) {
                 Spacer(Modifier.height(viewportHeight * ANCHOR_RATIO))
                 items.forEachIndexed { index, item ->
-                    Box(Modifier.onPlaced { positions[index] = it.positionInParent().y }) {
+                    Box(
+                        Modifier
+                            .onPlaced { positions[index] = it.positionInParent().y }
+                            .graphicsLayer {
+                                val t = sinceDrop.floatValue
+                                val dist = if (activeIdx < 0) 0 else abs(index - activeIdx)
+                                var ty = 0f
+                                var sc = 1f
+                                when (dropStyle) {
+                                    // Wave: lines hop one after another, outward from the current one.
+                                    2 -> if (t < 1.6f) {
+                                        val ph = t * 6f - dist * 1.1f
+                                        if (ph > 0f && ph < Math.PI.toFloat()) {
+                                            val k = kotlin.math.sin(ph)
+                                            ty = -10.dp.toPx() * k
+                                            sc = 1f + 0.05f * k
+                                        }
+                                    }
+                                    // Hype: the current line is bigger and trembles, calming over 6 s.
+                                    3 -> if (t < HYPE_S && dist == 0) {
+                                        val amp = 1f - t / HYPE_S
+                                        sc = 1f + 0.12f * amp
+                                        ty = -2.dp.toPx() * amp * kotlin.math.sin(t * 30f)
+                                    }
+                                }
+                                // Kick pulse on the current line.
+                                if (kickPulse && dist == 0 && sinceKick.floatValue < 0.25f) {
+                                    val k = (1f - sinceKick.floatValue / 0.25f) * kickPower.floatValue
+                                    sc *= 1f + 0.035f * k
+                                }
+                                translationY = ty
+                                scaleX = sc
+                                scaleY = sc
+                                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                            },
+                    ) {
                         when (item) {
                             is KItem.Gap -> GapDots(
                                 gap = item,
@@ -653,6 +753,18 @@ private fun KaraokeText(
 }
 
 private const val LEAD_MS = 160L
+private const val PUNCH_S = 0.6f
+private const val HYPE_S = 6f
+
+private fun dropFlash(style: Int, t: Float): Float = when (style) {
+    1 -> if (t < PUNCH_S) kotlin.math.sin(t / PUNCH_S * Math.PI).toFloat() else 0f
+    2 -> if (t < 1.2f) 0.5f * (1f - t / 1.2f) else 0f
+    3 -> if (t < 1.5f) 0.6f * (1f - t / 1.5f) else 0f
+    else -> 0f
+}
+
+private fun kickFlash(on: Boolean, style: Int, t: Float, power: Float): Float =
+    if (on && t < 0.3f) 0.18f * power * (1f - t / 0.3f) else 0f
 
 private fun easeOutBack(x: Float): Float {
     val c1 = 2.2f
