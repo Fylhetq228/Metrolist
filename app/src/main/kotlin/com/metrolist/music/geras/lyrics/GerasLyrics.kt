@@ -238,7 +238,7 @@ fun GerasLyrics(
     val estimated = !timed && lines.count { it.text.isNotBlank() } >= 2 && durationMs >= 30_000
     val timedLines = remember(lines, estimated, durationMs) { if (estimated) estimateTiming(lines, durationMs) else lines }
     val synced = timed || estimated
-    val items = remember(timedLines, synced) { buildKaraoke(timedLines, synced) }
+    val items = remember(timedLines, synced, estimated) { buildKaraoke(timedLines, synced, approximate = estimated) }
 
     TranslationEffects(lines = lines, showLyrics = showLyrics, songId = currentSong?.id)
 
@@ -254,7 +254,9 @@ fun GerasLyrics(
                 val playerPos = player.currentPosition
                 val hostPos = sliderPositionProvider()
                 val pos = if (hostPos != null && abs(hostPos - playerPos) > 1_500L) hostPos else playerPos
-                clock.longValue = pos + lyricsOffset
+                // Small lead: the word should light up as it is heard, not one frame and one
+                // audio buffer later, so the eye does not see the text trailing the voice.
+                clock.longValue = pos + lyricsOffset + LEAD_MS
             }
         }
     }
@@ -620,7 +622,7 @@ private fun KaraokeText(
                         val since = (t - w.start).toFloat()
                         val after = (t - w.end).toFloat()
                         // Pop: ease-out-back on the way up, settle back once the word is over.
-                        val up = easeOutBack((since / 180f).coerceIn(0f, 1f))
+                        val up = easeOutBack((since / 140f).coerceIn(0f, 1f))
                         val down = if (after > 0f) (1f - (after / 320f)).coerceIn(0f, 1f) else 1f
                         val k = up * down
                         val glow = (if (after > 0f) (1f - after / 450f) else 1f).coerceIn(0f, 1f)
@@ -643,6 +645,8 @@ private fun KaraokeText(
         }
     }
 }
+
+private const val LEAD_MS = 160L
 
 private fun easeOutBack(x: Float): Float {
     val c1 = 2.2f

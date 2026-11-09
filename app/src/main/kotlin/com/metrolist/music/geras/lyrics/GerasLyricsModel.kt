@@ -36,7 +36,7 @@ sealed interface KItem {
 }
 
 private const val GAP_MIN_MS = 4_000L
-private const val MS_PER_CHAR = 95L
+private const val MS_PER_CHAR = 80L
 private const val MIN_LINE_MS = 1_200L
 
 /**
@@ -74,7 +74,7 @@ fun estimateTiming(entries: List<LyricsEntry>, durationMs: Long): List<LyricsEnt
     }
 }
 
-fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
+fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boolean = false): List<KItem> {
     val source = entries.filter { (it.text.isNotBlank() && !isInstrumentalMarker(it.text)) || !it.words.isNullOrEmpty() }
     if (source.isEmpty()) return emptyList()
     // Blank timestamps and "♪"/"(instrumental)" lines mark where singing stops: they end the
@@ -113,7 +113,10 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
             val gap = (nextStart ?: (e.time + 6_000L)) - e.time
             val estimate = (text.length * MS_PER_CHAR).coerceAtLeast(MIN_LINE_MS)
             // A line takes about as long as it takes to sing it; a long pause after it is a break.
-            val duration = minOf((gap * 0.92f).toLong(), (estimate * 1.3f).toLong()).coerceAtLeast(400L)
+            // Estimated (plain) lyrics have no real pauses to show: the line simply runs until
+            // the next one, otherwise every line would die early and leave "..." on screen.
+            val duration = if (approximate) (gap * 0.95f).toLong().coerceAtLeast(400L)
+            else minOf((gap * 0.92f).toLong(), (estimate * 1.15f).toLong()).coerceAtLeast(400L)
             KLine(e, text, e.time, e.time + duration, interpolateWords(text, e.time, duration), parenRanges(text), e.isBackground, e.agent, true)
         }
     }
@@ -123,7 +126,7 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
     lines.forEachIndexed { i, line ->
         items += KItem.Line(line)
         val next = lines.getOrNull(i + 1) ?: return@forEachIndexed
-        if (next.start - line.end > GAP_MIN_MS) items += KItem.Gap(line.end, next.start)
+        if (!approximate && next.start - line.end > GAP_MIN_MS) items += KItem.Gap(line.end, next.start)
     }
     return items
 }
