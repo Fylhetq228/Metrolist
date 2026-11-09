@@ -135,7 +135,7 @@ private fun LabeledSlider(
 }
 
 @OptIn(UnstableApi::class)
-@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@kotlin.OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
     val fx by GerasAudio.speedFx.collectAsState()
@@ -201,10 +201,16 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
             ) { GerasAudio.setSpeedFx(fx.copy(speed = it)) }
 
             SectionTitle(stringResource(R.string.geras_presets), c)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            // Wrapped rows: every preset is visible, nothing hides past the screen edge.
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 SpeedPresets.all.forEach { (id, preset) ->
                     val selected = abs(fx.speed - preset.speed) < 0.005f && fx.linked == preset.linked &&
-                        abs(fx.reverb - preset.reverb) < 0.01f && (id != "normal" || (fx.eightD < 0.01f && fx.bass < 0.01f && abs(fx.pitchSemitones) < 0.05f))
+                        abs(fx.reverb - preset.reverb) < 0.01f && abs(fx.muffle - preset.muffle) < 0.01f &&
+                        (id != "normal" || (fx.eightD < 0.01f && fx.bass < 0.01f && abs(fx.pitchSemitones) < 0.05f))
                     Chip(presetNames[id] ?: id, selected, c, onClick = { GerasAudio.setSpeedFx(preset) })
                 }
             }
