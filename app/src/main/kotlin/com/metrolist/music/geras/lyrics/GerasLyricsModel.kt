@@ -75,8 +75,11 @@ fun estimateTiming(entries: List<LyricsEntry>, durationMs: Long): List<LyricsEnt
 }
 
 fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
-    val source = entries.filter { it.text.isNotBlank() || !it.words.isNullOrEmpty() }
+    val source = entries.filter { (it.text.isNotBlank() && !isInstrumentalMarker(it.text)) || !it.words.isNullOrEmpty() }
     if (source.isEmpty()) return emptyList()
+    // Blank timestamps and "♪"/"(instrumental)" lines mark where singing stops: they end the
+    // previous line so the break shows as a gap instead of a line still being "sung".
+    val boundaries = entries.map { it.time }.distinct().sorted()
     if (!synced) {
         return source.map { e ->
             KItem.Line(KLine(e, e.text, Long.MAX_VALUE, Long.MAX_VALUE, emptyList(), parenRanges(e.text), e.isBackground, e.agent, true))
@@ -84,7 +87,9 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
     }
 
     val lines = source.mapIndexed { i, e ->
-        val nextStart = source.drop(i + 1).firstOrNull { !it.isBackground || !e.isBackground }?.time
+        val nextLine = source.drop(i + 1).firstOrNull { !it.isBackground || !e.isBackground }?.time
+        val nextMark = boundaries.firstOrNull { it > e.time }
+        val nextStart = listOfNotNull(nextLine, nextMark).minOrNull()
         val words = e.words?.filter { it.text.isNotEmpty() }?.takeIf { ws ->
             // Some providers send word lists with zero or nonsense times: interpolate those instead.
             val first = (ws.first().startTime * 1000).toLong()
@@ -107,7 +112,8 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
             val text = e.text.trim()
             val gap = (nextStart ?: (e.time + 6_000L)) - e.time
             val estimate = (text.length * MS_PER_CHAR).coerceAtLeast(MIN_LINE_MS)
-            val duration = minOf((gap * 0.92f).toLong(), estimate * 2).coerceAtLeast(400L)
+            // A line takes about as long as it takes to sing it; a long pause after it is a break.
+            val duration = minOf((gap * 0.92f).toLong(), (estimate * 1.3f).toLong()).coerceAtLeast(400L)
             KLine(e, text, e.time, e.time + duration, interpolateWords(text, e.time, duration), parenRanges(text), e.isBackground, e.agent, true)
         }
     }
@@ -121,6 +127,10 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean): List<KItem> {
     }
     return items
 }
+
+private val instrumentalRe = Regex("""^[\s♪♫♬♩…\.\-–—*~]*$|^[\[(]?\s*(instrumental|интро|intro|outro|аутро|проигрыш|инструментал|music|музыка)\s*[\])]?$""", RegexOption.IGNORE_CASE)
+
+private fun isInstrumentalMarker(text: String) = instrumentalRe.matches(text.trim())
 
 private fun interpolateWords(text: String, start: Long, duration: Long): List<KWord> {
     val tokens = Regex("\\S+").findAll(text).toList()

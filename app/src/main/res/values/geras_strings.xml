@@ -238,4 +238,5 @@
     <string name="geras_dpi_method_a">2: split the TLS record and packets (tap to switch)</string>
     <string name="geras_dpi_method_b">3: split packets only (tap to switch)</string>
     <string name="geras_dpi_method_c">1: disorder, the strongest (tap to switch)</string>
+    <string name="geras_muffle">Muffle</string>
 </resources>

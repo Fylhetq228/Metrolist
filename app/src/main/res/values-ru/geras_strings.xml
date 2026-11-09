@@ -240,4 +240,5 @@
     <string name="geras_dpi_method_a">2: резать TLS-запись и пакеты (нажми, чтобы сменить)</string>
     <string name="geras_dpi_method_b">3: резать только пакеты (нажми, чтобы сменить)</string>
     <string name="geras_dpi_method_c">1: перемешивание, самый сильный (нажми, чтобы сменить)</string>
+    <string name="geras_muffle">Приглушение</string>
 </resources>

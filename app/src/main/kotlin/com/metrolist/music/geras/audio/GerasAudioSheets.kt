@@ -147,6 +147,7 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
         "sped_up" to "Sped Up",
         "nightcore" to "Nightcore",
         "daycore" to "Daycore",
+        "melancore" to "Melancore",
     )
 
     ModalBottomSheet(
@@ -245,7 +246,7 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
             }
             com.metrolist.music.geras.ui.GerasExpandable(
                 title = stringResource(R.string.geras_effects),
-                summary = listOf(stringResource(R.string.geras_reverb) to fx.reverb, "8D" to fx.eightD, stringResource(R.string.geras_bass_boost) to fx.bass)
+                summary = listOf(stringResource(R.string.geras_reverb) to fx.reverb, "8D" to fx.eightD, stringResource(R.string.geras_bass_boost) to fx.bass, stringResource(R.string.geras_muffle) to fx.muffle)
                     .filter { it.second > 0.005f }.joinToString(" · ") { it.first + " " + percent(it.second) }.ifEmpty { stringResource(R.string.geras_effects_off) },
                 content = c.content,
                 muted = c.contentMuted,
@@ -253,6 +254,7 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                 LabeledSlider(stringResource(R.string.geras_reverb), fx.reverb, percent(fx.reverb), c) { GerasAudio.setSpeedFx(fx.copy(reverb = it)) }
                 LabeledSlider("8D", fx.eightD, percent(fx.eightD), c) { GerasAudio.setSpeedFx(fx.copy(eightD = it)) }
                 LabeledSlider(stringResource(R.string.geras_bass_boost), fx.bass, percent(fx.bass), c) { GerasAudio.setSpeedFx(fx.copy(bass = it)) }
+                LabeledSlider(stringResource(R.string.geras_muffle), fx.muffle, percent(fx.muffle), c) { GerasAudio.setSpeedFx(fx.copy(muffle = it)) }
 
 
             }

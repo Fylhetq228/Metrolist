@@ -24,10 +24,12 @@ data class DspParams(
     val eightD: Float = 0f,
     /** Deep, spacious low end plus a wider stage, 0..1. */
     val surround: Float = 0f,
+    /** "Through the wall": a low-pass that closes from ~16 kHz down to ~900 Hz, 0..1. */
+    val muffle: Float = 0f,
 ) {
     val isNeutral: Boolean
         get() = (!eqEnabled || (eqGainsDb.all { abs(it) < 0.05f } && abs(preampDb) < 0.05f)) &&
-            bass < 0.005f && reverb < 0.005f && eightD < 0.005f && surround < 0.005f
+            bass < 0.005f && reverb < 0.005f && eightD < 0.005f && surround < 0.005f && muffle < 0.005f
 }
 
 object GerasEq {
@@ -72,6 +74,10 @@ class GerasAudioProcessor : BaseAudioProcessor() {
     private val bodyL = Biquad()
     private val bodyR = Biquad()
     private var bodyDb = Double.NaN
+    private val muffleL = arrayOf(Biquad(), Biquad())
+    private val muffleR = arrayOf(Biquad(), Biquad())
+    private var muffleMix = 0.0
+    private var muffleHz = Double.NaN
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         val enc = inputAudioFormat.encoding
@@ -98,7 +104,7 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         if (remaining == 0) return
         val p = params
         val out = replaceOutputBuffer(remaining)
-        if (p.isNeutral && reverbMix < 1e-4 && eightDMix < 1e-4 && surroundMix < 1e-4) {
+        if (p.isNeutral && reverbMix < 1e-4 && eightDMix < 1e-4 && surroundMix < 1e-4 && muffleMix < 1e-4) {
             out.put(inputBuffer)
             out.flip()
             return
@@ -184,6 +190,20 @@ class GerasAudioProcessor : BaseAudioProcessor() {
                 val sd = side * (1 + 0.7 * w) + echo * 0.18 * w
                 l = mid + sd + (tapL - low * 0.3) * 0.45 * w
                 r = mid - sd + (tapR - low * 0.3) * 0.45 * w
+            }
+
+            // Muffle before the reverb, so the room still sounds open around a closed source.
+            muffleMix += (p.muffle.toDouble() - muffleMix) * smooth
+            if (muffleMix > 1e-4) {
+                // Exponential sweep: small values already take off the air, large ones the presence.
+                val hz = Math.round(16_000.0 * Math.pow(900.0 / 16_000.0, muffleMix) / 25.0) * 25.0
+                if (hz != muffleHz) {
+                    muffleL.forEach { it.setLowPass(sampleRate, hz, 0.707) }
+                    muffleR.forEach { it.setLowPass(sampleRate, hz, 0.707) }
+                    muffleHz = hz
+                }
+                l = muffleL[1].process(muffleL[0].process(l))
+                r = muffleR[1].process(muffleR[0].process(r))
             }
 
             reverbMix += (targetReverb - reverbMix) * smooth
@@ -285,6 +305,19 @@ internal class Biquad {
         b2 = (1 - alpha * a) / a0
         a1 = (-2 * cw) / a0
         a2 = (1 - alpha / a) / a0
+    }
+
+    fun setLowPass(fs: Int, f0: Double, q: Double) {
+        active = true
+        val w0 = 2 * PI * f0.coerceAtMost(fs * 0.45) / fs
+        val alpha = sin(w0) / (2 * q)
+        val cw = cos(w0)
+        val a0 = 1 + alpha
+        b0 = (1 - cw) / 2 / a0
+        b1 = (1 - cw) / a0
+        b2 = (1 - cw) / 2 / a0
+        a1 = (-2 * cw) / a0
+        a2 = (1 - alpha) / a0
     }
 
     fun setLowShelf(fs: Int, f0: Double, gainDb: Double, enabled: Boolean) {

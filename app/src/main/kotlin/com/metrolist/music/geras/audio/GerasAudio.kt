@@ -30,6 +30,7 @@ data class SpeedFx(
     val reverb: Float = 0f,
     val eightD: Float = 0f,
     val bass: Float = 0f,
+    val muffle: Float = 0f,
 ) {
     val pitchRatio: Float get() = if (linked) speed else 2f.pow(pitchSemitones / 12f)
 }
@@ -79,6 +80,9 @@ object SpeedPresets {
         "sped_up" to SpeedFx(speed = 1.2f, linked = true),
         "nightcore" to SpeedFx(speed = 1.3f, linked = true, bass = 0.15f),
         "daycore" to SpeedFx(speed = 0.82f, linked = true, reverb = 0.25f),
+        // Melancore: slowed and lowered, a big soft room and the highs taken off, like a song
+        // playing in the next room late at night.
+        "melancore" to SpeedFx(speed = 0.8f, linked = true, reverb = 0.55f, bass = 0.2f, muffle = 0.45f),
     )
 }
 
@@ -349,6 +353,7 @@ object GerasAudio {
             reverb = fx.reverb,
             eightD = fx.eightD,
             surround = profile.surround,
+            muffle = fx.muffle,
         )
     }
 
