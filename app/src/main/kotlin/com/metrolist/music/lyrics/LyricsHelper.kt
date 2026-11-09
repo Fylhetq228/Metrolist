@@ -18,6 +18,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -26,8 +28,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import javax.inject.Inject
 
-private const val MAX_LYRICS_FETCH_MS = 25000L
-private const val PER_PROVIDER_TIMEOUT_MS = 8000L
+private const val MAX_LYRICS_FETCH_MS = 20000L
+private const val PER_PROVIDER_TIMEOUT_MS = 12000L
+private const val PLAIN_GRACE_MS = 2500L
 private const val PROVIDER_NONE = ""
 
 class LyricsHelper
@@ -72,54 +75,64 @@ constructor(
             return LyricsWithProvider(LYRICS_NOT_FOUND, PROVIDER_NONE)
         }
 
+        // Geras: all providers are asked at once (not one after another, where a slow or
+        // blocked provider ate the whole time budget before YouTube was even tried), each with
+        // a few title/artist variants. Results are then taken in the user's priority order;
+        // synced lyrics win over plain ones that arrived first.
         val result = withTimeoutOrNull(MAX_LYRICS_FETCH_MS) {
-            val cleanedTitle = LyricsUtils.cleanTitleForSearch(mediaMetadata.title)
-            val enabledProviders = orderedProviders.filter { it.isEnabled(context) }
-
-            Timber.tag("LyricsHelper").d("Starting sequential fetch for: $cleanedTitle by ${mediaMetadata.artists.joinToString { it.name }}")
-            Timber.tag("LyricsHelper").d("Enabled providers in order: ${enabledProviders.joinToString { it.name }}")
-
-            for (provider in enabledProviders) {
-                Timber.tag("LyricsHelper").d("Trying provider: ${provider.name}")
-                val providerResult = try {
-                    withTimeoutOrNull(PER_PROVIDER_TIMEOUT_MS) {
-                        provider.getLyrics(
-                            context,
-                            mediaMetadata.id,
-                            cleanedTitle,
-                            mediaMetadata.artists.joinToString { it.name },
-                            mediaMetadata.duration,
-                            mediaMetadata.album?.title,
-                        )
+            coroutineScope {
+                val enabledProviders = orderedProviders.filter { it.isEnabled(context) }
+                val queries = com.metrolist.music.geras.lyrics.GerasLyricsQuery.variants(
+                    mediaMetadata.title, mediaMetadata.artists.joinToString { it.name },
+                )
+                val jobs = enabledProviders.map { provider ->
+                    async {
+                        val byId = provider.name.startsWith("YouTube")
+                        withTimeoutOrNull(PER_PROVIDER_TIMEOUT_MS) {
+                            for (q in if (byId) queries.take(1) else queries) {
+                                val text = try {
+                                    provider.getLyrics(context, mediaMetadata.id, q.title, q.artist, mediaMetadata.duration, mediaMetadata.album?.title).getOrNull()
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Exception) {
+                                    Timber.tag("LyricsHelper").w("${provider.name} threw: ${e.message}")
+                                    null
+                                }
+                                if (text.isNullOrBlank()) continue
+                                val ok = com.metrolist.music.geras.lyrics.GerasLyricsVerify.accept(
+                                    mediaMetadata.id, text, provider.name, q.title, q.artist.split(", ").filter { it.isNotBlank() }, mediaMetadata.duration,
+                                )
+                                if (ok) return@withTimeoutOrNull LyricsUtils.filterLyricsCreditLines(text)
+                                Timber.tag("LyricsHelper").w("${provider.name} returned lyrics of another song, skipping")
+                            }
+                            null
+                        }
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Timber.tag("LyricsHelper").w("${provider.name} threw: ${e.message}")
-                    null
                 }
-
-                // Geras: skip lyrics that cannot belong to this track (same title, other song).
-                if (providerResult != null && providerResult.isSuccess &&
-                    !com.metrolist.music.geras.lyrics.GerasLyricsVerify.accept(
-                        mediaMetadata.id, providerResult.getOrNull(), provider.name, mediaMetadata.title, mediaMetadata.artists.map { it.name }, mediaMetadata.duration,
-                    )
-                ) {
-                    Timber.tag("LyricsHelper").w("${provider.name} returned lyrics of another song, skipping")
-                    continue
+                var plain: LyricsWithProvider? = null
+                var plainAt = 0L
+                for ((i, provider) in enabledProviders.withIndex()) {
+                    val text = if (plain == null) {
+                        jobs[i].await()
+                    } else {
+                        // Already have plain lyrics: give better providers a short chance to
+                        // deliver synced ones, then settle.
+                        val left = PLAIN_GRACE_MS - (System.currentTimeMillis() - plainAt)
+                        if (left <= 0) null else withTimeoutOrNull(left) { jobs[i].await() }
+                    } ?: continue
+                    if (com.metrolist.music.geras.lyrics.GerasLyricsQuery.isSynced(text)) {
+                        jobs.forEach { it.cancel() }
+                        Timber.tag("LyricsHelper").i("Got synced lyrics from ${provider.name}")
+                        return@coroutineScope LyricsWithProvider(text, provider.name)
+                    }
+                    if (plain == null) {
+                        plain = LyricsWithProvider(text, provider.name)
+                        plainAt = System.currentTimeMillis()
+                    }
                 }
-                if (providerResult != null && providerResult.isSuccess) {
-                    Timber.tag("LyricsHelper").i("Got lyrics from ${provider.name}")
-                    val filtered = LyricsUtils.filterLyricsCreditLines(providerResult.getOrNull()!!)
-                    return@withTimeoutOrNull LyricsWithProvider(filtered, provider.name)
-                } else {
-                    val errorMsg = providerResult?.exceptionOrNull()?.message ?: "timeout or exception"
-                    Timber.tag("LyricsHelper").w("${provider.name} failed: $errorMsg")
-                }
+                jobs.forEach { it.cancel() }
+                plain ?: LyricsWithProvider(LYRICS_NOT_FOUND, PROVIDER_NONE)
             }
-
-            Timber.tag("LyricsHelper").w("No lyrics found after checking all providers")
-            LyricsWithProvider(LYRICS_NOT_FOUND, PROVIDER_NONE)
         }
 
         return result ?: LyricsWithProvider(LYRICS_NOT_FOUND, PROVIDER_NONE)

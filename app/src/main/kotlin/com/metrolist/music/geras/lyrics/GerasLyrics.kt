@@ -209,6 +209,12 @@ fun GerasLyrics(
             if (GerasLyricsVerify.shouldRetryNotFound(entity.id)) databaseForCheck.query { delete(entity) }
             return@LaunchedEffect
         }
+        // Plain lyrics saved by the old one-provider-at-a-time search: look once more, now that
+        // every provider is asked, for a synced version that can animate.
+        if (!GerasLyricsQuery.isSynced(entity.lyrics) && GerasLyricsVerify.shouldUpgradePlain(entity.id)) {
+            databaseForCheck.query { delete(entity) }
+            return@LaunchedEffect
+        }
         val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             GerasLyricsVerify.accept(entity.id, entity.lyrics, entity.provider, meta.title, meta.artists.map { it.name }, meta.duration)
         }

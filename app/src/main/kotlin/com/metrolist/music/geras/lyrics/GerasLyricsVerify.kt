@@ -35,15 +35,26 @@ object GerasLyricsVerify {
     fun isTrusted(provider: String?) = provider in trusted
 
     /**
-     * The first, too strict version turned some good lyrics into "not found". Each such track
-     * gets one fresh search with the current rules.
+     * "Not found" is stored for good by the app, but it is often only a timeout or a provider
+     * that was down. Such tracks are searched again once with the current search, and then at
+     * most every few days.
      */
     fun shouldRetryNotFound(id: String): Boolean {
         val p = prefs ?: return false
-        if (p.getBoolean("retried_$id", false)) return false
-        p.edit().putBoolean("retried_$id", true).apply()
+        val last = p.getLong("nf3_$id", 0L)
+        if (System.currentTimeMillis() - last < NOT_FOUND_RETRY_MS) return false
+        p.edit().putLong("nf3_$id", System.currentTimeMillis()).apply()
         return true
     }
+
+    fun shouldUpgradePlain(id: String): Boolean {
+        val p = prefs ?: return false
+        if (p.getBoolean("pl3_$id", false)) return false
+        p.edit().putBoolean("pl3_$id", true).apply()
+        return true
+    }
+
+    private const val NOT_FOUND_RETRY_MS = 3L * 24 * 3600 * 1000
 
     /** Cached verdict for a stored lyrics row, or null when it has not been checked yet. */
     fun knownVerdict(id: String, lyricsHash: Int): Boolean? =
