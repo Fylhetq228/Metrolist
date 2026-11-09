@@ -24,6 +24,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.net.HttpURLConnection
@@ -74,7 +75,11 @@ object GerasScFirst {
     /** Starts matching in the background (used for the next tracks in the queue). */
     fun prefetch(meta: MediaMetadata?) {
         if (meta == null || !enabled || !isEligible(meta.id) || meta.isEpisode || meta.uploadEntityId != null) return
-        if (cached(meta.id) != null) return
+        cached(meta.id)?.let { id ->
+            // Matched before: resolve the stream link now, so the track starts without a lookup.
+            if (id.isNotEmpty()) scope.launch { runCatching { SoundCloudSource.streamUrl(id) } }
+            return
+        }
         match(meta)
     }
 
@@ -89,6 +94,9 @@ object GerasScFirst {
             }
         }
     }
+
+    /** How long a never-seen track waits for SoundCloud before starting from YouTube. */
+    private const val FIRST_PLAY_BUDGET_MS = 1200L
 
     /** SoundCloud track id for [meta], waiting at most [budgetMs]; null means "play from YouTube". */
     fun resolveBlocking(meta: MediaMetadata, budgetMs: Long): String? {
@@ -158,7 +166,7 @@ object GerasScFirst {
             val handler: Handler = Util.createHandlerForCurrentLooper()
             Thread {
                 // Already matched: instant. Otherwise give SoundCloud a moment, then use YouTube.
-                val scId = runCatching { resolveBlocking(meta, 1800) }.getOrNull()
+                val scId = runCatching { resolveBlocking(meta, FIRST_PLAY_BUDGET_MS) }.getOrNull()
                 val source = if (scId != null) {
                     substituted += item.mediaId
                     delegate.createMediaSource(
