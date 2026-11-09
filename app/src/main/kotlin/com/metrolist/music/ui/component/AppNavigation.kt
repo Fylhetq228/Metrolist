@@ -161,8 +161,12 @@ fun AppNavigationBar(
             label = androidx.compose.ui.res.stringResource(com.metrolist.music.R.string.settings),
             icon = com.metrolist.music.R.drawable.settings,
             iconActive = com.metrolist.music.R.drawable.settings,
-            selected = currentRoute?.startsWith("settings") == true,
+            selected = currentRoute?.startsWith("settings") == true || currentRoute?.startsWith("geras/settings") == true,
             onClick = {
+                // Already inside settings: back to its first screen.
+                if (currentRoute != "settings" && (currentRoute?.startsWith("settings") == true || currentRoute?.startsWith("geras/settings") == true) &&
+                    navController.popBackStack("settings", false)
+                ) return@GerasNavTab
                 navController.navigate("settings") {
                     popUpTo(navController.graph.startDestinationId) { saveState = true }
                     launchSingleTop = true

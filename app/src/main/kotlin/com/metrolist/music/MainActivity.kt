@@ -821,6 +821,8 @@ class MainActivity : FragmentActivity() {
                         currentRoute == null ||
                             navigationItemRoutes.contains(currentRoute) ||
                             currentRoute == "settings" ||
+                            // Geras: settings sections keep the bar, so the mini player does not jump.
+                            currentRoute!!.startsWith("geras/settings") || currentRoute == "settings/geras" ||
                             currentRoute!!.startsWith("search/")
                     }
 

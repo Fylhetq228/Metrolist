@@ -167,7 +167,6 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
         when (section) {
             "sound" -> GerasSettingsGroup(
                 title = stringResource(R.string.geras_section_sound),
-                modifier = Modifier.gerasAppear(1),
                 items = listOf(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.equalizer),
@@ -199,7 +198,6 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
             )
             "playback" -> GerasSettingsGroup(
                 title = stringResource(R.string.geras_cat_playback),
-                modifier = Modifier.gerasAppear(1),
                 items = listOf(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.cloud),
@@ -246,7 +244,6 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
             )
             "library" -> GerasSettingsGroup(
                 title = stringResource(R.string.geras_cat_library),
-                modifier = Modifier.gerasAppear(1),
                 items = listOf(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.geras_transfer),
@@ -289,7 +286,6 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
             "network" -> GerasProxySection()
             "about" -> GerasSettingsGroup(
                 title = stringResource(R.string.geras_section_about),
-                modifier = Modifier.gerasAppear(1),
                 items = listOf(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.info),
@@ -511,8 +507,10 @@ private fun SectionHeader(title: String, onBack: () -> Unit) {
         }
         Text(
             title,
-            style = MaterialTheme.typography.displaySmall.copy(fontSize = 30.sp),
+            style = MaterialTheme.typography.displaySmall.copy(fontSize = 25.sp),
             color = scheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = 4.dp, top = 8.dp),
         )
     }

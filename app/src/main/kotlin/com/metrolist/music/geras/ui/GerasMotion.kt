@@ -80,11 +80,11 @@ fun Modifier.gerasBounce(pressedScale: Float = 0.94f, dim: Boolean = true): Modi
 fun Modifier.gerasAppear(index: Int = 0, key: Any = Unit): Modifier = composed {
     var shown by rememberSaveable(key) { mutableStateOf(false) }
     val progress = remember(key) { Animatable(if (shown) 1f else 0f) }
-    val lift = with(LocalDensity.current) { 22.dp.toPx() }
+    val lift = with(LocalDensity.current) { 14.dp.toPx() }
     LaunchedEffect(key) {
         if (!shown) {
-            delay(45L * index.coerceAtMost(10))
-            launch { progress.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 260f)) }
+            delay(35L * index.coerceAtMost(6))
+            launch { progress.animateTo(1f, spring(dampingRatio = 1f, stiffness = 420f, visibilityThreshold = 0.002f)) }
             shown = true
         }
     }
@@ -105,14 +105,16 @@ object GerasTransitions {
     private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
         initialState.destination.route in tabRoutes && targetState.destination.route in tabRoutes
 
-    private val slide = spring(dampingRatio = 1f, stiffness = 320f, visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1))
+    // Fixed-length iOS curve: fast start, long soft landing, and it really ends (a soft spring
+    // crawled the last pixels for a long time and looked unfinished when switching quickly).
+    private val slide = tween<androidx.compose.ui.unit.IntOffset>(400, easing = androidx.compose.animation.core.CubicBezierEasing(0.32f, 0.72f, 0f, 1f))
 
     val enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         if (isTabSwitch()) {
             fadeIn(tween(260, delayMillis = 40)) + scaleIn(spring(dampingRatio = 0.85f, stiffness = 300f), initialScale = 0.965f)
         } else {
             // iOS push: the new screen slides in over the whole width.
-            slideInHorizontally(slide) { it } + fadeIn(tween(140))
+            slideInHorizontally(slide) { it } + fadeIn(tween(160, delayMillis = 40))
         }
     }
 
@@ -121,7 +123,9 @@ object GerasTransitions {
             fadeOut(tween(160)) + scaleOut(tween(220, easing = FastOutSlowInEasing), targetScale = 1.02f)
         } else {
             // The old screen drifts a quarter to the left and dims under the new one.
-            slideOutHorizontally(slide) { -it / 4 } + fadeOut(tween(380), targetAlpha = 0.25f)
+            // Screens have no background of their own, so the old one must be gone before the
+            // new one covers it, or the two texts overlap mid-way.
+            slideOutHorizontally(slide) { -it / 4 } + fadeOut(tween(150))
         }
     }
 
@@ -129,7 +133,7 @@ object GerasTransitions {
         if (isTabSwitch()) {
             fadeIn(tween(260, delayMillis = 40)) + scaleIn(spring(dampingRatio = 0.85f, stiffness = 300f), initialScale = 0.965f)
         } else {
-            slideInHorizontally(slide) { -it / 4 } + fadeIn(tween(300), initialAlpha = 0.25f)
+            slideInHorizontally(slide) { -it / 4 } + fadeIn(tween(220, delayMillis = 60))
         }
     }
 
@@ -137,7 +141,7 @@ object GerasTransitions {
         if (isTabSwitch()) {
             fadeOut(tween(160))
         } else {
-            slideOutHorizontally(slide) { it } + fadeOut(tween(260, delayMillis = 120))
+            slideOutHorizontally(slide) { it } + fadeOut(tween(150))
         }
     }
 }

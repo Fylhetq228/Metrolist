@@ -89,7 +89,7 @@ fun GerasProxySection() {
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Label(stringResource(R.string.geras_proxy_mode))
-        Card(Modifier.gerasAppear(1)) {
+        Card {
             listOf(
                 Triple(0, R.string.geras_proxy_off, R.string.geras_proxy_off_hint),
                 Triple(1, R.string.geras_proxy_bypass, R.string.geras_proxy_bypass_hint),
