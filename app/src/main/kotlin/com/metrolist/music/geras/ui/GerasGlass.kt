@@ -85,9 +85,9 @@ object GerasGlass {
 /** Marks the content that glass surfaces blur. Applied to the main content in MainActivity. */
 fun Modifier.gerasGlassSource(): Modifier = hazeSource(GerasGlass.state)
 
-/** Defaults of the "lens" glass picked in the design round: thin blur, light tint, bright rim. */
-const val GerasLensOpacity = 0.24f
-const val GerasLensBlur = 9f
+/** Glass defaults: dark tint so the bars match the dark app, still see-through, bright lens rim. */
+const val GerasLensOpacity = 0.74f
+const val GerasLensBlur = 18f
 
 /**
  * "Liquid glass", lens variant: the backdrop is only slightly blurred and lightly tinted, so
@@ -95,7 +95,7 @@ const val GerasLensBlur = 9f
  * A bright rim runs around the edge, strongest at the top, with a specular bloom top-left.
  */
 @Composable
-fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surfaceContainer): Modifier {
+fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surfaceContainerLow): Modifier {
     val enabled by rememberPreference(GerasGlassEnabledKey, true)
     val opacity by rememberPreference(GerasGlassOpacityKey, GerasLensOpacity)
     val blur by rememberPreference(GerasGlassBlurKey, GerasLensBlur)
@@ -112,11 +112,7 @@ fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.su
                         blurRadius = blur.dp,
                         noiseFactor = 0.02f,
                     ),
-                ).drawWithContent {
-                    // Lift what shows through, so colors under the lens glow instead of muddying.
-                    drawRect(Color.White.copy(alpha = 0.07f), blendMode = androidx.compose.ui.graphics.BlendMode.Screen)
-                    drawContent()
-                }
+                )
             } else {
                 Modifier.background(tint.copy(alpha = 0.96f))
             },
@@ -140,7 +136,7 @@ private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f, lens: Boo
             // Specular bloom near the top-left corner.
             drawRect(
                 Brush.radialGradient(
-                    0f to Color.White.copy(alpha = (if (lens) 0.22f else 0.13f) * strength),
+                    0f to Color.White.copy(alpha = (if (lens) 0.1f else 0.13f) * strength),
                     1f to Color.Transparent,
                     center = Offset(size.width * 0.18f, 0f),
                     radius = size.maxDimension * 0.55f,
@@ -149,7 +145,7 @@ private fun Modifier.glassLighting(shape: Shape, strength: Float = 1f, lens: Boo
             // Top sheen and a slightly darker belly give the surface thickness.
             drawRect(
                 Brush.verticalGradient(
-                    0f to Color.White.copy(alpha = (if (lens) 0.12f else 0.09f) * strength),
+                    0f to Color.White.copy(alpha = (if (lens) 0.06f else 0.09f) * strength),
                     0.42f to Color.Transparent,
                     0.7f to Color.Transparent,
                     1f to Color.Black.copy(alpha = (if (lens) 0.08f else 0.16f) * strength),
@@ -336,7 +332,7 @@ fun GerasMiniPlayer(
                 .padding(top = 4.dp)
                 .fillMaxWidth()
                 .height(58.dp)
-                .gerasGlass(RoundedCornerShape(50), tint = scheme.surfaceContainerHigh)
+                .gerasGlass(RoundedCornerShape(50))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
