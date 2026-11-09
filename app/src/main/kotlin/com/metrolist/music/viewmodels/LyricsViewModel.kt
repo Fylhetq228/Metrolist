@@ -54,8 +54,11 @@ class LyricsViewModel @Inject constructor() : ViewModel() {
                     } else {
                         // Fallback for unsynced or invalid LRC
                         val baseTime = 1000000L
+                        // Geras: blank lines are kept (one per run) as verse breaks for timing.
                         lyrics.lines()
-                            .filter { it.isNotBlank() && !timestampRegex.containsMatchIn(it) }
+                            .filter { !timestampRegex.containsMatchIn(it) }
+                            .map { it.trimEnd() }
+                            .fold(mutableListOf<String>()) { acc, l -> if (!(l.isBlank() && (acc.isEmpty() || acc.last().isBlank()))) acc += l; acc }
                             .mapIndexed { index, line ->
                                 LyricsEntry(baseTime + index, line)
                             }

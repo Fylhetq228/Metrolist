@@ -38,6 +38,8 @@ sealed interface KItem {
 private const val GAP_MIN_MS = 4_000L
 private const val MS_PER_CHAR = 80L
 private const val MIN_LINE_MS = 1_200L
+private const val MAX_HELD_WORD_MS = 4_000L
+private const val PLAIN_BASE_MS = 1_000_000L
 
 /**
  * Turns parsed lyrics into karaoke lines: real word timings when the provider has them,
@@ -51,6 +53,8 @@ private const val MIN_LINE_MS = 1_200L
 fun linesAreTimed(entries: List<LyricsEntry>): Boolean {
     val times = entries.filter { it.text.isNotBlank() }.map { it.time }
     if (times.size < 2) return false
+    // Plain text gets placeholder times 1_000_000, 1_000_001, … from the view model: not timing.
+    if (times.first() >= PLAIN_BASE_MS && times.zipWithNext().all { (a, b) -> b - a <= 2 }) return false
     val distinct = times.distinct().size
     return distinct >= minOf(3, times.size) && times.zipWithNext().count { (a, b) -> b >= a } >= (times.size - 1) * 0.8
 }
@@ -60,19 +64,33 @@ fun linesAreTimed(entries: List<LyricsEntry>): Boolean {
  * music. Approximate by nature, so the screen marks it as such and does not seek on tap.
  */
 fun estimateTiming(entries: List<LyricsEntry>, durationMs: Long): List<LyricsEntry> {
-    val lines = entries.filter { it.text.isNotBlank() }
+    val lines = entries.filter { it.text.isNotBlank() && !isInstrumentalMarker(it.text) }
     if (lines.isEmpty() || durationMs < 30_000) return entries
+    // Blank lines and "[Chorus]"-style headers split the text into verses; the music between
+    // verses gets its share of the time and is marked with a blank entry, so it shows as a break.
+    data class Slot(val entry: LyricsEntry?, val weight: Float)
+    val slots = mutableListOf<Slot>()
+    for (e in entries) {
+        val brk = e.text.isBlank() || isInstrumentalMarker(e.text)
+        if (brk) {
+            if (slots.isNotEmpty() && slots.last().entry != null) slots += Slot(null, BREAK_WEIGHT)
+        } else {
+            slots += Slot(e, e.text.length + 12f)
+        }
+    }
+    while (slots.isNotEmpty() && slots.last().entry == null) slots.removeAt(slots.lastIndex)
     val start = (durationMs * 0.07).toLong()
     val span = (durationMs * 0.86).toLong()
-    val weights = lines.map { it.text.length + 12f }
-    val total = weights.sum()
+    val total = slots.sumOf { it.weight.toDouble() }.toFloat()
     var acc = 0f
-    return lines.mapIndexed { i, e ->
+    return slots.map { slot ->
         val t = start + (span * (acc / total)).toLong()
-        acc += weights[i]
-        e.copy(time = t, words = null)
+        acc += slot.weight
+        slot.entry?.copy(time = t, words = null) ?: LyricsEntry(t, "")
     }
 }
+
+private const val BREAK_WEIGHT = 30f
 
 fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boolean = false): List<KItem> {
     val source = entries.filter { (it.text.isNotBlank() && !isInstrumentalMarker(it.text)) || !it.words.isNullOrEmpty() }
@@ -109,7 +127,9 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
                 KWord((w.startTime * 1000).toLong(), (w.endTime * 1000).toLong().coerceAtLeast((w.startTime * 1000).toLong() + 1), cs, ce)
             }
             val text = sb.toString()
-            KLine(e, text, e.time, kw.last().end, kw, parenRanges(text), e.isBackground, e.agent, false)
+            val lastEnd = minOf(kw.last().end, kw.last().start + MAX_HELD_WORD_MS)
+            val fixed = kw.dropLast(1) + kw.last().copy(end = lastEnd)
+            KLine(e, text, e.time, lastEnd, fixed, parenRanges(text), e.isBackground, e.agent, false)
         } else {
             val text = e.text.trim()
             val gap = (nextStart ?: (e.time + 6_000L)) - e.time
@@ -117,8 +137,10 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
             // A line takes about as long as it takes to sing it; a long pause after it is a break.
             // Estimated (plain) lyrics have no real pauses to show: the line simply runs until
             // the next one, otherwise every line would die early and leave "..." on screen.
-            val duration = if (approximate) (gap * 0.95f).toLong().coerceAtLeast(400L)
-            else minOf((gap * 0.92f).toLong(), (estimate * 1.15f).toLong()).coerceAtLeast(400L)
+            // Estimated (plain) lyrics run until the next line unless a verse break comes first.
+            val breakFirst = nextMark != null && (nextLine == null || nextMark < nextLine)
+            val duration = if (approximate && !breakFirst) (gap * 0.95f).toLong().coerceAtLeast(400L)
+            else minOf((gap * 0.92f).toLong(), (estimate * (if (approximate) 1.4f else 1.15f)).toLong()).coerceAtLeast(400L)
             KLine(e, text, e.time, e.time + duration, interpolateWords(text, e.time, duration), parenRanges(text), e.isBackground, e.agent, true)
         }
     }
@@ -128,14 +150,20 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
     lines.forEachIndexed { i, line ->
         items += KItem.Line(line)
         val next = lines.getOrNull(i + 1) ?: return@forEachIndexed
-        if (!approximate && next.start - line.end > GAP_MIN_MS) items += KItem.Gap(line.end, next.start)
+        if (next.start - line.end > GAP_MIN_MS) items += KItem.Gap(line.end, next.start)
     }
     return items
 }
 
-private val instrumentalRe = Regex("""^[\s♪♫♬♩…\.\-–—*~]*$|^[\[(]?\s*(instrumental|интро|intro|outro|аутро|проигрыш|инструментал|music|музыка)\s*[\])]?$""", RegexOption.IGNORE_CASE)
+private val instrumentalRe = Regex(
+    """^[\s♪♫♬♩…\.\-–—*~]*$|^[\[(]?\s*((guitar |piano |sax )?solo|соло|instrumental( break)?|interlude|break|интро|intro|outro|аутро|проигрыш|инструментал|music|музыка|музыкальная пауза)\s*[\])]?$""",
+    RegexOption.IGNORE_CASE,
+)
 
-private fun isInstrumentalMarker(text: String) = instrumentalRe.matches(text.trim())
+/** "[Chorus]", "[Куплет 1: Артист]": section headers of plain lyrics, never sung. */
+private val headerRe = Regex("""^\s*\[[^\]]{1,48}]\s*$""")
+
+internal fun isInstrumentalMarker(text: String) = instrumentalRe.matches(text.trim()) || headerRe.matches(text)
 
 private fun interpolateWords(text: String, start: Long, duration: Long): List<KWord> {
     val tokens = Regex("\\S+").findAll(text).toList()
