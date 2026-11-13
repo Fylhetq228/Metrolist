@@ -311,4 +311,20 @@
     <string name="geras_ly_preview_1">The city sleeps, we drive slow</string>
     <string name="geras_ly_preview_2">Headlights cut the wet road</string>
     <string name="geras_ly_preview_3">And now it all goes off</string>
+    <string name="geras_scene_energy">Energy</string>
+    <string name="geras_scene_calm">calm</string>
+    <string name="geras_scene_steady">steady</string>
+    <string name="geras_scene_drive">drive</string>
+    <string name="geras_scene_tempo">Tempo</string>
+    <string name="geras_scene_bpm">bpm</string>
+    <string name="geras_scene_tempo_hint">from kick hits</string>
+    <string name="geras_scene">Scene</string>
+    <string name="geras_scene_backdrop">Cover backdrop</string>
+    <string name="geras_scene_backdrop_hint">Blurred cover behind the lyrics, drifting slowly</string>
+    <string name="geras_scene_dust">Dust in the light</string>
+    <string name="geras_scene_dust_hint">Specks twitch on kicks and scatter on the drop</string>
+    <string name="geras_scene_cards">Energy and Tempo cards</string>
+    <string name="geras_scene_cards_hint">Read live from the sound</string>
+    <string name="geras_scene_keywords">Key words in color</string>
+    <string name="geras_scene_keywords_hint">The longest meaningful word of a line takes the cover color</string>
 </resources>

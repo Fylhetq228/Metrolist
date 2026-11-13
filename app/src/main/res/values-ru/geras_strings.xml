@@ -313,4 +313,20 @@
     <string name="geras_ly_preview_1">Город спит, мы едем тихо</string>
     <string name="geras_ly_preview_2">Фары режут мокрый асфальт</string>
     <string name="geras_ly_preview_3">И вот сейчас всё взорвётся</string>
+    <string name="geras_scene_energy">Энергия</string>
+    <string name="geras_scene_calm">спокойно</string>
+    <string name="geras_scene_steady">ровно</string>
+    <string name="geras_scene_drive">разгон</string>
+    <string name="geras_scene_tempo">Темп</string>
+    <string name="geras_scene_bpm">уд/мин</string>
+    <string name="geras_scene_tempo_hint">по ударам бочки</string>
+    <string name="geras_scene">Сцена</string>
+    <string name="geras_scene_backdrop">Фон из обложки</string>
+    <string name="geras_scene_backdrop_hint">Размытая обложка за текстом, медленно плывёт</string>
+    <string name="geras_scene_dust">Пыль в свете</string>
+    <string name="geras_scene_dust_hint">Частицы вздрагивают на бочку и разлетаются на дропе</string>
+    <string name="geras_scene_cards">Карточки «Энергия» и «Темп»</string>
+    <string name="geras_scene_cards_hint">Считаются на лету из звука</string>
+    <string name="geras_scene_keywords">Главные слова цветом</string>
+    <string name="geras_scene_keywords_hint">Самое длинное значимое слово строки подсвечивается цветом обложки</string>
 </resources>

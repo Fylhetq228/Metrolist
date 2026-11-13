@@ -418,6 +418,15 @@ fun GerasPlayerLayout(
             .fillMaxSize()
             .background(Brush.verticalGradient(0f to colors.backgroundTop, 0.55f to colors.background, 1f to colors.background)),
     ) {
+        // Lyrics scene: the blurred cover and dust fade in behind the whole player.
+        val sceneBackdrop by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasSceneBackdropKey, true)
+        val sceneDust by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasSceneDustKey, true)
+        androidx.compose.animation.AnimatedVisibility(ui.showLyrics && sceneBackdrop, enter = fadeIn(tween(500)), exit = fadeOut(tween(350))) {
+            com.metrolist.music.geras.lyrics.GerasSceneBackdrop(ui.current?.thumbnailUrl, colors.background)
+        }
+        androidx.compose.animation.AnimatedVisibility(ui.showLyrics && sceneDust, enter = fadeIn(tween(700)), exit = fadeOut(tween(300))) {
+            com.metrolist.music.geras.lyrics.GerasSceneDust(colors.accent)
+        }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -490,7 +499,18 @@ fun GerasPlayerLayout(
 
             Spacer(Modifier.height(20.dp))
 
-            TitleBlock(ui.current, ui.artistAvatar, colors, actions.onArtist)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // With lyrics open the big cover is gone: a small one sits by the title.
+                androidx.compose.animation.AnimatedVisibility(ui.showLyrics) {
+                    AsyncImage(
+                        model = ui.current?.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.padding(end = 12.dp).size(48.dp).clip(RoundedCornerShape(12.dp)),
+                    )
+                }
+                Box(Modifier.weight(1f)) { TitleBlock(ui.current, ui.artistAvatar, colors, actions.onArtist) }
+            }
 
             Spacer(Modifier.height(14.dp))
 

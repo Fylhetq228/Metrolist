@@ -16,6 +16,11 @@ val GerasGlassOpacityKey = floatPreferencesKey("geras_glass_opacity_dark")
 val GerasGlassBlurKey = floatPreferencesKey("geras_glass_blur_dark")
 /** How lyrics react when the track kicks in: 0 off, 1 punch, 2 wave, 3 hype. */
 val GerasDropStyleKey = androidx.datastore.preferences.core.intPreferencesKey("geras_drop_style")
+/** Lyrics "scene": blurred cover backdrop, dust, live cards, key words in the accent color. */
+val GerasSceneBackdropKey = androidx.datastore.preferences.core.booleanPreferencesKey("geras_scene_backdrop")
+val GerasSceneDustKey = androidx.datastore.preferences.core.booleanPreferencesKey("geras_scene_dust")
+val GerasSceneCardsKey = androidx.datastore.preferences.core.booleanPreferencesKey("geras_scene_cards")
+val GerasSceneKeywordsKey = androidx.datastore.preferences.core.booleanPreferencesKey("geras_scene_keywords")
 /** Word animation of synced lyrics: 0 glow, 1 fill, 2 bounce, 3 calm, 4 neon. */
 val GerasLyricsStyleKey = androidx.datastore.preferences.core.intPreferencesKey("geras_lyrics_style")
 /** Lyrics text size: 0 small, 1 normal, 2 large. */

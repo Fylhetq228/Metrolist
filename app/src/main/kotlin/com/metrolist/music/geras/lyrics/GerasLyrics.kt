@@ -713,6 +713,8 @@ private fun KaraokeText(
     size: Int = 1,
 ) {
     val sizeK = when (size) { 0 -> 0.84f; 2 -> 1.18f; else -> 1f }
+    val keywords by rememberPreference(com.metrolist.music.geras.GerasSceneKeywordsKey, true)
+    val keyRange = remember(line, keywords) { if (keywords && !line.isBackground) keyWordRange(line.text) else null }
     val measurer = rememberTextMeasurer(cacheSize = 16)
     val density = LocalDensity.current
     // TextMeasurer does not inherit the theme, so the app font has to be passed explicitly.
@@ -732,17 +734,18 @@ private fun KaraokeText(
             addStyle(SpanStyle(color = if (line.isBackground) backing else main), 0, line.text.length)
             line.backing.forEach { r ->
                 addStyle(SpanStyle(color = backing, fontStyle = FontStyle.Italic), r.first, (r.last + 1).coerceAtMost(line.text.length))
-            }
+            }            // The line's key word takes the cover color once it is lit (never in the dim layer).
+            if (main == colors.active) keyRange?.let { addStyle(SpanStyle(color = colors.accent), it.first, (it.last + 1).coerceAtMost(line.text.length)) }
         }
         val dim = remember(line, widthPx, colors, sizeK) {
             measurer.measure(annotated(colors.inactive, colors.inactive.copy(alpha = colors.inactive.alpha * 0.75f)), style, constraints = Constraints(maxWidth = widthPx))
         }
-        val bright = remember(line, widthPx, colors, sizeK) {
+        val bright = remember(line, widthPx, colors, sizeK, keyRange) {
             measurer.measure(annotated(colors.active, colors.backing), style, constraints = Constraints(maxWidth = widthPx))
         }
         // One layout per word, placed where the word sits in the full line.
         class Piece(val word: KWord, val layout: TextLayoutResult, val dimLayout: TextLayoutResult, val at: Offset)
-        val pieces = remember(line, widthPx, colors, sizeK) {
+        val pieces = remember(line, widthPx, colors, sizeK, keyRange) {
             line.words.mapNotNull { w ->
                 val first = w.charStart.coerceIn(0, (line.text.length - 1).coerceAtLeast(0))
                 if (line.text.isEmpty() || w.charEnd <= w.charStart) return@mapNotNull null

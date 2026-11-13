@@ -58,6 +58,10 @@ fun GerasLyricsSection() {
     var blur by rememberPreference(GerasLyricsBlurKey, true)
     var drop by rememberPreference(GerasDropStyleKey, 1)
     var kick by rememberPreference(GerasKickPulseKey, false)
+    var sceneBackdrop by rememberPreference(com.metrolist.music.geras.GerasSceneBackdropKey, true)
+    var sceneDust by rememberPreference(com.metrolist.music.geras.GerasSceneDustKey, true)
+    var sceneCards by rememberPreference(com.metrolist.music.geras.GerasSceneCardsKey, true)
+    var sceneKeywords by rememberPreference(com.metrolist.music.geras.GerasSceneKeywordsKey, true)
 
     val l1 = stringResource(R.string.geras_ly_preview_1)
     val l2 = stringResource(R.string.geras_ly_preview_2)
@@ -141,6 +145,19 @@ fun GerasLyricsSection() {
             Toggle(stringResource(R.string.geras_ly_kick), stringResource(R.string.geras_ly_kick_hint), kick) { kick = it }
             Box(Modifier.padding(start = 16.dp).fillMaxWidth().height(1.dp).background(scheme.onSurface.copy(alpha = 0.07f)))
             Toggle(stringResource(R.string.geras_ly_blur), stringResource(R.string.geras_ly_blur_hint), blur) { blur = it }
+        }
+
+        Label(stringResource(R.string.geras_scene))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(scheme.surfaceContainer),
+        ) {
+            Toggle(stringResource(R.string.geras_scene_backdrop), stringResource(R.string.geras_scene_backdrop_hint), sceneBackdrop) { sceneBackdrop = it }
+            Toggle(stringResource(R.string.geras_scene_dust), stringResource(R.string.geras_scene_dust_hint), sceneDust) { sceneDust = it }
+            Toggle(stringResource(R.string.geras_scene_cards), stringResource(R.string.geras_scene_cards_hint), sceneCards) { sceneCards = it }
+            Toggle(stringResource(R.string.geras_scene_keywords), stringResource(R.string.geras_scene_keywords_hint), sceneKeywords) { sceneKeywords = it }
         }
     }
 }

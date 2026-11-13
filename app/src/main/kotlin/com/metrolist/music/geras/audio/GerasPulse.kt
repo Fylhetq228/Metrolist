@@ -23,6 +23,18 @@ object GerasPulse {
     @Volatile var kickStrength = 0f
         private set
 
+    /** Loudness right now, 0 (silence) .. 1 (full on), smoothed. */
+    @Volatile var level = 0f
+        private set
+    /** Tempo from the spacing of kick hits, 0 while unknown. */
+    @Volatile var bpm = 0
+        private set
+
+    private val kickGaps = DoubleArray(16)
+    private var kickGapCount = 0
+    private var framesSinceKick = 0L
+    private var smooth = 0.0
+
     private var detector: DropDetector? = null
     private var acc = 0.0
     private var accLow = 0.0
@@ -43,9 +55,27 @@ object GerasPulse {
         low = 0.0
     }
 
+    /** Folds the gap between two kicks into the running tempo estimate. */
+    internal fun addKickGap(gapSec: Double) {
+        if (gapSec !in 0.24..1.6) return
+        kickGaps[kickGapCount % kickGaps.size] = gapSec
+        kickGapCount++
+        val n = minOf(kickGapCount, kickGaps.size)
+        if (n < 6) return
+        val median = kickGaps.copyOf(n).apply { sort() }[n / 2]
+        var t = 60.0 / median
+        // Kicks often land on every second beat (or off-beats too): bring it into 75..170.
+        while (t < 75) t *= 2
+        while (t > 170) t /= 2
+        bpm = Math.round(t).toInt()
+    }
+
     /** Seek or new stream: forget the past so it cannot make a "drop". */
     fun reset() {
         detector?.reset()
+        kickGapCount = 0
+        framesSinceKick = 0
+        bpm = 0
         acc = 0.0
         accLow = 0.0
         accFrames = 0
@@ -64,10 +94,18 @@ object GerasPulse {
                 dropStrength = r.drop
                 dropAtNanos = now
             }
+            framesSinceKick += accFrames
             if (r.kick > 0f) {
                 kickStrength = r.kick
                 kickAtNanos = now
+                addKickGap(framesSinceKick.toDouble() / rate)
+                framesSinceKick = 0
             }
+            // -42 dBFS and below reads as 0, -8 dBFS as 1.
+            val p = acc / accFrames
+            val db = if (p <= 1e-12) -120.0 else 10 * log10(p)
+            smooth += (((db + 42.0) / 34.0).coerceIn(0.0, 1.0) - smooth) * 0.12
+            level = smooth.toFloat()
             acc = 0.0
             accLow = 0.0
             accFrames = 0
