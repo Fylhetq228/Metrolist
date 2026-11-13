@@ -30,7 +30,8 @@ import javax.inject.Inject
 
 private const val MAX_LYRICS_FETCH_MS = 20000L
 private const val PER_PROVIDER_TIMEOUT_MS = 12000L
-private const val PLAIN_GRACE_MS = 2500L
+private const val PLAIN_GRACE_MS = 3000L
+private const val SYNCED_GRACE_MS = 1500L
 private const val PROVIDER_NONE = ""
 
 class LyricsHelper
@@ -109,29 +110,36 @@ constructor(
                         }
                     }
                 }
-                var plain: LyricsWithProvider? = null
-                var plainAt = 0L
-                for ((i, provider) in enabledProviders.withIndex()) {
-                    val text = if (plain == null) {
-                        jobs[i].await()
-                    } else {
-                        // Already have plain lyrics: give better providers a short chance to
-                        // deliver synced ones, then settle.
-                        val left = PLAIN_GRACE_MS - (System.currentTimeMillis() - plainAt)
-                        if (left <= 0) null else withTimeoutOrNull(left) { jobs[i].await() }
-                    } ?: continue
-                    if (com.metrolist.music.geras.lyrics.GerasLyricsQuery.isSynced(text)) {
-                        jobs.forEach { it.cancel() }
-                        Timber.tag("LyricsHelper").i("Got synced lyrics from ${provider.name}")
-                        return@coroutineScope LyricsWithProvider(text, provider.name)
+                // Take results as they arrive and keep the best kind: word-by-word timing beats
+                // line timing beats plain text; within a kind the user's provider order decides.
+                // Word-timed lyrics end the search at once; anything less waits a little for
+                // something better.
+                val done = kotlinx.coroutines.channels.Channel<Int>(enabledProviders.size)
+                jobs.forEachIndexed { i, job -> job.invokeOnCompletion { done.trySend(i) } }
+                var best: LyricsWithProvider? = null
+                var bestTier = 0
+                var bestIndex = Int.MAX_VALUE
+                var deadline = Long.MAX_VALUE
+                var left = jobs.size
+                while (left > 0) {
+                    val wait = deadline - System.currentTimeMillis()
+                    if (wait <= 0) break
+                    val i = (if (deadline == Long.MAX_VALUE) done.receive() else withTimeoutOrNull(wait) { done.receive() }) ?: break
+                    left--
+                    val text = runCatching { jobs[i].await() }.getOrNull() ?: continue
+                    val tier = com.metrolist.music.geras.lyrics.GerasLyricsQuery.tier(text)
+                    if (tier > bestTier || (tier == bestTier && i < bestIndex)) {
+                        best = LyricsWithProvider(text, enabledProviders[i].name)
+                        bestTier = tier
+                        bestIndex = i
                     }
-                    if (plain == null) {
-                        plain = LyricsWithProvider(text, provider.name)
-                        plainAt = System.currentTimeMillis()
-                    }
+                    if (bestTier == 3) break
+                    val grace = if (bestTier == 2) SYNCED_GRACE_MS else PLAIN_GRACE_MS
+                    deadline = minOf(deadline, System.currentTimeMillis() + grace)
                 }
                 jobs.forEach { it.cancel() }
-                plain ?: LyricsWithProvider(LYRICS_NOT_FOUND, PROVIDER_NONE)
+                best?.also { Timber.tag("LyricsHelper").i("Lyrics from ${it.provider}, tier $bestTier") }
+                    ?: LyricsWithProvider(LYRICS_NOT_FOUND, PROVIDER_NONE)
             }
         }
 

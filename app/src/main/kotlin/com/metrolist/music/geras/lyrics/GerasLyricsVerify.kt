@@ -47,10 +47,10 @@ object GerasLyricsVerify {
         return true
     }
 
-    fun shouldUpgradePlain(id: String): Boolean {
+    fun shouldUpgrade(id: String): Boolean {
         val p = prefs ?: return false
-        if (p.getBoolean("pl3_$id", false)) return false
-        p.edit().putBoolean("pl3_$id", true).apply()
+        if (p.getBoolean("up4_$id", false)) return false
+        p.edit().putBoolean("up4_$id", true).apply()
         return true
     }
 

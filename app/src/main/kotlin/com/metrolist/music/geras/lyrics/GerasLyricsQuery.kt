@@ -38,5 +38,14 @@ object GerasLyricsQuery {
 
     private val lrcStamp = Regex("""\[\d{1,2}:\d{2}""")
 
+    private val wordStamp = Regex("""<\d{1,2}:\d{2}\.\d{2,3}>""")
+
+    /** 3 = word-by-word timing, 2 = line timing, 1 = plain text. */
+    fun tier(lyrics: String): Int = when {
+        wordStamp.containsMatchIn(lyrics) || lyrics.contains("<span") -> 3
+        isSynced(lyrics) -> 2
+        else -> 1
+    }
+
     fun isSynced(lyrics: String): Boolean = lrcStamp.containsMatchIn(lyrics) || lyrics.trimStart().startsWith("<")
 }
