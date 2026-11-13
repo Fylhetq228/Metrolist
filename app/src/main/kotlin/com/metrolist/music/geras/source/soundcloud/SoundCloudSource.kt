@@ -136,8 +136,29 @@ object SoundCloudSource : MusicSource {
     override suspend fun search(query: String, kind: ItemKind?): Result<SourcePage> = withContext(Dispatchers.IO) {
         runCatching {
             val filter = filterFor(kind) ?: return@runCatching SourcePage(null, emptyList())
+            // SoundCloud's own search API answers in a fraction of a second; NewPipe's page
+            // extraction (5 s and more) is only the fallback.
+            runCatching { fastSearch(query, kind, filter.firstOrNull()) }.getOrNull()?.takeIf { it.top != null || it.sections.any { s -> s.items.isNotEmpty() } }?.let { return@runCatching it }
             val info = SearchInfo.getInfo(service, service.searchQHFactory.fromQuery(query, filter, ""))
             toPage(info.relatedItems, query, filter, info.nextPage, kind == null)
+        }
+    }
+
+    private fun fastSearch(query: String, kind: ItemKind?, apiKind: String?): SourcePage {
+        val (found, others) = SoundCloudFast.searchAll(query, apiKind)
+        val trackItems = found.filter { it.transcoding != null }.map {
+            SourceItem(id, ItemKind.TRACK, ID_PREFIX + it.id, it.title, it.uploader, bigArtwork(it.artwork), it.durationSec.takeIf { d -> d > 0 }, raw = it.url)
+        }
+        val otherItems = others.map {
+            SourceItem(id, if (it.isUser) ItemKind.ARTIST else ItemKind.PLAYLIST, it.url, it.title, it.subtitle, bigArtwork(it.image), raw = it.url)
+        }
+        val all = trackItems + otherItems
+        return if (kind == null) {
+            val top = trackItems.firstOrNull()
+            val rest = all.filterNot { it === top }
+            SourcePage(top, ItemKind.entries.map { k -> SourceSection(k, rest.filter { it.kind == k }) }.filter { it.items.isNotEmpty() }, null)
+        } else {
+            SourcePage(null, listOf(SourceSection(null, all)), null)
         }
     }
 
@@ -252,6 +273,8 @@ object SoundCloudSource : MusicSource {
     /** HLS playlist URL for a SoundCloud track id (without prefix); cached briefly as links expire. */
     fun streamUrl(trackId: String): String {
         streamCache[trackId]?.let { (u, t) -> if (System.currentTimeMillis() - t < 10 * 60_000) return u }
+        // One or two small API calls instead of NewPipe's full page extraction.
+        runCatching { SoundCloudFast.streamUrl(trackId) }.getOrNull()?.let { return it }
         val info = StreamInfo.getInfo(service, service.streamLHFactory.fromId(trackId).url)
         val streams = info.audioStreams
         val best = streams.filter { it.deliveryMethod == DeliveryMethod.HLS }

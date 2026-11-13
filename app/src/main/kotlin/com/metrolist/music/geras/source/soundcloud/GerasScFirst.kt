@@ -27,8 +27,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
@@ -50,7 +48,12 @@ object GerasScFirst {
     fun init(context: Context) {
         if (prefs != null) return
         prefs = context.applicationContext.getSharedPreferences("geras_sc_first", Context.MODE_PRIVATE)
+        // Key and connection ready before the first tap.
+        if (enabled) scope.launch { SoundCloudFast.warmUp() }
     }
+
+    /** Set by the player service: true when the YouTube audio of this id is already on disk. */
+    @Volatile var hasLocalCopy: (String) -> Boolean = { false }
 
     var enabled: Boolean
         get() = prefs?.getBoolean("enabled", true) ?: true
@@ -58,11 +61,11 @@ object GerasScFirst {
             prefs?.edit()?.putBoolean("enabled", v)?.apply()
         }
 
-    private fun cached(ytId: String): String? = matches[ytId] ?: prefs?.getString("m_$ytId", null)?.also { matches[ytId] = it }
+    private fun cached(ytId: String): String? = matches[ytId] ?: prefs?.getString("m2_$ytId", null)?.also { matches[ytId] = it }
 
     private fun remember(ytId: String, scId: String) {
         matches[ytId] = scId
-        prefs?.edit()?.putString("m_$ytId", scId)?.apply()
+        prefs?.edit()?.putString("m2_$ytId", scId)?.apply()
     }
 
     /** Called on a playback error: that track goes back to YouTube for good. */
@@ -86,9 +89,10 @@ object GerasScFirst {
     private fun match(meta: MediaMetadata): Deferred<String?> = inFlight.getOrPut(meta.id) {
         scope.async {
             try {
-                val found = runCatching { findOnSoundCloud(meta) }.getOrNull()
-                remember(meta.id, found ?: NONE)
-                found
+                val found = runCatching { findOnSoundCloud(meta) }
+                // Only a clean answer is remembered; after an error the next play asks again.
+                found.onSuccess { remember(meta.id, it ?: NONE) }
+                found.getOrNull()
             } finally {
                 inFlight.remove(meta.id)
             }
@@ -96,7 +100,7 @@ object GerasScFirst {
     }
 
     /** How long a never-seen track waits for SoundCloud before starting from YouTube. */
-    private const val FIRST_PLAY_BUDGET_MS = 1200L
+    private const val FIRST_PLAY_BUDGET_MS = 1500L
 
     /** SoundCloud track id for [meta], waiting at most [budgetMs]; null means "play from YouTube". */
     fun resolveBlocking(meta: MediaMetadata, budgetMs: Long): String? {
@@ -105,44 +109,38 @@ object GerasScFirst {
         return runBlocking { withTimeoutOrNull(budgetMs) { job.await() } }
     }
 
-    private suspend fun findOnSoundCloud(meta: MediaMetadata): String? {
+    /**
+     * The SoundCloud id of [meta]'s full, playable copy, or null when there is none. Network
+     * errors are thrown, not turned into "none": a track must not be written off for good
+     * because the connection hiccuped once.
+     */
+    private fun findOnSoundCloud(meta: MediaMetadata): String? {
         val duration = meta.duration.takeIf { it > 0 } ?: return null
         val artist = meta.artists.firstOrNull()?.name.orEmpty()
         val src = SourceTrack(meta.title, meta.artists.map { it.name }, duration)
-        val items = SoundCloudSource.search("${meta.title} $artist".trim(), ItemKind.TRACK).getOrNull()
-            ?.sections?.flatMap { it.items }.orEmpty().take(10)
-        val best = items
-            .filter { it.durationSec != null && abs(it.durationSec - duration) <= 4 }
-            .map { it to TransferMatcher.score(src, MatchCandidate(it.id, it.title, listOf(it.subtitle), it.durationSec, it.thumbnail)) }
+        val best = SoundCloudFast.search("${meta.title} $artist".trim())
+            // Playable in full and not DRM-only (Go+ tracks give a preview or nothing).
+            .filter { it.transcoding != null && abs(it.durationSec - duration) <= MAX_DURATION_DIFF_S }
+            .map { it to TransferMatcher.score(src, MatchCandidate(it.id, it.title, listOf(it.uploader), it.durationSec, it.artwork)) }
             .filter { it.second >= 0.8f }
-            .maxByOrNull { it.second }?.first ?: return null
-        val trackId = best.id.removePrefix(SoundCloudSource.ID_PREFIX)
-        // Must really be playable in full: Go+ tracks only give a 30-second preview.
-        val playlist = runCatching { SoundCloudSource.streamUrl(trackId) }.getOrNull() ?: return null
-        val total = hlsDurationSec(playlist) ?: return null
-        if (total < duration * 0.85) return null
-        return trackId
+            .maxWithOrNull(compareBy<Pair<SoundCloudFast.Track, Float>> { it.second }.thenBy { -abs(it.first.durationSec - duration) })
+            ?.first ?: return null
+        // Resolve the stream right away: proves it plays and the player finds it ready.
+        SoundCloudFast.streamUrl(best.id) ?: return null
+        return best.id
     }
 
-    private fun hlsDurationSec(url: String): Double? = runCatching {
-        val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 6000
-        c.readTimeout = 6000
-        try {
-            c.inputStream.bufferedReader().readLines()
-                .filter { it.startsWith("#EXTINF:") }
-                .sumOf { it.removePrefix("#EXTINF:").substringBefore(',').toDoubleOrNull() ?: 0.0 }
-        } finally {
-            c.disconnect()
-        }
-    }.getOrNull()
+    private const val MAX_DURATION_DIFF_S = 3
 
     /** Wraps the app's media source factory: each item decides at prepare time where it plays from. */
     @UnstableApi
     class Factory(private val delegate: MediaSource.Factory) : MediaSource.Factory by delegate {
         override fun createMediaSource(mediaItem: MediaItem): MediaSource {
             val meta = mediaItem.metadata
-            if (!enabled || meta == null || !isEligible(mediaItem.mediaId) || meta.isEpisode || meta.uploadEntityId != null) {
+            // A downloaded or fully cached YouTube copy plays instantly and offline: keep it.
+            if (!enabled || meta == null || !isEligible(mediaItem.mediaId) || meta.isEpisode || meta.uploadEntityId != null ||
+                runCatching { hasLocalCopy(mediaItem.mediaId) }.getOrDefault(false)
+            ) {
                 return delegate.createMediaSource(mediaItem)
             }
             return DeferredSource(mediaItem, meta, delegate)

@@ -1346,6 +1346,13 @@ class MusicService :
         com.metrolist.music.geras.wave.GerasWave.database = database
         com.metrolist.music.geras.wave.GerasWave.init(this)
         com.metrolist.music.geras.source.soundcloud.GerasScFirst.init(this)
+        com.metrolist.music.geras.source.soundcloud.GerasScFirst.hasLocalCopy = { id ->
+            fun whole(cache: Cache): Boolean {
+                val len = ContentMetadata.getContentLength(cache.getContentMetadata(id))
+                return len > 0 && cache.isCached(id, 0, len)
+            }
+            whole(downloadCache) || whole(playerCache)
+        }
 
         playerNormalizationProcessors[player] = normalizationProcessor
         playerSilenceProcessors[player] = silenceProcessor
