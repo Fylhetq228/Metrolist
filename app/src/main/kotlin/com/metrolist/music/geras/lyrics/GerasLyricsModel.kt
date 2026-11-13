@@ -39,6 +39,7 @@ private const val GAP_MIN_MS = 4_000L
 private const val MS_PER_CHAR = 80L
 private const val MIN_LINE_MS = 1_200L
 private const val MAX_HELD_WORD_MS = 4_000L
+private const val DEFAULT_MS_PER_SYLLABLE = 200f
 private const val PLAIN_BASE_MS = 1_000_000L
 
 /**
@@ -106,6 +107,20 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
         }
     }
 
+    // How fast this track is sung, read off the lyrics themselves: in a verse one line follows
+    // another, so (time to the next line) / (syllables in the line) clusters around the real
+    // pace. Rap comes out near 120 ms a syllable, a ballad near 350; one fixed guess fits neither.
+    val pace = run {
+        val lead = source.filter { !it.isBackground && it.words.isNullOrEmpty() }
+        val samples = lead.zipWithNext().mapNotNull { (a, b) ->
+            val gap = b.time - a.time
+            val syl = syllables(a.text)
+            if (gap in 600..9_000 && syl >= 3) gap.toFloat() / syl else null
+        }.sorted()
+        // The lower third: gaps are never shorter than the singing, breaks only make them longer.
+        if (samples.size >= 4) samples[samples.size / 3].coerceIn(90f, 420f) else DEFAULT_MS_PER_SYLLABLE
+    }
+
     val lines = source.mapIndexed { i, e ->
         val nextLine = source.drop(i + 1).firstOrNull { !it.isBackground }?.time // backing vocals overlap the lead, they do not end it
         val nextMark = boundaries.firstOrNull { it > e.time }
@@ -133,14 +148,14 @@ fun buildKaraoke(entries: List<LyricsEntry>, synced: Boolean, approximate: Boole
         } else {
             val text = e.text.trim()
             val gap = (nextStart ?: (e.time + 6_000L)) - e.time
-            val estimate = (text.length * MS_PER_CHAR).coerceAtLeast(MIN_LINE_MS)
+            val estimate = (syllables(text) * pace + 250f).toLong().coerceAtLeast(MIN_LINE_MS)
             // A line takes about as long as it takes to sing it; a long pause after it is a break.
             // Estimated (plain) lyrics have no real pauses to show: the line simply runs until
             // the next one, otherwise every line would die early and leave "..." on screen.
             // Estimated (plain) lyrics run until the next line unless a verse break comes first.
             val breakFirst = nextMark != null && (nextLine == null || nextMark < nextLine)
             val duration = if (approximate && !breakFirst) (gap * 0.95f).toLong().coerceAtLeast(400L)
-            else minOf((gap * 0.92f).toLong(), (estimate * (if (approximate) 1.4f else 1.15f)).toLong()).coerceAtLeast(400L)
+            else minOf((gap * 0.94f).toLong(), (estimate * (if (approximate) 1.4f else 1.3f)).toLong()).coerceAtLeast(400L)
             KLine(e, text, e.time, e.time + duration, interpolateWords(text, e.time, duration), parenRanges(text), e.isBackground, e.agent, true)
         }
     }
@@ -165,18 +180,51 @@ private val headerRe = Regex("""^\s*\[[^\]]{1,48}]\s*$""")
 
 internal fun isInstrumentalMarker(text: String) = instrumentalRe.matches(text.trim()) || headerRe.matches(text)
 
+private const val VOWELS = "аеёиоуыэюяАЕЁИОУЫЭЮЯaeiouyAEIOUYäöüÄÖÜéèêáàâíìîóòôúùûіїєІЇЄ"
+
+/** Rough syllable count: vowels for alphabetic scripts, one per character for CJK/kana. */
+internal fun syllables(text: String): Int {
+    var n = 0
+    var prevVowel = false
+    for (c in text) {
+        when {
+            c in VOWELS -> {
+                // English diphthongs ("ea", "ou") are one beat; Cyrillic vowels each count.
+                if (!prevVowel || c.code > 0x3FF) n++
+                prevVowel = true
+            }
+            c.code in 0x3040..0x30FF || c.code in 0x4E00..0x9FFF || c.code in 0xAC00..0xD7AF -> {
+                n++
+                prevVowel = false
+            }
+            else -> prevVowel = false
+        }
+    }
+    return n.coerceAtLeast(if (text.any { it.isLetterOrDigit() }) 1 else 0)
+}
+
+/**
+ * Spreads a line's time over its words by syllables (a three-syllable word is sung three times
+ * longer than "я"), with a short breath after commas and dashes.
+ */
 private fun interpolateWords(text: String, start: Long, duration: Long): List<KWord> {
     val tokens = Regex("\\S+").findAll(text).toList()
     if (tokens.isEmpty()) return emptyList()
-    // A little fixed weight per word so short words do not flash by.
-    val weights = tokens.map { it.value.length + 2f }
-    val total = weights.sum()
+    val weights = tokens.map { m ->
+        val pause = when (m.value.last()) {
+            ',', ';', ':', '—', '–' -> 0.6f
+            '.', '!', '?', '…' -> 0.9f
+            else -> 0f
+        }
+        syllables(m.value).coerceAtLeast(1) + 0.35f to pause
+    }
+    val total = weights.sumOf { (it.first + it.second).toDouble() }.toFloat()
     var acc = 0f
     return tokens.mapIndexed { i, m ->
         val s = start + (duration * (acc / total)).toLong()
-        acc += weights[i]
-        val e = start + (duration * (acc / total)).toLong()
-        KWord(s, e, m.range.first, m.range.last + 1)
+        val e = start + (duration * ((acc + weights[i].first) / total)).toLong()
+        acc += weights[i].first + weights[i].second
+        KWord(s, e.coerceAtLeast(s + 1), m.range.first, m.range.last + 1)
     }
 }
 
