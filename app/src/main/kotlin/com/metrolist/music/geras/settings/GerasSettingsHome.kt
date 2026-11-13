@@ -137,6 +137,7 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
             ))
             CategoryGroup(stringResource(R.string.geras_grp_screen), 2, listOf(
                 Category(R.drawable.palette, Color(0xFF7B52D6), stringResource(R.string.geras_appearance), stringResource(R.string.geras_cat_look_hint)) { navController.navigate(GerasSettingsRoute) },
+                Category(R.drawable.lyrics, Color(0xFFC9318A), stringResource(R.string.geras_cat_lyrics), stringResource(R.string.geras_cat_lyrics_hint)) { navController.navigate(gerasSettingsSection("lyrics")) },
             ))
             CategoryGroup(stringResource(R.string.geras_section_music), 3, listOf(
                 Category(R.drawable.library_music, Color(0xFF2F8F6A), stringResource(R.string.geras_cat_library), stringResource(R.string.geras_cat_library_hint)) { navController.navigate(gerasSettingsSection("library")) },
@@ -154,6 +155,7 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
                     "playback" -> stringResource(R.string.geras_cat_playback)
                     "library" -> stringResource(R.string.geras_cat_library)
                     "network" -> stringResource(R.string.geras_cat_network)
+                    "lyrics" -> stringResource(R.string.geras_cat_lyrics)
                     else -> stringResource(R.string.geras_section_about)
                 },
                 onBack = { navController.navigateUp() },
@@ -284,6 +286,7 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
                 ),
             )
             "network" -> GerasProxySection()
+            "lyrics" -> GerasLyricsSection()
             "about" -> GerasSettingsGroup(
                 title = stringResource(R.string.geras_section_about),
                 items = listOf(

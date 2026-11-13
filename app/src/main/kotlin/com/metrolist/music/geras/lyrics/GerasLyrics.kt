@@ -16,6 +16,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -204,6 +206,8 @@ fun GerasLyrics(
     // Lyrics saved earlier may belong to another song with the same title: drop them so the
     // player fetches again with the stricter check.
     val databaseForCheck = com.metrolist.music.LocalDatabase.current
+    val contextForUpgrade = LocalContext.current
+    val upgradeScope = rememberCoroutineScope()
     LaunchedEffect(lyricsEntity, mediaMetadata?.duration) {
         val entity = lyricsEntity ?: return@LaunchedEffect
         val meta = mediaMetadata?.takeIf { it.id == entity.id } ?: return@LaunchedEffect
@@ -211,11 +215,19 @@ fun GerasLyrics(
             if (GerasLyricsVerify.shouldRetryNotFound(entity.id)) databaseForCheck.query { delete(entity) }
             return@LaunchedEffect
         }
-        // Plain lyrics saved by the old one-provider-at-a-time search: look once more, now that
-        // every provider is asked, for a synced version that can animate.
-        if (!GerasLyricsQuery.isSynced(entity.lyrics) && GerasLyricsVerify.shouldUpgradePlain(entity.id)) {
-            databaseForCheck.query { delete(entity) }
-            return@LaunchedEffect
+        // Saved lyrics that are plain or only line-timed: look once (in the background, keeping
+        // what is shown) whether the sources now have a better-timed version.
+        val oldTier = GerasLyricsQuery.tier(entity.lyrics)
+        if (oldTier < 3 && GerasLyricsVerify.shouldUpgrade(entity.id)) {
+            val helper = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                contextForUpgrade.applicationContext, com.metrolist.music.di.LyricsHelperEntryPoint::class.java,
+            ).lyricsHelper()
+            upgradeScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val fresh = runCatching { helper.getLyrics(meta) }.getOrNull() ?: return@launch
+                if (fresh.lyrics != com.metrolist.music.db.entities.LyricsEntity.LYRICS_NOT_FOUND && GerasLyricsQuery.tier(fresh.lyrics) > oldTier) {
+                    databaseForCheck.query { upsert(com.metrolist.music.db.entities.LyricsEntity(entity.id, fresh.lyrics, fresh.provider)) }
+                }
+            }
         }
         val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             GerasLyricsVerify.accept(entity.id, entity.lyrics, entity.provider, meta.title, meta.artists.map { it.name }, meta.duration)
@@ -339,6 +351,10 @@ fun GerasLyrics(
     }
 
     var menuFor by remember { mutableStateOf<KLine?>(null) }
+    var showShift by remember { mutableStateOf(false) }
+    val saveOffset: (Int) -> Unit = { ms ->
+        currentSong?.song?.let { song -> databaseForCheck.query { update(song.copy(lyricsOffset = ms)) } }
+    }
     var shareText by remember { mutableStateOf<String?>(null) }
     var pickColorsFor by remember { mutableStateOf<String?>(null) }
 
@@ -484,6 +500,23 @@ fun GerasLyrics(
                                     onLongClick = { menuFor = line },
                                 )
                                 DropdownMenu(expanded = menuFor == line, onDismissRequest = { menuFor = null }) {
+                                    if (timed && !estimated && currentSong != null) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.geras_lyrics_sync_here)) },
+                                            onClick = {
+                                                // One tap sync: this line starts at what is playing right now.
+                                                saveOffset((line.start - player.currentPosition).coerceIn(-15_000, 15_000).toInt())
+                                                menuFor = null
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.geras_lyrics_shift)) },
+                                            onClick = {
+                                                showShift = true
+                                                menuFor = null
+                                            },
+                                        )
+                                    }
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.geras_lyrics_share_card)) },
                                         onClick = {
@@ -512,6 +545,19 @@ fun GerasLyrics(
                 }
                 Spacer(Modifier.height(viewportHeight * (1f - ANCHOR_RATIO)))
             }
+        }
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showShift,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 2 },
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 2 },
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp),
+        ) {
+            ShiftBar(
+                offsetMs = lyricsOffset,
+                colors = colors,
+                onChange = { saveOffset(it.coerceIn(-15_000, 15_000)) },
+                onClose = { showShift = false },
+            )
         }
     }
 
@@ -582,6 +628,9 @@ internal fun LineView(
     colors: GerasLyricsColors,
     respectAgents: Boolean,
     calm: Boolean = true,
+    style: Int = rememberPreference(com.metrolist.music.geras.GerasLyricsStyleKey, 0).value,
+    size: Int = rememberPreference(com.metrolist.music.geras.GerasLyricsSizeKey, 1).value,
+    depthBlur: Boolean = rememberPreference(com.metrolist.music.geras.GerasLyricsBlurKey, true).value,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -592,7 +641,7 @@ internal fun LineView(
         label = "lineEmphasis",
     )
     // Depth of field like Apple Music: lines further from the current one go soft.
-    val blurTarget = if (!synced || isActive || !calm) 0f else (distance.coerceAtMost(4) * 1.1f)
+    val blurTarget = if (!depthBlur || !synced || isActive || !calm) 0f else (distance.coerceAtMost(4) * 1.1f)
     val blurDp by animateFloatAsState(blurTarget, tween(450), label = "lineBlur")
     val textAlign = when {
         respectAgents && line.agent == "v2" -> TextAlign.End
@@ -633,7 +682,7 @@ internal fun LineView(
             )
             .padding(vertical = 2.dp),
     ) {
-        KaraokeText(line, isActive && synced, clock, colors, textAlign, past = isPast)
+        KaraokeText(line, isActive && synced, clock, colors, textAlign, past = isPast, anim = style, size = size)
         val sub = listOfNotNull(romanized?.takeIf { it.isNotBlank() && it != line.text }, translated?.takeIf { it.isNotBlank() })
         sub.forEach { s ->
             Text(
@@ -660,7 +709,10 @@ private fun KaraokeText(
     colors: GerasLyricsColors,
     textAlign: TextAlign,
     past: Boolean = false,
+    anim: Int = 0,
+    size: Int = 1,
 ) {
+    val sizeK = when (size) { 0 -> 0.84f; 2 -> 1.18f; else -> 1f }
     val measurer = rememberTextMeasurer(cacheSize = 16)
     val density = LocalDensity.current
     // TextMeasurer does not inherit the theme, so the app font has to be passed explicitly.
@@ -669,8 +721,8 @@ private fun KaraokeText(
         val widthPx = constraints.maxWidth
         val style = TextStyle(
             fontFamily = family,
-            fontSize = LINE_TEXT_SIZE,
-            lineHeight = LINE_HEIGHT,
+            fontSize = LINE_TEXT_SIZE * sizeK,
+            lineHeight = LINE_HEIGHT * sizeK,
             fontWeight = FontWeight.ExtraBold,
             fontStyle = if (line.isBackground) FontStyle.Italic else FontStyle.Normal,
             textAlign = textAlign,
@@ -682,15 +734,15 @@ private fun KaraokeText(
                 addStyle(SpanStyle(color = backing, fontStyle = FontStyle.Italic), r.first, (r.last + 1).coerceAtMost(line.text.length))
             }
         }
-        val dim = remember(line, widthPx, colors) {
+        val dim = remember(line, widthPx, colors, sizeK) {
             measurer.measure(annotated(colors.inactive, colors.inactive.copy(alpha = colors.inactive.alpha * 0.75f)), style, constraints = Constraints(maxWidth = widthPx))
         }
-        val bright = remember(line, widthPx, colors) {
+        val bright = remember(line, widthPx, colors, sizeK) {
             measurer.measure(annotated(colors.active, colors.backing), style, constraints = Constraints(maxWidth = widthPx))
         }
         // One layout per word, placed where the word sits in the full line.
         class Piece(val word: KWord, val layout: TextLayoutResult, val dimLayout: TextLayoutResult, val at: Offset)
-        val pieces = remember(line, widthPx, colors) {
+        val pieces = remember(line, widthPx, colors, sizeK) {
             line.words.mapNotNull { w ->
                 val first = w.charStart.coerceIn(0, (line.text.length - 1).coerceAtLeast(0))
                 if (line.text.isEmpty() || w.charEnd <= w.charStart) return@mapNotNull null
@@ -722,19 +774,61 @@ private fun KaraokeText(
             val t = clock.longValue
             pieces.forEach { pc ->
                 val w = pc.word
-                when {
-                    t < w.start -> drawText(pc.dimLayout, topLeft = pc.at)
+                if (t < w.start) {
+                    drawText(pc.dimLayout, topLeft = pc.at)
+                    return@forEach
+                }
+                val since = (t - w.start).toFloat()
+                val after = (t - w.end).toFloat()
+                val cx = pc.at.x + pc.layout.size.width / 2f
+                val cy = pc.at.y + pc.layout.size.height / 2f
+                when (anim) {
+                    // Fill: classic karaoke, the word is painted left to right as it is sung.
+                    1 -> {
+                        val f = (since / (w.end - w.start).coerceAtLeast(1)).coerceIn(0f, 1f)
+                        if (f >= 1f) {
+                            drawText(pc.layout, topLeft = pc.at)
+                        } else {
+                            drawText(pc.dimLayout, topLeft = pc.at)
+                            val edge = pc.at.x + pc.layout.size.width * f
+                            clipRect(left = pc.at.x - 2f, top = pc.at.y - 8f, right = edge, bottom = pc.at.y + pc.layout.size.height + 8f) {
+                                drawText(pc.layout, topLeft = pc.at, shadow = Shadow(glowColor.copy(alpha = 0.5f), Offset.Zero, 14f))
+                            }
+                        }
+                    }
+                    // Bounce: the word hops as it is sung, no glow.
+                    2 -> {
+                        val dur = (w.end - w.start).coerceIn(160, 420).toFloat()
+                        val hop = if (since < dur) kotlin.math.sin(since / dur * Math.PI).toFloat() else 0f
+                        withTransform({
+                            translate(0f, -liftPx * 2.2f * hop)
+                            scale(1f + 0.06f * hop, 1f + 0.06f * hop, Offset(cx, cy))
+                        }) { drawText(pc.layout, topLeft = pc.at) }
+                    }
+                    // Calm: words just brighten, softly.
+                    3 -> {
+                        val a = (since / 220f).coerceIn(0f, 1f)
+                        if (a < 1f) drawText(pc.dimLayout, topLeft = pc.at, alpha = 1f - a)
+                        drawText(pc.layout, topLeft = pc.at, alpha = a)
+                    }
+                    // Neon: the sung part of the line keeps glowing in the accent color, the
+                    // current word is the brightest and biggest.
+                    4 -> {
+                        val up = easeOutBack((since / 160f).coerceIn(0f, 1f))
+                        val down = if (after > 0f) (1f - after / 260f).coerceIn(0f, 1f) else 1f
+                        val k = up * down
+                        withTransform({ scale(1f + 0.13f * k, 1f + 0.13f * k, Offset(cx, cy)) }) {
+                            drawText(pc.layout, topLeft = pc.at, shadow = Shadow(colors.accent.copy(alpha = 0.55f + 0.4f * k), Offset.Zero, 18f + 22f * k))
+                            if (k > 0.05f) drawText(pc.layout, topLeft = pc.at, shadow = Shadow(Color.White.copy(alpha = 0.7f * k), Offset.Zero, 5f))
+                        }
+                    }
+                    // Glow (default): light up, pop with a little overshoot, settle.
                     else -> {
-                        val since = (t - w.start).toFloat()
-                        val after = (t - w.end).toFloat()
-                        // Pop: ease-out-back on the way up, settle back once the word is over.
                         val up = easeOutBack((since / 140f).coerceIn(0f, 1f))
                         val down = if (after > 0f) (1f - (after / 320f)).coerceIn(0f, 1f) else 1f
                         val k = up * down
                         val glow = (if (after > 0f) (1f - after / 450f) else 1f).coerceIn(0f, 1f)
                         val scale = 1f + 0.08f * k
-                        val cx = pc.at.x + pc.layout.size.width / 2f
-                        val cy = pc.at.y + pc.layout.size.height / 2f
                         withTransform({
                             translate(0f, -liftPx * k)
                             scale(scale, scale, Offset(cx, cy))
@@ -749,6 +843,43 @@ private fun KaraokeText(
                 }
             }
         }
+    }
+}
+
+/** Small floating control: lyrics 0.1 s earlier / later, saved for this track. */
+@Composable
+private fun ShiftBar(offsetMs: Int, colors: GerasLyricsColors, onChange: (Int) -> Unit, onClose: () -> Unit) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(shape)
+            .background(Color.Black.copy(alpha = 0.62f))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+    ) {
+        @Composable
+        fun chip(text: String, bold: Boolean = true, onClick: () -> Unit) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .height(40.dp)
+                    .clip(shape)
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = 14.dp),
+            ) { Text(text, color = colors.active, fontSize = if (bold) 18.sp else 14.sp, fontWeight = FontWeight.Bold) }
+        }
+        chip("−") { onChange(offsetMs - 100) }
+        Text(
+            stringResource(R.string.geras_lyrics_shift_value, (if (offsetMs > 0) "+" else "") + String.format(java.util.Locale.US, "%.1f", offsetMs / 1000f)),
+            color = colors.active,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
+        chip("+") { onChange(offsetMs + 100) }
+        if (offsetMs != 0) chip(stringResource(R.string.geras_lyrics_shift_reset), bold = false) { onChange(0) }
+        chip(stringResource(R.string.geras_done), bold = false, onClick = onClose)
     }
 }
 
