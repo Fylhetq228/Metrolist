@@ -68,9 +68,11 @@ object GerasScFirst {
         prefs?.edit()?.putString("m2_$ytId", scId)?.apply()
     }
 
-    /** Called on a playback error: that track goes back to YouTube for good. */
+    /** Called on a playback error: that track plays from YouTube for the rest of this session. */
     fun onError(ytId: String?) {
-        if (ytId != null && substituted.remove(ytId)) remember(ytId, NONE)
+        // Only until the app restarts: the failure may be an expired link or a bad connection,
+        // not a reason to give up on the SoundCloud copy for good.
+        if (ytId != null && substituted.remove(ytId)) matches[ytId] = NONE
     }
 
     fun isEligible(id: String) = !SoundCloudSource.isScId(id) && !id.startsWith("http") && !id.startsWith("content") && !id.startsWith("file")

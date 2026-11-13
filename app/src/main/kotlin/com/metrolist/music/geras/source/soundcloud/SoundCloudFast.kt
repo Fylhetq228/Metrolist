@@ -47,7 +47,8 @@ object SoundCloudFast {
     private const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"
     private val tracks = ConcurrentHashMap<String, Track>()
     private val streams = ConcurrentHashMap<String, Pair<String, Long>>()
-    private const val STREAM_TTL_MS = 10 * 60_000L
+    // Signed links live a limited time; keep them well under it.
+    private const val STREAM_TTL_MS = 4 * 60_000L
 
     private fun clientId(): String {
         NewPipeDownloader.ensureInit()
