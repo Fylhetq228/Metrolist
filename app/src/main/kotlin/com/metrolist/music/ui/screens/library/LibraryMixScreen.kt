@@ -1054,6 +1054,9 @@ fun LibraryMixScreen(
 
         // Always visible + button (no scroll hiding)
         FloatingActionButton(
+            shape = androidx.compose.foundation.shape.CircleShape,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             onClick = { showCreatePlaylistDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)

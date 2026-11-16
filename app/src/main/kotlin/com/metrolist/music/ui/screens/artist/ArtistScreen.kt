@@ -386,7 +386,7 @@ fun ArtistScreen(
                                         Text(
                                             text = stringResource(if (isChannelSubscribed) R.string.subscribed else R.string.subscribe),
                                             fontSize = 14.sp,
-                                            color = if (!isChannelSubscribed) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
 
@@ -982,6 +982,9 @@ fun ArtistScreen(
                     androidx.compose.material3.SmallFloatingActionButton(
                         modifier = Modifier.padding(16.dp).offset(x = (-4).dp), // Align center with standard FAB (56dp vs 48dp)
                         onClick = onPlayAllClick,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.play),
@@ -992,6 +995,9 @@ fun ArtistScreen(
                     androidx.compose.material3.FloatingActionButton(
                         modifier = Modifier.padding(16.dp),
                         onClick = onPlayAllClick,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.play),

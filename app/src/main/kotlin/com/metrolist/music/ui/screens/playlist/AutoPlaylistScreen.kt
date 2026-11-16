@@ -686,6 +686,9 @@ fun AutoPlaylistScreen(
                         ).padding(16.dp),
             ) {
                 FloatingActionButton(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
                         filePickerLauncher.launch(
                             arrayOf(

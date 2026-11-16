@@ -8,6 +8,7 @@ package com.metrolist.music.ui.component
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,11 +77,25 @@ fun DefaultDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        // Geras 2.0: a rounder card with a lit glass rim.
+        val dialogShape = androidx.compose.foundation.shape.RoundedCornerShape(34.dp)
         Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
+            modifier = Modifier
+                .padding(24.dp)
+                .border(
+                    1.dp,
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f),
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.04f),
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f),
+                        ),
+                    ),
+                    dialogShape,
+                ),
+            shape = dialogShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 0.dp,
         ) {
             Column(
                 horizontalAlignment = horizontalAlignment,
@@ -249,11 +264,25 @@ fun ListDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        // Geras 2.0: a rounder card with a lit glass rim.
+        val dialogShape = androidx.compose.foundation.shape.RoundedCornerShape(34.dp)
         Surface(
-            modifier = Modifier.padding(24.dp),
-            shape = AlertDialogDefaults.shape,
-            color = AlertDialogDefaults.containerColor,
-            tonalElevation = AlertDialogDefaults.TonalElevation,
+            modifier = Modifier
+                .padding(24.dp)
+                .border(
+                    1.dp,
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f),
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.04f),
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f),
+                        ),
+                    ),
+                    dialogShape,
+                ),
+            shape = dialogShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 0.dp,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
