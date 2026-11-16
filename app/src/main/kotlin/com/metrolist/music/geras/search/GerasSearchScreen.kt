@@ -203,6 +203,7 @@ fun GerasSearchScreen(viewModel: GerasSearchViewModel = hiltViewModel()) {
                 .padding(horizontal = 16.dp)
                 .padding(top = 8.dp),
         ) {
+            Box(Modifier.padding(end = 56.dp)) {
             SearchField(
                 value = query,
                 onValueChange = { viewModel.query.value = it },
@@ -214,6 +215,7 @@ fun GerasSearchScreen(viewModel: GerasSearchViewModel = hiltViewModel()) {
                 onRecognize = { navController.navigate("recognition") },
                 focusRequester = focusRequester,
             )
+            }
             Spacer(Modifier.height(10.dp))
             Row(
                 Modifier

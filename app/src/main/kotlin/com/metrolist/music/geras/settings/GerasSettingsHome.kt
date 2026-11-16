@@ -115,12 +115,8 @@ fun GerasSettingsHome(navController: NavController, section: String? = null) {
             .padding(horizontal = 16.dp),
     ) {
         if (section == null) {
-            Text(
-                stringResource(R.string.settings),
-                style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp),
-                color = scheme.onSurface,
-                modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 18.dp),
-            )
+            // Opened from the profile button on any tab, so it starts with a way back.
+            SectionHeader(stringResource(R.string.settings), onBack = { navController.navigateUp() }, backLabel = stringResource(R.string.geras_back))
 
             AccountCard(
                 loggedIn = loggedIn,
@@ -493,7 +489,7 @@ private fun CategoryGroup(title: String, index: Int, rows: List<Category>) {
 
 /** "‹ Settings" back link and the section's large title, like a pushed iOS screen. */
 @Composable
-private fun SectionHeader(title: String, onBack: () -> Unit) {
+private fun SectionHeader(title: String, onBack: () -> Unit, backLabel: String? = null) {
     val scheme = MaterialTheme.colorScheme
     Column(Modifier.padding(top = 10.dp, bottom = 12.dp)) {
         Row(
@@ -506,7 +502,7 @@ private fun SectionHeader(title: String, onBack: () -> Unit) {
         ) {
             Icon(painterResource(R.drawable.arrow_back), null, tint = scheme.primary, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(4.dp))
-            Text(stringResource(R.string.geras_settings_back), color = scheme.primary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(backLabel ?: stringResource(R.string.geras_settings_back), color = scheme.primary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
         Text(
             title,

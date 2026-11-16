@@ -131,7 +131,8 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
                 modifier = Modifier.weight(1f),
             )
             HeaderIcon(R.drawable.history) { navController.navigate("history") }
-            HeaderIcon(R.drawable.stats) { navController.navigate(com.metrolist.music.geras.profile.GerasProfileRoute) }
+            // Room for the profile button that floats over every tab (top right).
+            Spacer(Modifier.width(54.dp))
         }
 
         Box(

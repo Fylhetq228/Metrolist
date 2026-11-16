@@ -214,3 +214,36 @@ private fun Modifier.androidxDrawCircleBehind(color: Color): Modifier = this.the
         if (size.width > 1f) drawCircle(color, radius = minOf(size.width, size.height) / 2f - 2.dp.toPx())
     },
 )
+
+/**
+ * Round liquid-glass button with the account picture (or a person icon): the way into the
+ * profile and all settings, floating top-right over every tab.
+ */
+@androidx.compose.runtime.Composable
+fun GerasProfileButton(imageUrl: String?, onClick: () -> Unit) {
+    val shape = androidx.compose.foundation.shape.CircleShape
+    androidx.compose.foundation.layout.Box(
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+        modifier = androidx.compose.ui.Modifier
+            .size(46.dp)
+            .gerasBounce(0.88f)
+            .gerasGlass(shape)
+            .clickable(onClick = onClick),
+    ) {
+        if (imageUrl != null) {
+            coil3.compose.AsyncImage(
+                model = imageUrl,
+                contentDescription = androidx.compose.ui.res.stringResource(com.metrolist.music.R.string.settings),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = androidx.compose.ui.Modifier.size(36.dp).clip(shape),
+            )
+        } else {
+            androidx.compose.material3.Icon(
+                androidx.compose.ui.res.painterResource(com.metrolist.music.R.drawable.person),
+                contentDescription = androidx.compose.ui.res.stringResource(com.metrolist.music.R.string.settings),
+                tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                modifier = androidx.compose.ui.Modifier.size(24.dp),
+            )
+        }
+    }
+}

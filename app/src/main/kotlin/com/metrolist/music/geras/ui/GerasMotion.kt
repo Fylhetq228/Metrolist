@@ -100,7 +100,7 @@ fun Modifier.gerasAppear(index: Int = 0, key: Any = Unit): Modifier = composed {
 
 /** iOS-style navigation: tabs cross-fade with a hint of depth, pushed screens slide in over a parallax. */
 object GerasTransitions {
-    private val tabRoutes = setOf("home", "search_input", "library", "settings")
+    private val tabRoutes = setOf("home", "search_input", "library")
 
     private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
         initialState.destination.route in tabRoutes && targetState.destination.route in tabRoutes

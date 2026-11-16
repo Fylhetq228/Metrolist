@@ -157,23 +157,8 @@ fun AppNavigationBar(
                     }
                 },
             )
-        } + com.metrolist.music.geras.ui.GerasNavTab(
-            label = androidx.compose.ui.res.stringResource(com.metrolist.music.R.string.settings),
-            icon = com.metrolist.music.R.drawable.settings,
-            iconActive = com.metrolist.music.R.drawable.settings,
-            selected = currentRoute?.startsWith("settings") == true || currentRoute?.startsWith("geras/settings") == true,
-            onClick = {
-                // Already inside settings: back to its first screen.
-                if (currentRoute != "settings" && (currentRoute?.startsWith("settings") == true || currentRoute?.startsWith("geras/settings") == true) &&
-                    navController.popBackStack("settings", false)
-                ) return@GerasNavTab
-                navController.navigate("settings") {
-                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
-        )
+        }
+        // Geras 2.0: three tabs; settings live behind the profile button at the top right.
         com.metrolist.music.geras.ui.GerasNavBar(tabs = tabs, modifier = modifier)
         return
     }

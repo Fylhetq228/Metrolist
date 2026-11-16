@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -137,7 +138,7 @@ private fun LabeledSlider(
 @OptIn(UnstableApi::class)
 @kotlin.OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
+fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, embedded: Boolean = false) {
     val fx by GerasAudio.speedFx.collectAsState()
     val perTrack by GerasAudio.rememberPerTrack.collectAsState()
     val c = colors
@@ -150,13 +151,7 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
         "melancore" to "Melancore",
     )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = c.background,
-        contentColor = c.content,
-        dragHandle = { SheetHandle(c) },
-    ) {
+    val sheetBody: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -299,6 +294,19 @@ fun GerasSpeedSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
             )
         }
     }
+    if (embedded) {
+        sheetBody()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = c.background,
+            contentColor = c.content,
+            dragHandle = { SheetHandle(c) },
+        ) {
+            sheetBody()
+        }
+    }
 }
 
 private fun percent(v: Float) = "${(v * 100).toInt()}%"
@@ -353,7 +361,7 @@ private fun Segment(text: String, selected: Boolean, c: GerasPlayerColors, modif
 @OptIn(UnstableApi::class)
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpenAutoEq: () -> Unit) {
+fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpenAutoEq: () -> Unit, embedded: Boolean = false) {
     val c = colors
     val profile by GerasAudio.eqProfile.collectAsState()
     val custom by GerasAudio.customPresets.collectAsState()
@@ -373,16 +381,7 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
         "night" to stringResource(R.string.geras_eq_night),
     )
 
-    ModalBottomSheet(
-        onDismissRequest = {
-            GerasAudio.setAbBypass(false)
-            onDismiss()
-        },
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = c.background,
-        contentColor = c.content,
-        dragHandle = { SheetHandle(c) },
-    ) {
+    val sheetBody: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -493,6 +492,22 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                     Text(stringResource(R.string.geras_eq_autoeq), color = c.accent)
                 }
             }
+        }
+    }
+    if (embedded) {
+        sheetBody()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = {
+                GerasAudio.setAbBypass(false)
+                onDismiss()
+            },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = c.background,
+            contentColor = c.content,
+            dragHandle = { SheetHandle(c) },
+        ) {
+            sheetBody()
         }
     }
 
@@ -734,7 +749,7 @@ private fun LoopControls(c: GerasPlayerColors) {
 /** Sleep timer with the fade-out Metrolist's timer already supports. */
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GerasSleepSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
+fun GerasSleepSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, embedded: Boolean = false) {
     val c = colors
     val timer = com.metrolist.music.LocalPlayerConnection.current?.service?.sleepTimer ?: return
     var fade by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
@@ -745,13 +760,7 @@ fun GerasSleepSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
             kotlinx.coroutines.delay(500)
         }
     }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = c.background,
-        contentColor = c.content,
-        dragHandle = { SheetHandle(c) },
-    ) {
+    val sheetBody: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -816,6 +825,88 @@ fun GerasSleepSheet(colors: GerasPlayerColors, onDismiss: () -> Unit) {
                     Text(stringResource(R.string.geras_sleep_fade_hint), color = c.contentMuted, fontSize = 12.sp)
                 }
                 com.metrolist.music.geras.ui.GerasSwitch(checked = fade, onCheckedChange = { fade = it }, accent = c.accent, track = c.content.copy(alpha = 0.15f))
+            }
+        }
+    }
+    if (embedded) {
+        sheetBody()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = c.background,
+            contentColor = c.content,
+            dragHandle = { SheetHandle(c) },
+        ) {
+            sheetBody()
+        }
+    }
+}
+
+/**
+ * Everything about how the track sounds, on one sheet: equalizer, speed and effects, sleep
+ * timer. Opened from the single "Sound" button in the player; [initialTab] picks the page.
+ */
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GerasSoundSheet(colors: GerasPlayerColors, initialTab: Int, onDismiss: () -> Unit, onOpenAutoEq: () -> Unit) {
+    val c = colors
+    var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(initialTab) }
+    ModalBottomSheet(
+        onDismissRequest = {
+            GerasAudio.setAbBypass(false)
+            onDismiss()
+        },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = c.background,
+        contentColor = c.content,
+        dragHandle = { SheetHandle(c) },
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(50))
+                    .background(c.content.copy(alpha = 0.07f))
+                    .padding(4.dp),
+            ) {
+                listOf(R.string.geras_tab_eq, R.string.geras_tab_speed, R.string.geras_tab_sleep).forEachIndexed { i, res ->
+                    val on = tab == i
+                    val bg by androidx.compose.animation.animateColorAsState(if (on) c.content else Color.Transparent, label = "soundTab")
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(bg)
+                            .clickable { tab = i },
+                    ) {
+                        Text(
+                            stringResource(res),
+                            color = if (on) c.background else c.content,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+            androidx.compose.animation.AnimatedContent(
+                targetState = tab,
+                transitionSpec = {
+                    val dir = if (targetState > initialState) 1 else -1
+                    (androidx.compose.animation.slideInHorizontally { it / 5 * dir } + androidx.compose.animation.fadeIn()) togetherWith
+                        (androidx.compose.animation.slideOutHorizontally { -it / 5 * dir } + androidx.compose.animation.fadeOut())
+                },
+                label = "soundPage",
+            ) { page ->
+                when (page) {
+                    0 -> GerasEqualizerSheet(colors = c, onDismiss = onDismiss, onOpenAutoEq = onOpenAutoEq, embedded = true)
+                    1 -> GerasSpeedSheet(colors = c, onDismiss = onDismiss, embedded = true)
+                    else -> GerasSleepSheet(colors = c, onDismiss = onDismiss, embedded = true)
+                }
             }
         }
     }

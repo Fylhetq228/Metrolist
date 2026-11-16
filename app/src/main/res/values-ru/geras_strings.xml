@@ -330,4 +330,10 @@
     <string name="geras_scene_keywords">Главные слова цветом</string>
     <string name="geras_scene_keywords_hint">Самое длинное значимое слово строки подсвечивается цветом обложки</string>
     <string name="geras_theme_mono">Чёрно-белая</string>
+    <string name="geras_back">Назад</string>
+    <string name="geras_tab_eq">Эквалайзер</string>
+    <string name="geras_tab_speed">Скорость</string>
+    <string name="geras_tab_sleep">Таймер</string>
+    <string name="geras_sound">Звук</string>
+    <string name="geras_lyrics_btn">Текст</string>
 </resources>

@@ -47,6 +47,8 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -1082,12 +1084,8 @@ class MainActivity : FragmentActivity() {
                                                     )
                                                 }
                                             }
-                                            IconButton(onClick = { navController.navigate("stats") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.stats),
-                                                    contentDescription = stringResource(R.string.stats),
-                                                )
-                                            }
+                                            // Geras: room for the floating profile button.
+                                            androidx.compose.foundation.layout.Spacer(Modifier.width(56.dp))
                                             if (false && listenTogetherInTopBar) {
                                                 IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
                                                     Icon(
@@ -1373,6 +1371,23 @@ class MainActivity : FragmentActivity() {
                                     )
                                 }
                             }
+                        }
+                    }
+
+                    // Geras 2.0: profile and all settings sit behind this button on every tab.
+                    val gerasTabRoute = navBackStackEntry?.destination?.route
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = (gerasTabRoute == Screens.Home.route || gerasTabRoute == Screens.Library.route || gerasTabRoute == "search_input") &&
+                            !playerBottomSheetState.isExpanded,
+                        enter = fadeIn(tween(220)) + androidx.compose.animation.scaleIn(initialScale = 0.7f),
+                        exit = fadeOut(tween(160)) + androidx.compose.animation.scaleOut(targetScale = 0.7f),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .padding(top = 8.dp, end = 14.dp),
+                    ) {
+                        com.metrolist.music.geras.ui.GerasProfileButton(accountImageUrl) {
+                            navController.navigate("settings") { launchSingleTop = true }
                         }
                     }
 

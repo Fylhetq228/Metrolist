@@ -14,6 +14,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -153,6 +154,7 @@ class GerasPlayerActions(
     val onLike: () -> Unit = {},
     val onDownload: () -> Unit = {},
     val onToggleLyrics: () -> Unit = {},
+    val onLyricsSettings: () -> Unit = {},
     val onEqualizer: () -> Unit = {},
     val onSpeed: () -> Unit = {},
     val onClip: () -> Unit = {},
@@ -255,9 +257,31 @@ fun GerasPlayerContent(
         navController.navigate(route)
     }
 
-    if (showSpeedSheet) GerasSpeedSheet(colors = colors, onDismiss = { showSpeedSheet = false })
+    // Geras 2.0: equalizer, speed and sleep timer share one "Sound" sheet; these pick its page.
     var showSleepSheet by remember { mutableStateOf(false) }
-    if (showSleepSheet) com.metrolist.music.geras.audio.GerasSleepSheet(colors = colors, onDismiss = { showSleepSheet = false })
+    val soundTab = when {
+        showEqSheet -> 0
+        showSpeedSheet -> 1
+        showSleepSheet -> 2
+        else -> -1
+    }
+    if (soundTab >= 0) {
+        com.metrolist.music.geras.audio.GerasSoundSheet(
+            colors = colors,
+            initialTab = soundTab,
+            onDismiss = {
+                showEqSheet = false
+                showSpeedSheet = false
+                showSleepSheet = false
+            },
+            onOpenAutoEq = {
+                showEqSheet = false
+                showSpeedSheet = false
+                showSleepSheet = false
+                openFromPlayer("equalizer")
+            },
+        )
+    }
     val loop by com.metrolist.music.geras.audio.GerasLoop.state.collectAsState()
     val sleepTimer = playerConnection.service.sleepTimer
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -271,16 +295,6 @@ fun GerasPlayerContent(
         sleepTimer == null || !sleepTimer.isActive -> null
         sleepTimer.pauseWhenSongEnd -> -1L
         else -> (sleepTimer.triggerTime - sleepNow).coerceAtLeast(0)
-    }
-    if (showEqSheet) {
-        GerasEqualizerSheet(
-            colors = colors,
-            onDismiss = { showEqSheet = false },
-            onOpenAutoEq = {
-                showEqSheet = false
-                openFromPlayer("equalizer")
-            },
-        )
     }
 
     val ui = GerasPlayerUi(
@@ -354,6 +368,7 @@ fun GerasPlayerContent(
                 }
             },
             onToggleLyrics = onToggleLyrics,
+            onLyricsSettings = { openFromPlayer(com.metrolist.music.geras.settings.gerasSettingsSection("lyrics")) },
             onEqualizer = { showEqSheet = true },
             onSpeed = { showSpeedSheet = true },
             onSleep = { showSleepSheet = true },
@@ -830,33 +845,69 @@ private fun BottomBar(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: Ger
         Capsule(colors) {
             RoundIcon(
                 icon = if (ui.liked) R.drawable.favorite else R.drawable.favorite_border,
-                tint = if (ui.liked) MaterialTheme.colorScheme.error else colors.content,
+                tint = colors.content,
                 onClick = actions.onLike,
                 modifier = Modifier.gerasPop(ui.liked),
             )
             DownloadButton(ui.download, ui.downloadPercent, colors, actions.onDownload)
-            SleepButton(ui.sleepLeftMs, colors, actions.onSleep)
         }
         Spacer(Modifier.weight(1f))
         Capsule(colors) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.gerasBounce(0.9f)
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (ui.showLyrics) colors.accent else Color.Transparent)
-                    .clickable(onClick = actions.onToggleLyrics),
-            ) {
-                Text(
-                    text = "T",
-                    color = if (ui.showLyrics) colors.onAccent else colors.content,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            RoundIcon(R.drawable.equalizer, colors.content, actions.onEqualizer)
-            SpeedChip(ui.speed, colors, actions.onSpeed)
+            // Lyrics: tap shows them, long-press opens how they look.
+            LabeledButton(
+                icon = R.drawable.lyrics,
+                label = stringResource(R.string.geras_lyrics_btn),
+                active = ui.showLyrics,
+                colors = colors,
+                onClick = actions.onToggleLyrics,
+                onLongClick = actions.onLyricsSettings,
+            )
+            // Sound: equalizer, speed and effects, sleep timer. Shows what is changed.
+            val speedChanged = kotlin.math.abs(ui.speed - 1f) > 0.001f
+            LabeledButton(
+                icon = R.drawable.tune,
+                label = when {
+                    speedChanged -> "%.2fx".format(java.util.Locale.US, ui.speed)
+                    else -> stringResource(R.string.geras_sound)
+                },
+                active = speedChanged || ui.sleepLeftMs != null,
+                colors = colors,
+                onClick = actions.onEqualizer,
+                onLongClick = actions.onSpeed,
+                badge = ui.sleepLeftMs != null,
+            )
         }
+    }
+}
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun LabeledButton(
+    icon: Int,
+    label: String,
+    active: Boolean,
+    colors: GerasPlayerColors,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    badge: Boolean = false,
+) {
+    val bg by androidx.compose.animation.animateColorAsState(if (active) colors.content else Color.Transparent, label = "labeledBg")
+    val fg = if (active) colors.background else colors.content
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.gerasBounce(0.92f)
+            .height(40.dp)
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .then(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick))
+            .padding(horizontal = 12.dp),
+    ) {
+        Box {
+            Icon(painterResource(icon), null, tint = fg, modifier = Modifier.size(20.dp))
+            if (badge) Box(Modifier.align(Alignment.TopEnd).size(7.dp).clip(RoundedCornerShape(50)).background(if (active) fg else colors.content))
+        }
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = fg, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
