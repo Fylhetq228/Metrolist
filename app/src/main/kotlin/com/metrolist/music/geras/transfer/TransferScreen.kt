@@ -390,7 +390,7 @@ private fun ResultPane(state: TransferState, vm: TransferViewModel, navControlle
                     .padding(start = 12.dp, end = 12.dp, bottom = bottom + 8.dp)
                     .fillMaxWidth()
                     .height(64.dp)
-                    .gerasGlass(RoundedCornerShape(50))
+                    .gerasGlass(RoundedCornerShape(50), lens = false)
                     .padding(6.dp),
             ) {
                 Box(

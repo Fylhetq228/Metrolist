@@ -76,8 +76,8 @@ private fun hsl(h: Float, s: Float, l: Float, alpha: Float = 1f): Color {
     return Color(argb).copy(alpha = alpha)
 }
 
-fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode): GerasPlayerColors {
-    val (h, s) = seed?.let(::warm) ?: (30f to 0.08f)
+fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode, mono: Boolean = false): GerasPlayerColors {
+    val (h, s) = if (mono) 0f to 0f else seed?.let(::warm) ?: (30f to 0.08f)
     return when (mode) {
         GerasThemeMode.DARK -> GerasPlayerColors(
             backgroundTop = hsl(h, s * 0.85f, 0.20f),
@@ -121,7 +121,9 @@ fun rememberGerasPalette(thumbnailUrl: String?, mode: GerasThemeMode): Pair<Gera
     LaunchedEffect(thumbnailUrl) {
         if (thumbnailUrl != null) extractSeed(context, thumbnailUrl)?.let { seed = it }
     }
-    val target = remember(seed, mode) { gerasColorsFor(seed, mode) }
+    val theme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "MONO")
+    val mono = theme == "MONO"
+    val target = remember(seed, mode, mono) { gerasColorsFor(seed, mode, mono) }
     val spec = tween<Color>(durationMillis = 900)
     val backgroundTop by animateColorAsState(target.backgroundTop, spec, label = "bgTop")
     val background by animateColorAsState(target.background, spec, label = "bg")

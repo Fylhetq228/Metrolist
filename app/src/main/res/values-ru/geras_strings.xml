@@ -329,4 +329,5 @@
     <string name="geras_scene_cards_hint">Считаются на лету из звука</string>
     <string name="geras_scene_keywords">Главные слова цветом</string>
     <string name="geras_scene_keywords_hint">Самое длинное значимое слово строки подсвечивается цветом обложки</string>
+    <string name="geras_theme_mono">Чёрно-белая</string>
 </resources>

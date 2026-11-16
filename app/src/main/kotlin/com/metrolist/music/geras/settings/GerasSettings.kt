@@ -63,12 +63,12 @@ const val GerasSettingsRoute = "settings/geras"
 
 @Composable
 fun GerasSettings(navController: NavController) {
-    val (theme, onThemeChange) = rememberPreference(GerasThemeKey, "COVER")
+    val (theme, onThemeChange) = rememberPreference(GerasThemeKey, "MONO")
     val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
     val (glass, onGlassChange) = rememberPreference(GerasGlassEnabledKey, true)
     val (opacity, onOpacityChange) = rememberPreference(GerasGlassOpacityKey, GerasLensOpacity)
     val (blur, onBlurChange) = rememberPreference(GerasGlassBlurKey, GerasLensBlur)
-    val (font, onFontChange) = rememberPreference(GerasFontKey, "MANROPE")
+    val (font, onFontChange) = rememberPreference(GerasFontKey, "INTER_TIGHT")
     val scheme = MaterialTheme.colorScheme
 
     Column(
@@ -106,7 +106,7 @@ fun GerasSettings(navController: NavController) {
                 Material3SettingsItem(
                     leadingContent = { Swatch(preset) },
                     title = { Text(presetLabel(name)) },
-                    trailingContent = if (theme == name || (name == "COVER" && GerasThemePreset.entries.none { it.name == theme })) {
+                    trailingContent = if (theme == name || (name == "MONO" && GerasThemePreset.entries.none { it.name == theme })) {
                         { Icon(painterResource(R.drawable.check), null, tint = scheme.primary) }
                     } else {
                         {}
@@ -167,11 +167,15 @@ com.metrolist.music.geras.ui.GerasSlider(
             title = stringResource(R.string.geras_font),
             modifier = Modifier.gerasAppear(4),
             items = GerasFonts.choices.map { (id, family) ->
-                val label = if (id == "SYSTEM") stringResource(R.string.geras_font_system) else id.lowercase().replaceFirstChar { it.uppercase() }
+                val label = when (id) {
+                    "SYSTEM" -> stringResource(R.string.geras_font_system)
+                    "INTER_TIGHT" -> "Inter Tight"
+                    else -> id.lowercase().replaceFirstChar { it.uppercase() }
+                }
                 Material3SettingsItem(
                     title = { Text(label, fontFamily = family, fontWeight = FontWeight.Bold, fontSize = 17.sp) },
                     description = { Text(stringResource(R.string.geras_font_sample), fontFamily = family) },
-                    trailingContent = if (font == id || (id == "MANROPE" && GerasFonts.choices.none { it.first == font })) {
+                    trailingContent = if (font == id || (id == "INTER_TIGHT" && GerasFonts.choices.none { it.first == font })) {
                         { Icon(painterResource(R.drawable.check), null, tint = scheme.primary) }
                     } else {
                         {}
@@ -188,6 +192,7 @@ com.metrolist.music.geras.ui.GerasSlider(
 
 @Composable
 private fun presetLabel(name: String): String = when (name) {
+    "MONO" -> stringResource(R.string.geras_theme_mono)
     "COVER" -> stringResource(R.string.geras_theme_cover)
     "NEUTRAL" -> "Neutral"
     "AMOLED" -> "AMOLED"
@@ -199,6 +204,7 @@ private fun Swatch(preset: GerasThemePreset?) {
     val (a, b) = when (preset) {
         null -> Color(0xFF8E7CC3) to Color(0xFF3B3150)
         GerasThemePreset.AMOLED -> Color.White to Color.Black
+        GerasThemePreset.MONO -> Color(0xFFF5F5F5) to Color(0xFF141414)
         GerasThemePreset.COVER -> Color(0xFFC0392B) to Color(0xFF2A1410)
         else -> gerasColorScheme(preset.hue, preset.saturation, true, false).let { it.primary to it.surfaceContainerHigh }
     }

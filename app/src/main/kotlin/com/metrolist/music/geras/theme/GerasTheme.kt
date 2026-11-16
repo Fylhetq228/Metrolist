@@ -24,6 +24,8 @@ import com.metrolist.music.R
 
 /** Theme presets from the "Appearance" screen; [COVER] follows the playing track's artwork. */
 enum class GerasThemePreset(val hue: Float, val saturation: Float) {
+    /** Geras 2.0 default: black, white and greys only. */
+    MONO(0f, 0f),
     COVER(25f, 0.35f),
     NEUTRAL(30f, 0.04f),
     AMOLED(30f, 0.03f),
@@ -34,6 +36,38 @@ enum class GerasThemePreset(val hue: Float, val saturation: Float) {
     SAND(36f, 0.40f),
     AQUA(186f, 0.42f),
 }
+
+private fun g(v: Int, a: Float = 1f) = Color(v, v, v, (a * 255).toInt())
+
+/**
+ * Black-and-white scheme: content on true black, white for everything active, greys for
+ * surfaces. Glass bars and covers carry the only colour on screen.
+ */
+private fun monoScheme(dark: Boolean): ColorScheme =
+    if (dark) {
+        darkColorScheme(
+            primary = g(245), onPrimary = g(8), primaryContainer = g(44), onPrimaryContainer = g(245),
+            inversePrimary = g(30), secondary = g(200), onSecondary = g(10), secondaryContainer = g(34),
+            onSecondaryContainer = g(235), tertiary = g(220), onTertiary = g(10), tertiaryContainer = g(40),
+            onTertiaryContainer = g(235), background = Color.Black, onBackground = g(245), surface = Color.Black,
+            onSurface = g(245), surfaceVariant = g(30), onSurfaceVariant = g(150), surfaceTint = g(245),
+            inverseSurface = g(240), inverseOnSurface = g(12), outline = g(90), outlineVariant = g(40),
+            scrim = Color.Black, surfaceBright = g(38), surfaceDim = Color.Black, surfaceContainerLowest = g(6),
+            surfaceContainerLow = g(14), surfaceContainer = g(20), surfaceContainerHigh = g(28), surfaceContainerHighest = g(36),
+            error = Color(0xFFFF6B6B), onError = g(10),
+        )
+    } else {
+        lightColorScheme(
+            primary = g(12), onPrimary = g(250), primaryContainer = g(222), onPrimaryContainer = g(12),
+            inversePrimary = g(230), secondary = g(60), onSecondary = g(250), secondaryContainer = g(228),
+            onSecondaryContainer = g(20), tertiary = g(40), onTertiary = g(250), tertiaryContainer = g(220),
+            onTertiaryContainer = g(20), background = g(250), onBackground = g(12), surface = g(250),
+            onSurface = g(12), surfaceVariant = g(232), onSurfaceVariant = g(96), surfaceTint = g(12),
+            inverseSurface = g(24), inverseOnSurface = g(245), outline = g(160), outlineVariant = g(215),
+            scrim = Color.Black, surfaceBright = Color.White, surfaceDim = g(226), surfaceContainerLowest = Color.White,
+            surfaceContainerLow = g(244), surfaceContainer = g(238), surfaceContainerHigh = g(232), surfaceContainerHighest = g(224),
+        )
+    }
 
 // Static instances cut from the variable fonts: variation axes on resource fonts are not
 // applied reliably on every Android build, which made text fall back to the thin default.
@@ -49,17 +83,27 @@ object GerasFonts {
     val manrope = family(R.font.geras_manrope_400, R.font.geras_manrope_500, R.font.geras_manrope_600, R.font.geras_manrope_700, R.font.geras_manrope_800)
     val onest = family(R.font.geras_onest_400, R.font.geras_onest_500, R.font.geras_onest_600, R.font.geras_onest_700, R.font.geras_onest_800)
     val inter = family(R.font.geras_inter_400, R.font.geras_inter_500, R.font.geras_inter_600, R.font.geras_inter_700, R.font.geras_inter_800)
+    val interTight = FontFamily(
+        Font(R.font.geras_intertight_400, FontWeight.Normal),
+        Font(R.font.geras_intertight_500, FontWeight.Medium),
+        Font(R.font.geras_intertight_600, FontWeight.SemiBold),
+        Font(R.font.geras_intertight_700, FontWeight.Bold),
+        Font(R.font.geras_intertight_800, FontWeight.ExtraBold),
+        Font(R.font.geras_intertight_900, FontWeight.Black),
+    )
     val montserrat = family(R.font.geras_montserrat_400, R.font.geras_montserrat_500, R.font.geras_montserrat_600, R.font.geras_montserrat_700, R.font.geras_montserrat_800)
 
     /** Default text font; kept for code that needs a family outside the theme. */
-    val text = manrope
+    val text = interTight
+    /** Headlines: the same Inter Tight, heavy (Geras 2.0 dropped the wide Unbounded). */
     val display = FontFamily(
-        Font(R.font.geras_unbounded_700, FontWeight.Bold),
-        Font(R.font.geras_unbounded_900, FontWeight.Black),
+        Font(R.font.geras_intertight_800, FontWeight.Bold),
+        Font(R.font.geras_intertight_900, FontWeight.Black),
     )
 
     /** Ids stored in GerasFontKey, in the order shown on the Appearance screen. */
     val choices: List<Pair<String, FontFamily>> = listOf(
+        "INTER_TIGHT" to interTight,
         "MANROPE" to manrope,
         "ONEST" to onest,
         "INTER" to inter,
@@ -67,7 +111,7 @@ object GerasFonts {
         "SYSTEM" to FontFamily.Default,
     )
 
-    fun byId(id: String): FontFamily = choices.firstOrNull { it.first == id }?.second ?: manrope
+    fun byId(id: String): FontFamily = choices.firstOrNull { it.first == id }?.second ?: interTight
 }
 
 private fun hsl(h: Float, s: Float, l: Float): Color =
@@ -83,7 +127,8 @@ fun seedFromColor(color: Color): Pair<Float, Float> {
     return ((out[0] + diff * 0.15f + 360f) % 360f) to (out[1] * 0.7f).coerceIn(0.08f, 0.5f)
 }
 
-fun gerasColorScheme(hue: Float, sat: Float, dark: Boolean, amoled: Boolean): ColorScheme {
+fun gerasColorScheme(hue: Float, sat: Float, dark: Boolean, amoled: Boolean, mono: Boolean = false): ColorScheme {
+    if (mono) return monoScheme(dark)
     val h = hue
     val s = sat
     val accentSat = (s + 0.25f).coerceIn(0.2f, 0.75f)
@@ -168,7 +213,7 @@ fun gerasTypography(textFamily: FontFamily = GerasFonts.manrope): Typography {
     return Typography(
         displayLarge = t.displayLarge.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
         displayMedium = t.displayMedium.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp),
-        displaySmall = t.displaySmall.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black),
+        displaySmall = t.displaySmall.copy(fontFamily = GerasFonts.display, fontWeight = FontWeight.Black, letterSpacing = (-0.6).sp),
         headlineLarge = t.headlineLarge.text(FontWeight.ExtraBold),
         headlineMedium = t.headlineMedium.text(FontWeight.ExtraBold),
         headlineSmall = t.headlineSmall.text(FontWeight.Bold),
@@ -224,7 +269,7 @@ fun GerasAppTheme(
     val hue by animateFloatAsState(target, tween(800), label = "themeHue")
     val sat by animateFloatAsState(targetS, tween(800), label = "themeSat")
     val amoled = darkTheme && (pureBlack || preset == GerasThemePreset.AMOLED)
-    val scheme = gerasColorScheme(hue, sat, darkTheme, amoled)
-    val font by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasFontKey, "MANROPE")
+    val scheme = gerasColorScheme(hue, sat, darkTheme, amoled, mono = preset == GerasThemePreset.MONO)
+    val font by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasFontKey, "INTER_TIGHT")
     MaterialTheme(colorScheme = scheme, typography = typographyFor(font), shapes = GerasShapes, content = content)
 }

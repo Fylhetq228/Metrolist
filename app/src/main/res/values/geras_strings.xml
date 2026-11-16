@@ -327,4 +327,5 @@
     <string name="geras_scene_cards_hint">Read live from the sound</string>
     <string name="geras_scene_keywords">Key words in color</string>
     <string name="geras_scene_keywords_hint">The longest meaningful word of a line takes the cover color</string>
+    <string name="geras_theme_mono">Black and white</string>
 </resources>

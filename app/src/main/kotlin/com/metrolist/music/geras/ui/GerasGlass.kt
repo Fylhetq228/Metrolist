@@ -74,16 +74,64 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /** Shared backdrop for every glass surface in the activity. */
 object GerasGlass {
     val state = HazeState()
+
+    /**
+     * Picture of the app content for real liquid glass (refraction through a lens). Provided
+     * at the activity root; null in previews and tests, where the blur fallback is used.
+     */
+    val LocalBackdrop = androidx.compose.runtime.staticCompositionLocalOf<com.kyant.backdrop.backdrops.LayerBackdrop?> { null }
+
+    /** Lens refraction needs RuntimeShader (Android 13+); older phones get the blurred glass. */
+    val lensSupported: Boolean get() = android.os.Build.VERSION.SDK_INT >= 33
+
+    /** Material of the glass: how much it bends, blurs and lets through. */
+    class Material(val refraction: Dp, val depth: Dp, val blur: Dp, val tint: Float, val vibrancy: Boolean)
+
+    /** "Smoky" glass picked in design round 2: bends like a lens, dark tint mutes what is behind. */
+    var material = Material(refraction = 20.dp, depth = 28.dp, blur = 2.dp, tint = 0.52f, vibrancy = false)
 }
 
-/** Marks the content that glass surfaces blur. Applied to the main content in MainActivity. */
-fun Modifier.gerasGlassSource(): Modifier = hazeSource(GerasGlass.state)
+/** Marks the content that glass surfaces see through. Applied to the main content in MainActivity. */
+@Composable
+fun Modifier.gerasGlassSource(): Modifier {
+    val backdrop = GerasGlass.LocalBackdrop.current
+    return hazeSource(GerasGlass.state).then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+}
+
+/**
+ * Real liquid glass on Android 13+: the content behind is bent by a lens at the edges (not just
+ * blurred), colours are lifted, a specular rim catches the light and a soft shadow lifts the
+ * surface. Returns null when it cannot be drawn here, so callers fall back to blurred glass.
+ */
+@Composable
+private fun Modifier.liquidGlassOrNull(shape: Shape, tint: Color, enabled: Boolean): Modifier? {
+    val backdrop = GerasGlass.LocalBackdrop.current ?: return null
+    if (!enabled || !GerasGlass.lensSupported) return null
+    val m = GerasGlass.material
+    return this.drawBackdrop(
+        backdrop = backdrop,
+        shape = { shape },
+        effects = {
+            if (m.vibrancy) vibrancy()
+            if (m.blur > 0.dp) blur(m.blur.toPx())
+            lens(m.refraction.toPx(), m.depth.toPx())
+        },
+        highlight = { com.kyant.backdrop.highlight.Highlight.Default },
+        shadow = { com.kyant.backdrop.shadow.Shadow.Default },
+        onDrawSurface = { drawRect(tint.copy(alpha = m.tint)) },
+    )
+}
 
 /** Glass defaults: dark tint so the bars match the dark app, still see-through, bright lens rim. */
 const val GerasLensOpacity = 0.74f
@@ -95,10 +143,16 @@ const val GerasLensBlur = 18f
  * A bright rim runs around the edge, strongest at the top, with a specular bloom top-left.
  */
 @Composable
-fun Modifier.gerasGlass(shape: Shape, tint: Color = MaterialTheme.colorScheme.surfaceContainerLow): Modifier {
+fun Modifier.gerasGlass(
+    shape: Shape,
+    tint: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    /** False for glass inside the screen content itself: it cannot bend a picture it is part of. */
+    lens: Boolean = true,
+): Modifier {
     val enabled by rememberPreference(GerasGlassEnabledKey, true)
     val opacity by rememberPreference(GerasGlassOpacityKey, GerasLensOpacity)
     val blur by rememberPreference(GerasGlassBlurKey, GerasLensBlur)
+    if (lens) liquidGlassOrNull(shape, tint, enabled)?.let { return it }
     return this
         .shadow(elevation = 18.dp, shape = shape, ambientColor = Color.Black.copy(alpha = 0.45f), spotColor = Color.Black.copy(alpha = 0.55f))
         .clip(shape)

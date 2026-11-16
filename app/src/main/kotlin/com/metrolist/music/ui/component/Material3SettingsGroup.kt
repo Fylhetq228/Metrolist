@@ -46,7 +46,7 @@ fun Material3SettingsGroup(
     items: List<Material3SettingsItem>,
     useLowContrast: Boolean = false
 ) {
-    val gerasTheme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "COVER")
+    val gerasTheme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "MONO")
     if (gerasTheme.isNotEmpty() || true) {
         com.metrolist.music.geras.settings.GerasSettingsGroup(title, items)
         return

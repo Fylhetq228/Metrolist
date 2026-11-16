@@ -8,7 +8,7 @@ val GerasPlayerEnabledKey = booleanPreferencesKey("geras_player_enabled")
 val GerasLyricsEnabledKey = booleanPreferencesKey("geras_lyrics_enabled")
 
 /** Name of a GerasThemePreset, or "MATERIAL" for Metrolist's original Material You theme. */
-val GerasThemeKey = stringPreferencesKey("geras_theme")
+val GerasThemeKey = stringPreferencesKey("geras_theme_v2")
 
 val GerasGlassEnabledKey = booleanPreferencesKey("geras_glass_enabled")
 /** Tint strength of glass surfaces, 0 = clear, 1 = solid. */
@@ -33,5 +33,5 @@ val GerasKickPulseKey = androidx.datastore.preferences.core.booleanPreferencesKe
 val GerasNavStyleKey = stringPreferencesKey("geras_nav_style")
 val GerasHomeEnabledKey = booleanPreferencesKey("geras_home_enabled")
 /** MANROPE or SYSTEM. */
-val GerasFontKey = stringPreferencesKey("geras_font")
+val GerasFontKey = stringPreferencesKey("geras_font_v2")
 val GerasSearchEnabledKey = booleanPreferencesKey("geras_search_enabled")
