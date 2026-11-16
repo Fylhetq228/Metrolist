@@ -12,6 +12,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -893,20 +894,27 @@ private fun LabeledButton(
     onLongClick: () -> Unit,
     badge: Boolean = false,
 ) {
-    val bg by androidx.compose.animation.animateColorAsState(if (active) colors.content else Color.Transparent, label = "labeledBg")
-    val fg = if (active) colors.background else colors.content
+    // Active = a soft lit glass chip, not a white slab: it should read as "on" without shouting.
+    val bg by androidx.compose.animation.animateColorAsState(if (active) colors.content.copy(alpha = 0.14f) else Color.Transparent, label = "labeledBg")
+    val rim by androidx.compose.animation.core.animateFloatAsState(if (active) 1f else 0f, label = "labeledRim")
+    val fg = colors.content
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.gerasBounce(0.92f)
             .height(40.dp)
             .clip(RoundedCornerShape(50))
             .background(bg)
+            .border(
+                1.dp,
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.26f * rim), Color.White.copy(alpha = 0.04f * rim), Color.White.copy(alpha = 0.10f * rim))),
+                RoundedCornerShape(50),
+            )
             .then(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick))
             .padding(horizontal = 12.dp),
     ) {
         Box {
             Icon(painterResource(icon), null, tint = fg, modifier = Modifier.size(20.dp))
-            if (badge) Box(Modifier.align(Alignment.TopEnd).size(7.dp).clip(RoundedCornerShape(50)).background(if (active) fg else colors.content))
+            if (badge) Box(Modifier.align(Alignment.TopEnd).size(7.dp).clip(RoundedCornerShape(50)).background(colors.content))
         }
         Spacer(Modifier.width(6.dp))
         Text(label, color = fg, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
