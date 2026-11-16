@@ -32,7 +32,7 @@
     <string name="geras_eq_speaker">Speaker</string>
     <string name="geras_eq_auto">Auto</string>
     <string name="geras_eq_neutral">Neutral</string>
-    <string name="geras_eq_bass">Bass</string>
+    <string name="geras_eq_bass">Deep bass</string>
     <string name="geras_eq_treble">Treble</string>
     <string name="geras_eq_vocal">Vocal</string>
     <string name="geras_eq_rock">Rock</string>
@@ -334,4 +334,19 @@
     <string name="geras_tab_sleep">Timer</string>
     <string name="geras_sound">Sound</string>
     <string name="geras_lyrics_btn">Lyrics</string>
+    <string name="geras_eq_hiphop">Hip-hop</string>
+    <string name="geras_eq_clear">Clear</string>
+    <string name="geras_eq_hint_neutral">As recorded. For good headphones or when it already sounds right.</string>
+    <string name="geras_eq_hint_bass">Deep sub-bass without boom: any music that lacks low end.</string>
+    <string name="geras_eq_hint_hiphop">Rap and trap: solid 808s and kick, vocals stay clear.</string>
+    <string name="geras_eq_hint_electronic">Electronic and phonk: deep lows and air on top, mids pulled back a little.</string>
+    <string name="geras_eq_hint_rock">Rock and metal: kick punch, guitars and cymbals forward.</string>
+    <string name="geras_eq_hint_vocal">Vocals forward: podcasts, acoustic, pop with quiet singing.</string>
+    <string name="geras_eq_hint_acoustic">Acoustic and live instruments: warmth and detail without colour.</string>
+    <string name="geras_eq_hint_treble">More detail on top: for dull headphones and old recordings.</string>
+    <string name="geras_eq_hint_clear">Removes boom and mud at 200-500 Hz: for bass-heavy mixes.</string>
+    <string name="geras_eq_hint_night">Quiet listening: lows and highs a bit up so it sounds full at low volume.</string>
+    <string name="geras_eq_for_track">Suits this track</string>
+    <string name="geras_eq_for_track_wait">Listening to the track to suggest a preset…</string>
+    <string name="geras_apply">Apply</string>
 </resources>

@@ -35,6 +35,45 @@ object GerasPulse {
     private var framesSinceKick = 0L
     private var smooth = 0.0
 
+    // Long-term balance of the current track: share of the lows (<120 Hz) and highs (>4 kHz).
+    private var statTotal = 0.0
+    private var statLow = 0.0
+    private var statHigh = 0.0
+    private var statSeconds = 0.0
+    private var lp4k = 0.0
+    private var lp4kCoef = 0.0
+
+    /** Forget the tonal balance: a new track starts. */
+    fun resetStats() {
+        statTotal = 0.0
+        statLow = 0.0
+        statHigh = 0.0
+        statSeconds = 0.0
+    }
+
+    /**
+     * EQ preset that suits the current track by its sound, or null until about 12 s were heard.
+     * Not genre detection: it looks at how much deep bass and top end the mix already has.
+     */
+    fun recommendedPreset(): String? {
+        if (statSeconds < 12.0 || statTotal <= 1e-9) return null
+        val low = statLow / statTotal
+        val high = statHigh / statTotal
+        // Rough bands: modern pop/rock sits around 35-50 % lows, rap and EDM above 55 %, live
+        // acoustic below 22 %; top end above 4 kHz is usually 3-8 %. A balanced mix gets "neutral".
+        return when {
+            low >= 0.70 && high < 0.03 -> "clear"
+            low >= 0.55 && high >= 0.05 -> "electronic"
+            low >= 0.55 -> "hiphop"
+            low < 0.22 && high < 0.06 -> "acoustic"
+            low < 0.22 -> "vocal"
+            low < 0.35 -> "bass"
+            high < 0.02 -> "treble"
+            high > 0.12 -> "night"
+            else -> EqPresets.NEUTRAL
+        }
+    }
+
     private var detector: DropDetector? = null
     private var acc = 0.0
     private var accLow = 0.0
@@ -48,6 +87,7 @@ object GerasPulse {
         rate = sampleRate
         hopFrames = (sampleRate / 43).coerceAtLeast(256)
         lowCoef = 1.0 - exp(-2.0 * Math.PI * 120.0 / sampleRate)
+        lp4kCoef = 1.0 - exp(-2.0 * Math.PI * 4_000.0 / sampleRate)
         detector = DropDetector(hopFrames.toDouble() / sampleRate)
         acc = 0.0
         accLow = 0.0
@@ -84,8 +124,11 @@ object GerasPulse {
     /** One mono sample in -1..1. Called on the audio thread. */
     fun sample(x: Double) {
         low += (x - low) * lowCoef
+        lp4k += (x - lp4k) * lp4kCoef
+        val hi = x - lp4k
         acc += x * x
         accLow += low * low
+        statHigh += hi * hi
         if (++accFrames >= hopFrames) {
             val d = detector ?: return
             val r = d.hop(acc / accFrames, accLow / accFrames)
@@ -101,6 +144,9 @@ object GerasPulse {
                 addKickGap(framesSinceKick.toDouble() / rate)
                 framesSinceKick = 0
             }
+            statTotal += acc
+            statLow += accLow
+            statSeconds += accFrames.toDouble() / rate
             // -42 dBFS and below reads as 0, -8 dBFS as 1.
             val p = acc / accFrames
             val db = if (p <= 1e-12) -120.0 else 10 * log10(p)

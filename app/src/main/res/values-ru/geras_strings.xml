@@ -32,7 +32,7 @@
     <string name="geras_eq_speaker">Динамик</string>
     <string name="geras_eq_auto">Авто</string>
     <string name="geras_eq_neutral">Нейтральный</string>
-    <string name="geras_eq_bass">Басы</string>
+    <string name="geras_eq_bass">Глубокий бас</string>
     <string name="geras_eq_treble">Высокие</string>
     <string name="geras_eq_vocal">Вокал</string>
     <string name="geras_eq_rock">Рок</string>
@@ -336,4 +336,19 @@
     <string name="geras_tab_sleep">Таймер</string>
     <string name="geras_sound">Звук</string>
     <string name="geras_lyrics_btn">Текст</string>
+    <string name="geras_eq_hiphop">Хип-хоп</string>
+    <string name="geras_eq_clear">Чистый</string>
+    <string name="geras_eq_hint_neutral">Как записано. Для хороших наушников и когда звук и так нравится.</string>
+    <string name="geras_eq_hint_bass">Глубокий саб без гула: для любой музыки, когда не хватает низа.</string>
+    <string name="geras_eq_hint_hiphop">Рэп и трэп: плотные 808 и бочка, голос остаётся разборчивым.</string>
+    <string name="geras_eq_hint_electronic">Электроника и фонк: глубокий низ и воздух сверху, середина чуть убрана.</string>
+    <string name="geras_eq_hint_rock">Рок и метал: удар бочки, гитары и тарелки вперёд.</string>
+    <string name="geras_eq_hint_vocal">Голос вперёд: подкасты, акустика, поп с тихим вокалом.</string>
+    <string name="geras_eq_hint_acoustic">Акустика и живые инструменты: тепло и детали без подкраски.</string>
+    <string name="geras_eq_hint_treble">Больше деталей сверху: для глухих наушников и старых записей.</string>
+    <string name="geras_eq_hint_clear">Убирает гул и «бубнёж» 200–500 Гц: для перегруженных басом записей.</string>
+    <string name="geras_eq_hint_night">Тихое прослушивание: низ и верх чуть громче, чтобы на малой громкости было полно.</string>
+    <string name="geras_eq_for_track">Подходит этому треку</string>
+    <string name="geras_eq_for_track_wait">Слушаю трек, чтобы подсказать пресет…</string>
+    <string name="geras_apply">Применить</string>
 </resources>

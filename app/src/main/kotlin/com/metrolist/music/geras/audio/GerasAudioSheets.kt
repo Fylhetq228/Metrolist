@@ -379,6 +379,8 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
         "electronic" to stringResource(R.string.geras_eq_electronic),
         "acoustic" to stringResource(R.string.geras_eq_acoustic),
         "night" to stringResource(R.string.geras_eq_night),
+        "hiphop" to stringResource(R.string.geras_eq_hiphop),
+        "clear" to stringResource(R.string.geras_eq_clear),
     )
 
     val sheetBody: @Composable () -> Unit = {
@@ -428,6 +430,46 @@ fun GerasEqualizerSheet(colors: GerasPlayerColors, onDismiss: () -> Unit, onOpen
                 }
                 custom.forEach { preset ->
                     Chip(preset.name, profile.presetId == preset.id, c, onClick = { GerasAudio.applyPreset(preset.id) }, onLongClick = { GerasAudio.deleteCustomPreset(preset.id) })
+                }
+            }
+
+            // What the chosen preset is for, and which one suits the playing track.
+            EqPresets.hints[profile.presetId]?.let { hint ->
+                androidx.compose.animation.AnimatedContent(targetState = hint, label = "eqHint") { h ->
+                    Text(stringResource(h), color = c.contentMuted, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 10.dp))
+                }
+            }
+            var suggested by remember { mutableStateOf<String?>(null) }
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                while (true) {
+                    suggested = GerasPulse.recommendedPreset()
+                    kotlinx.coroutines.delay(1000)
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(c.content.copy(alpha = 0.06f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.graphic_eq), null, tint = c.contentMuted, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(10.dp))
+                val s = suggested
+                if (s == null) {
+                    Text(stringResource(R.string.geras_eq_for_track_wait), color = c.contentMuted, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                } else {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.geras_eq_for_track), color = c.contentMuted, fontSize = 12.sp)
+                        Text(names[s] ?: s, color = c.content, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (profile.presetId != s) {
+                        Chip(stringResource(R.string.geras_apply), false, c, onClick = { GerasAudio.applyPreset(s) })
+                    } else {
+                        androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.check), null, tint = c.content, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
 

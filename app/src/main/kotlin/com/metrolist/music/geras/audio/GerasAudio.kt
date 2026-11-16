@@ -61,15 +61,34 @@ object EqPresets {
     const val NEUTRAL = "neutral"
     const val CUSTOM = "custom"
     // 31 62 125 250 500 1k 2k 4k 8k 16k
+    // Bands: 31 (low shelf) 62 125 250 500 1k 2k 4k 8k 16k (high shelf).
+    // Bass presets lift 30-90 Hz (felt, deep) and leave 250 Hz alone or dip it: boosting there
+    // is what makes bass sound boomy and muddy instead of deep.
     val builtIn: List<Pair<String, List<Float>>> = listOf(
         NEUTRAL to listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f),
-        "bass" to listOf(6f, 5f, 4f, 2f, 0f, 0f, 0f, 0f, 0f, 0f),
-        "treble" to listOf(0f, 0f, 0f, 0f, 0f, 1f, 2.5f, 4f, 5f, 5.5f),
-        "vocal" to listOf(-2f, -2f, -1f, 0f, 2f, 3.5f, 3.5f, 2f, 0f, -1f),
-        "rock" to listOf(4.5f, 3.5f, 2f, 0f, -1f, -0.5f, 1.5f, 3f, 4f, 4f),
-        "electronic" to listOf(5f, 4f, 1.5f, 0f, -1.5f, 1f, 0.5f, 1.5f, 4f, 5f),
-        "acoustic" to listOf(3f, 2.5f, 1.5f, 1f, 1.5f, 1.5f, 2f, 2.5f, 2f, 1f),
-        "night" to listOf(3f, 2f, 1f, 0f, -1f, -1f, 0f, 1f, 1.5f, 2f),
+        "bass" to listOf(6f, 5.5f, 2.5f, -1f, -1.5f, -0.5f, 0f, 0.5f, 0.5f, 0.5f),
+        "hiphop" to listOf(5.5f, 6f, 3f, -1.5f, -2f, 0f, 1f, 1.5f, 1.5f, 1f),
+        "electronic" to listOf(5f, 4.5f, 2f, -1f, -2f, -0.5f, 0.5f, 2f, 3.5f, 4f),
+        "rock" to listOf(3.5f, 3f, 1.5f, -0.5f, -1.5f, -0.5f, 1.5f, 3f, 3f, 2.5f),
+        "vocal" to listOf(-1.5f, -1.5f, -1f, -1f, 1f, 2.5f, 3f, 2f, 0.5f, 0f),
+        "acoustic" to listOf(2f, 1.5f, 1f, 0f, 0.5f, 1f, 1.5f, 2f, 2f, 1.5f),
+        "treble" to listOf(0f, 0f, 0f, -0.5f, -0.5f, 0.5f, 2f, 3.5f, 4.5f, 4f),
+        "clear" to listOf(0f, 0f, -0.5f, -2.5f, -2f, -0.5f, 1f, 1.5f, 1f, 0.5f),
+        "night" to listOf(3f, 2.5f, 1f, 0f, -1f, -1.5f, -0.5f, 0.5f, 1.5f, 2f),
+    )
+
+    /** What each preset is for, shown under the presets. */
+    val hints: Map<String, Int> = mapOf(
+        NEUTRAL to com.metrolist.music.R.string.geras_eq_hint_neutral,
+        "bass" to com.metrolist.music.R.string.geras_eq_hint_bass,
+        "hiphop" to com.metrolist.music.R.string.geras_eq_hint_hiphop,
+        "electronic" to com.metrolist.music.R.string.geras_eq_hint_electronic,
+        "rock" to com.metrolist.music.R.string.geras_eq_hint_rock,
+        "vocal" to com.metrolist.music.R.string.geras_eq_hint_vocal,
+        "acoustic" to com.metrolist.music.R.string.geras_eq_hint_acoustic,
+        "treble" to com.metrolist.music.R.string.geras_eq_hint_treble,
+        "clear" to com.metrolist.music.R.string.geras_eq_hint_clear,
+        "night" to com.metrolist.music.R.string.geras_eq_hint_night,
     )
 }
 
@@ -180,6 +199,7 @@ object GerasAudio {
                 private var startedAt = System.currentTimeMillis()
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    GerasPulse.resetStats()
                     // Wave feedback: a quick manual skip vs. a track played to the end.
                     val listened = System.currentTimeMillis() - startedAt
                     when (reason) {

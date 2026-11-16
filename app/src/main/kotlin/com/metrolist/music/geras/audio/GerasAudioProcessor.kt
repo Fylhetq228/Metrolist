@@ -57,7 +57,13 @@ class GerasAudioProcessor : BaseAudioProcessor() {
     private val eqR = Array(GerasEq.BANDS.size) { Biquad() }
     private val bassL = Biquad()
     private val bassR = Biquad()
+    // Removes inaudible rumble below 20 Hz that only eats headroom when the lows are boosted.
+    private val subL = Biquad()
+    private val subR = Biquad()
     private var preamp = 1.0
+    // Smooth peak limiter gain: boosts stay clean instead of clipping into distortion.
+    private var limGain = 1.0
+    private var limRelease = 0.0
     private var reverb: Freeverb? = null
     private var panPhase = 0.0
 
@@ -131,6 +137,10 @@ class GerasAudioProcessor : BaseAudioProcessor() {
             if (p.eqEnabled || bassL.active) {
                 l *= preamp
                 r *= preamp
+                if (subL.active) {
+                    l = subL.process(l)
+                    r = subR.process(r)
+                }
             }
             if (p.eqEnabled) {
                 for (i in eqL.indices) {
@@ -217,6 +227,12 @@ class GerasAudioProcessor : BaseAudioProcessor() {
                 r = r * dry + rev.outR * wet
             }
 
+            // Peak limiter: instant attack, ~120 ms release; the soft clip after it only
+            // catches what slips through between two samples.
+            val peak = maxOf(abs(l), abs(r)) * limGain
+            if (peak > LIMIT) limGain *= LIMIT / peak else limGain += (1.0 - limGain) * limRelease
+            l *= limGain
+            r *= limGain
             write(out, softClip(l))
             if (channels == 2) write(out, softClip(r))
         }
@@ -245,6 +261,10 @@ class GerasAudioProcessor : BaseAudioProcessor() {
         }
     }
 
+    private companion object {
+        const val LIMIT = 0.94
+    }
+
     private fun softClip(x: Double): Double {
         val a = abs(x)
         if (a <= 0.92) return x
@@ -253,21 +273,48 @@ class GerasAudioProcessor : BaseAudioProcessor() {
     }
 
     private fun updateFilters(p: DspParams) {
+        val last = GerasEq.BANDS.lastIndex
         GerasEq.BANDS.forEachIndexed { i, f ->
-            val g = p.eqGainsDb.getOrElse(i) { 0f }
-            val active = abs(g) > 0.05f && f < sampleRate / 2f
-            eqL[i].setPeaking(sampleRate, f.toDouble(), GerasEq.Q.toDouble(), g.toDouble(), active)
-            eqR[i].setPeaking(sampleRate, f.toDouble(), GerasEq.Q.toDouble(), g.toDouble(), active)
+            val g = p.eqGainsDb.getOrElse(i) { 0f }.toDouble()
+            val active = abs(g) > 0.05 && f < sampleRate / 2f
+            for (bq in arrayOf(eqL[i], eqR[i])) {
+                when (i) {
+                    // Lowest band is a shelf: deep, even sub-bass instead of a narrow 31 Hz hump.
+                    0 -> bq.setLowShelf(sampleRate, 48.0, g, active)
+                    // Top band is a shelf too: open "air" without a whistle at 16 kHz.
+                    last -> bq.setHighShelf(sampleRate, 11_000.0, g, active)
+                    // Bass bands a bit wider so neighbouring boosts blend into one smooth curve.
+                    1, 2 -> bq.setPeaking(sampleRate, f.toDouble(), 1.0, g, active)
+                    else -> bq.setPeaking(sampleRate, f.toDouble(), GerasEq.Q.toDouble(), g, active)
+                }
+            }
         }
-        // Automatic headroom: boosts are compensated so loud masters do not clip.
-        val maxBoost = if (p.eqEnabled) (p.eqGainsDb.maxOrNull() ?: 0f).coerceAtLeast(0f) else 0f
-        val headroom = maxBoost * 0.5f + p.bass * 3f + p.surround * 3f
-        val userPreamp = if (p.eqEnabled) p.preampDb else 0f
-        preamp = 10.0.pow((userPreamp - headroom) / 20.0)
-        decorrelate.setHighPass(sampleRate, 350.0)
         val bassDb = p.bass * 12.0
-        bassL.setLowShelf(sampleRate, 95.0, bassDb, bassDb > 0.05)
-        bassR.setLowShelf(sampleRate, 95.0, bassDb, bassDb > 0.05)
+        bassL.setLowShelf(sampleRate, 80.0, bassDb, bassDb > 0.05)
+        bassR.setLowShelf(sampleRate, 80.0, bassDb, bassDb > 0.05)
+        val lowBoost = (p.eqEnabled && p.eqGainsDb.take(3).any { it > 0.5f }) || bassDb > 0.5
+        subL.setHighPass(sampleRate, 20.0)
+        subR.setHighPass(sampleRate, 20.0)
+        if (!lowBoost) {
+            subL.setPeaking(sampleRate, 1000.0, 1.0, 0.0, false)
+            subR.setPeaking(sampleRate, 1000.0, 1.0, 0.0, false)
+        }
+        // Headroom from the real curve, not the biggest slider: neighbouring bass boosts add up
+        // (+6, +5, +4 dB is about +9 dB at 45 Hz). Without it loud masters clipped and the bass
+        // came out fuzzy instead of deep.
+        var peakDb = 0.0
+        var f = 20.0
+        while (f < minOf(20_000.0, sampleRate * 0.45)) {
+            var db = bassL.magnitudeDb(sampleRate, f)
+            if (p.eqEnabled) for (bq in eqL) db += bq.magnitudeDb(sampleRate, f)
+            if (db > peakDb) peakDb = db
+            f *= 1.06
+        }
+        val headroom = (peakDb - 1.0).coerceAtLeast(0.0) + p.surround * 3.0
+        val userPreamp = if (p.eqEnabled) p.preampDb.toDouble() else 0.0
+        preamp = 10.0.pow((userPreamp - headroom) / 20.0)
+        limRelease = 1.0 - kotlin.math.exp(-1.0 / (sampleRate * 0.12))
+        decorrelate.setHighPass(sampleRate, 350.0)
         appliedParams = p
     }
 
@@ -348,6 +395,32 @@ internal class Biquad {
         b2 = a * ((a + 1) - (a - 1) * cw - sa) / a0
         a1 = -2 * ((a - 1) + (a + 1) * cw) / a0
         a2 = ((a + 1) + (a - 1) * cw - sa) / a0
+    }
+
+    fun setHighShelf(fs: Int, f0: Double, gainDb: Double, enabled: Boolean) {
+        active = enabled
+        if (!enabled) return
+        val a = 10.0.pow(gainDb / 40.0)
+        val w0 = 2 * PI * f0.coerceAtMost(fs * 0.45) / fs
+        val cw = cos(w0)
+        val alpha = sin(w0) / 2 * sqrt(2.0)
+        val sa = 2 * sqrt(a) * alpha
+        val a0 = (a + 1) - (a - 1) * cw + sa
+        b0 = a * ((a + 1) + (a - 1) * cw + sa) / a0
+        b1 = -2 * a * ((a - 1) + (a + 1) * cw) / a0
+        b2 = a * ((a + 1) + (a - 1) * cw - sa) / a0
+        a1 = 2 * ((a - 1) - (a + 1) * cw) / a0
+        a2 = ((a + 1) - (a - 1) * cw - sa) / a0
+    }
+
+    /** Gain of this filter at [f] Hz, in dB (0 when inactive). */
+    fun magnitudeDb(fs: Int, f: Double): Double {
+        if (!active) return 0.0
+        val w = 2 * PI * f / fs
+        val c1 = cos(w); val s1 = sin(w); val c2 = cos(2 * w); val s2 = sin(2 * w)
+        val nr = b0 + b1 * c1 + b2 * c2; val ni = -(b1 * s1 + b2 * s2)
+        val dr = 1 + a1 * c1 + a2 * c2; val di = -(a1 * s1 + a2 * s2)
+        return 10 * kotlin.math.log10((nr * nr + ni * ni) / (dr * dr + di * di))
     }
 
     fun setLowPass(fs: Int, f0: Double) {
