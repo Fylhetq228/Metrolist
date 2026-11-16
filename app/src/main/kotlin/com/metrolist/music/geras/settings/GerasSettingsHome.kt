@@ -441,6 +441,8 @@ private class Category(val icon: Int, val color: Color, val title: String, val h
 @Composable
 private fun CategoryGroup(title: String, index: Int, rows: List<Category>) {
     val scheme = MaterialTheme.colorScheme
+    val theme by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasThemeKey, "MONO")
+    val mono = theme == "MONO"
     Column(Modifier.gerasAppear(index)) {
         Text(
             title.uppercase(),
@@ -471,7 +473,14 @@ private fun CategoryGroup(title: String, index: Int, rows: List<Category>) {
                         modifier = Modifier
                             .size(34.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Brush.verticalGradient(listOf(c.color, c.color.copy(alpha = 0.78f)))),
+                            // Black-and-white theme: grey glass tiles with white glyphs instead of colours.
+                            .background(
+                                if (mono) {
+                                    Brush.verticalGradient(listOf(scheme.surfaceContainerHighest, scheme.surfaceContainerHigh))
+                                } else {
+                                    Brush.verticalGradient(listOf(c.color, c.color.copy(alpha = 0.78f)))
+                                },
+                            ),
                     ) {
                         Icon(painterResource(c.icon), null, tint = Color.White, modifier = Modifier.size(19.dp))
                     }

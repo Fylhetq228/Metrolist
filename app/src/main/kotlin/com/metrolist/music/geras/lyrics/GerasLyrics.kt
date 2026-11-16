@@ -673,7 +673,8 @@ internal fun LineView(
                     renderEffect = androidx.compose.ui.graphics.BlurEffect(px, px, androidx.compose.ui.graphics.TileMode.Decal)
                 }
             }
-            .clip(RoundedCornerShape(12.dp))
+            // No clip here: sung words grow and glow past the line's edges (a clip cut the first
+            // letter off and showed the glow as a dark box).
             .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

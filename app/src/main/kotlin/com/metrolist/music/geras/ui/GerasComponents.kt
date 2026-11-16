@@ -182,6 +182,8 @@ fun GerasTopAppBar(
     windowInsets: androidx.compose.foundation.layout.WindowInsets = androidx.compose.material3.TopAppBarDefaults.windowInsets,
     @Suppress("UNUSED_PARAMETER") colors: androidx.compose.material3.TopAppBarColors? = null,
     scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior? = null,
+    /** Room kept free at the right end, e.g. for the floating profile button. */
+    actionsEndPadding: androidx.compose.ui.unit.Dp = 6.dp,
 ) {
     val scheme = MaterialTheme.colorScheme
     // iOS 26 bar: no slab of colour; the page fades out under it, buttons float as glass.
@@ -191,12 +193,14 @@ fun GerasTopAppBar(
             ProvideTextStyle(MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, letterSpacing = (-0.2).sp)) { title() }
         },
         modifier = modifier.drawBehind {
+            // Solid behind the bar itself, then a soft fade below it, so text scrolling up never
+            // shows through the title (iOS "scroll edge").
+            val fadeTail = 28.dp.toPx()
+            drawRect(fade, size = size)
             drawRect(
-                Brush.verticalGradient(
-                    0f to fade,
-                    0.62f to fade.copy(alpha = 0.92f),
-                    1f to fade.copy(alpha = 0f),
-                ),
+                Brush.verticalGradient(0f to fade, 1f to fade.copy(alpha = 0f), startY = size.height, endY = size.height + fadeTail),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, size.height),
+                size = androidx.compose.ui.geometry.Size(size.width, fadeTail),
             )
         },
         navigationIcon = {
@@ -211,7 +215,7 @@ fun GerasTopAppBar(
             androidx.compose.foundation.layout.Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(end = 6.dp)
+                    .padding(end = actionsEndPadding)
                     // Drawn only when there are actions: an empty bar shows no stray pill.
                     .drawBehind {
                         if (size.width > 12.dp.toPx()) {

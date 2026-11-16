@@ -524,7 +524,7 @@ fun GerasPlayerLayout(
                         modifier = Modifier.padding(end = 12.dp).size(48.dp).clip(RoundedCornerShape(12.dp)),
                     )
                 }
-                Box(Modifier.weight(1f)) { TitleBlock(ui.current, ui.artistAvatar, colors, actions.onArtist) }
+                Box(Modifier.weight(1f)) { TitleBlock(ui.current, ui.artistAvatar, colors, actions.onArtist, start = ui.showLyrics) }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -713,9 +713,11 @@ private fun TitleBlock(
     avatar: String?,
     colors: GerasPlayerColors,
     onArtistClick: (String) -> Unit,
+    /** Next to the small cover (lyrics open) the title reads from the left, like Apple Music. */
+    start: Boolean = false,
 ) {
     val artistId = mediaMetadata?.artists?.firstOrNull()?.id
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (start) Alignment.Start else Alignment.CenterHorizontally) {
         AnimatedContent(
             targetState = mediaMetadata?.title.orEmpty(),
             transitionSpec = { com.metrolist.music.geras.ui.GerasTextSwap },
@@ -728,7 +730,7 @@ private fun TitleBlock(
                 fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
                 overflow = TextOverflow.Clip,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = if (start) androidx.compose.ui.text.style.TextAlign.Start else androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
                     .basicMarquee(initialDelayMillis = 2500, velocity = 30.dp),

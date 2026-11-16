@@ -1120,6 +1120,8 @@ class MainActivity : FragmentActivity() {
                                             }
                                         },
                                         scrollBehavior = topAppBarScrollBehavior,
+                                        // Geras: leave the top-right corner to the profile button.
+                                        actionsEndPadding = 64.dp,
                                         colors =
                                             TopAppBarDefaults.topAppBarColors(
                                                 containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
@@ -1129,8 +1131,7 @@ class MainActivity : FragmentActivity() {
                                                 navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             ),
                                         modifier =
-                                            // Geras: leave the top-right corner to the profile button.
-                                            Modifier.padding(end = 58.dp).windowInsetsPadding(
+                                            Modifier.windowInsetsPadding(
                                                 if (showRail) {
                                                     WindowInsets(left = NavigationBarHeight)
                                                         .add(cutoutInsets.only(WindowInsetsSides.Start))
