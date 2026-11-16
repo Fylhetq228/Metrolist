@@ -333,9 +333,9 @@ class MainActivity : FragmentActivity() {
                 } else {
                     startService(serviceIntent)
                 }
-            } catch (e: ForegroundServiceStartNotAllowedException) {
-                Timber.w(e, "Cannot start foreground service from background")
             } catch (e: IllegalStateException) {
+                // Also covers ForegroundServiceStartNotAllowedException (API 31+), whose class
+                // does not exist on older Android.
                 Timber.w(e, "Failed to start foreground service")
             }
         }
@@ -1050,6 +1050,8 @@ class MainActivity : FragmentActivity() {
                     LocalListenTogetherManager provides listenTogetherManager,
                     LocalChangelogState provides showChangelog,
                     LocalArtistNameAliases provides artistNameAliases,
+                    // Geras: what the liquid-glass bars see through and bend.
+                    com.metrolist.music.geras.ui.GerasGlass.LocalBackdrop provides com.kyant.backdrop.backdrops.rememberLayerBackdrop(),
                 ) {
                     if (showChangelog.value) {
                         ChangelogScreen(onDismiss = { showChangelog.value = false })

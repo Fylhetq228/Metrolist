@@ -62,7 +62,7 @@ fun GerasProxySection() {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
-    remember { GerasDpi.init(context) }
+    GerasDpi.init(context)
 
     var mode by remember { mutableStateOf(GerasDpi.mode) }
     val saved = remember { GerasDpi.custom }

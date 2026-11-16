@@ -1342,6 +1342,9 @@ class MusicService :
                 .setDeviceVolumeControlEnabled(true)
                 .build()
         createdPlayer = player
+        // Geras: the next track in the queue is resolved and its first seconds buffered while the
+        // current one plays, so skipping or the automatic transition starts without waiting.
+        player.preloadConfiguration = ExoPlayer.PreloadConfiguration(15_000_000L)
         com.metrolist.music.geras.audio.GerasAudio.attach(this, player)
         com.metrolist.music.geras.wave.GerasWave.database = database
         com.metrolist.music.geras.wave.GerasWave.init(this)
@@ -4271,7 +4274,10 @@ class MusicService :
                 startForeground(NOTIFICATION_ID, notification)
             }
             true
-        } catch (e: ForegroundServiceStartNotAllowedException) {
+        } catch (e: IllegalStateException) {
+            // ForegroundServiceStartNotAllowedException (API 31+) is an IllegalStateException;
+            // catching it by name breaks verification on older Android.
+            if (!isForegroundServiceStartNotAllowedException(e)) throw e
             Timber.tag(TAG).w(e, deniedMessage)
             if (stopOnFailure) {
                 stopSelf()
@@ -4415,8 +4421,6 @@ class MusicService :
         if (taskCleared) return
         try {
             super.onUpdateNotification(session, startInForegroundRequired)
-        } catch (e: ForegroundServiceStartNotAllowedException) {
-            handleForegroundServiceStartNotAllowed(e)
         } catch (e: IllegalStateException) {
             if (isForegroundServiceStartNotAllowedException(e)) {
                 handleForegroundServiceStartNotAllowed(e)

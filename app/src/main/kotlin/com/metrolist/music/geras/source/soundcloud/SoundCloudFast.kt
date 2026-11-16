@@ -97,7 +97,10 @@ object SoundCloudFast {
             authorization = o.str("track_authorization"),
             artwork = o.str("artwork_url") ?: (o["user"] as? JsonObject)?.str("avatar_url"),
             url = o.str("permalink_url"),
-        ).also { tracks[id] = it }
+        ).also {
+            if (tracks.size > 3000) tracks.clear()
+            tracks[id] = it
+        }
     }
 
     /** Track search. Throws on network errors, so "not found" and "could not ask" stay distinct. */
