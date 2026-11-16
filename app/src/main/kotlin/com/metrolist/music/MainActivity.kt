@@ -1068,7 +1068,7 @@ class MainActivity : FragmentActivity() {
                                 exit = fadeOut(animationSpec = tween(durationMillis = 200)),
                             ) {
                                 Row {
-                                    TopAppBar(
+                                    com.metrolist.music.geras.ui.GerasTopAppBar(
                                         title = {
                                             Text(
                                                 text = currentTitleRes?.let { stringResource(it) } ?: "",
@@ -1084,8 +1084,7 @@ class MainActivity : FragmentActivity() {
                                                     )
                                                 }
                                             }
-                                            // Geras: room for the floating profile button.
-                                            androidx.compose.foundation.layout.Spacer(Modifier.width(56.dp))
+
                                             if (false && listenTogetherInTopBar) {
                                                 IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
                                                     Icon(
@@ -1130,7 +1129,8 @@ class MainActivity : FragmentActivity() {
                                                 navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             ),
                                         modifier =
-                                            Modifier.windowInsetsPadding(
+                                            // Geras: leave the top-right corner to the profile button.
+                                            Modifier.padding(end = 58.dp).windowInsetsPadding(
                                                 if (showRail) {
                                                     WindowInsets(left = NavigationBarHeight)
                                                         .add(cutoutInsets.only(WindowInsetsSides.Start))

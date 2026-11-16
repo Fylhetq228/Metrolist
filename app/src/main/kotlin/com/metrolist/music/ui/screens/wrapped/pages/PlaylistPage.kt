@@ -98,7 +98,7 @@ fun PlaylistPage() {
                 contentDescription = stringResource(R.string.album_cover_desc),
                 modifier = Modifier
                     .size(256.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .clip(RoundedCornerShape(22.dp))
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(

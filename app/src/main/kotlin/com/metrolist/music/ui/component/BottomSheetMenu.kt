@@ -6,6 +6,7 @@
 package com.metrolist.music.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -133,7 +134,8 @@ fun BottomSheetMenu(
             state.isVisible = false
         },
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        // Geras 2.0: an iOS 26 sheet - rounder, with a lit glass rim along the top edge.
+        shape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp),
         containerColor = background,
         contentColor = MaterialTheme.colorScheme.onSurface,
         dragHandle = {
@@ -145,12 +147,22 @@ fun BottomSheetMenu(
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             )
         },
-        modifier = modifier.fillMaxHeight()
+        modifier = modifier
+            .fillMaxHeight()
+            .border(
+                1.dp,
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = 0.22f),
+                    0.06f to Color.White.copy(alpha = 0.04f),
+                    1f to Color.Transparent,
+                ),
+                RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp),
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 18.dp)
         ) {
             state.content(this)
         }

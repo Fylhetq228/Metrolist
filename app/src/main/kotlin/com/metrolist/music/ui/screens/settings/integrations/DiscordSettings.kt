@@ -1031,14 +1031,14 @@ fun RichPresence(
                         modifier =
                             Modifier
                                 .size(96.dp)
-                                .clip(RoundedCornerShape(3.dp))
+                                .clip(RoundedCornerShape(22.dp))
                                 .align(Alignment.TopStart)
                                 .run {
                                     if (song == null) {
                                         border(
                                             2.dp,
                                             MaterialTheme.colorScheme.onSurface,
-                                            RoundedCornerShape(3.dp),
+                                            RoundedCornerShape(22.dp),
                                         )
                                     } else {
                                         this

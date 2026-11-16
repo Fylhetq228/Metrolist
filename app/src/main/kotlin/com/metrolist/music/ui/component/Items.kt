@@ -320,6 +320,7 @@ inline fun ListItem(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -652,7 +653,7 @@ fun ArtistListItem(
             Icon(
                 painter = painterResource(R.drawable.favorite),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .size(18.dp)
                     .padding(end = 2.dp),
@@ -1928,7 +1929,7 @@ object Icon {
         Icon(
             painter = painterResource(R.drawable.favorite),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
+            tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
                 .size(18.dp)
                 .padding(end = 2.dp)

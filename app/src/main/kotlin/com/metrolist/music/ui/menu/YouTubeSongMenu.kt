@@ -266,7 +266,7 @@ fun YouTubeSongMenu(
             ) {
                 Icon(
                     painter = painterResource(if (isFavorite) R.drawable.favorite else R.drawable.favorite_border),
-                    tint = if (isFavorite) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                    tint = if (isFavorite) MaterialTheme.colorScheme.onSurface else LocalContentColor.current,
                     contentDescription = null,
                 )
             }

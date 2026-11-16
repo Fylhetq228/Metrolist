@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -183,24 +184,56 @@ fun GerasTopAppBar(
     scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
+    // iOS 26 bar: no slab of colour; the page fades out under it, buttons float as glass.
+    val fade = scheme.background
     androidx.compose.material3.TopAppBar(
         title = {
-            ProvideTextStyle(MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)) { title() }
+            ProvideTextStyle(MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, letterSpacing = (-0.2).sp)) { title() }
         },
-        modifier = modifier,
+        modifier = modifier.drawBehind {
+            drawRect(
+                Brush.verticalGradient(
+                    0f to fade,
+                    0.62f to fade.copy(alpha = 0.92f),
+                    1f to fade.copy(alpha = 0f),
+                ),
+            )
+        },
         navigationIcon = {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .padding(start = 6.dp)
-                    .androidxDrawCircleBehind(scheme.surfaceContainerHigh),
+                    .androidxDrawCircleBehind(scheme.surfaceContainerHigh.copy(alpha = 0.92f)),
             ) { navigationIcon() }
         },
-        actions = actions,
+        actions = {
+            androidx.compose.foundation.layout.Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(end = 6.dp)
+                    // Drawn only when there are actions: an empty bar shows no stray pill.
+                    .drawBehind {
+                        if (size.width > 12.dp.toPx()) {
+                            val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2f - 2.dp.toPx())
+                            val inset = 2.dp.toPx()
+                            drawRoundRect(scheme.surfaceContainerHigh.copy(alpha = 0.92f), topLeft = androidx.compose.ui.geometry.Offset(0f, inset), size = androidx.compose.ui.geometry.Size(size.width, size.height - inset * 2), cornerRadius = r)
+                            drawRoundRect(
+                                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.04f), Color.White.copy(alpha = 0.10f))),
+                                topLeft = androidx.compose.ui.geometry.Offset(0f, inset),
+                                size = androidx.compose.ui.geometry.Size(size.width, size.height - inset * 2),
+                                cornerRadius = r,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()),
+                            )
+                        }
+                    },
+                content = actions,
+            )
+        },
         windowInsets = windowInsets,
         colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-            containerColor = scheme.background,
-            scrolledContainerColor = scheme.surfaceContainer,
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent,
             titleContentColor = scheme.onSurface,
             navigationIconContentColor = scheme.onSurface,
             actionIconContentColor = scheme.onSurface,
@@ -211,7 +244,15 @@ fun GerasTopAppBar(
 
 private fun Modifier.androidxDrawCircleBehind(color: Color): Modifier = this.then(
     Modifier.drawBehind {
-        if (size.width > 1f) drawCircle(color, radius = minOf(size.width, size.height) / 2f - 2.dp.toPx())
+        if (size.width > 1f) {
+            val r = minOf(size.width, size.height) / 2f - 2.dp.toPx()
+            drawCircle(color, radius = r)
+            drawCircle(
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.04f), Color.White.copy(alpha = 0.10f))),
+                radius = r,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()),
+            )
+        }
     },
 )
 
