@@ -207,7 +207,7 @@ private fun NextCapsule(next: MediaMetadata, colors: GerasPlayerColors, onClick:
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.gerasBounce(0.92f)
-            .gerasRaised(RoundedCornerShape(50), colors.surface.compositeOver(colors.background), elevation = 6.dp)
+            .gerasRaised(RoundedCornerShape(50), colors.surface.copy(alpha = 0.10f), elevation = 0.dp)
             .clickable(onClick = onClick)
             .padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
     ) {

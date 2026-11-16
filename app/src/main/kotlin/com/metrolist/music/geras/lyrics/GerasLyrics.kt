@@ -671,6 +671,10 @@ internal fun LineView(
                 if (android.os.Build.VERSION.SDK_INT >= 31 && blurDp > 0.2f) {
                     val px = blurDp.dp.toPx()
                     renderEffect = androidx.compose.ui.graphics.BlurEffect(px, px, androidx.compose.ui.graphics.TileMode.Decal)
+                } else {
+                    // Fade without an offscreen buffer: a buffer is cut to the line's bounds and
+                    // showed the word glow as a lit rectangle.
+                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
                 }
             }
             // No clip here: sung words grow and glow past the line's edges (a clip cut the first
@@ -832,7 +836,8 @@ private fun KaraokeText(
                         val down = if (after > 0f) (1f - (after / 320f)).coerceIn(0f, 1f) else 1f
                         val k = up * down
                         val glow = (if (after > 0f) (1f - after / 450f) else 1f).coerceIn(0f, 1f)
-                        val scale = 1f + 0.08f * k
+                        // Small growth: a bigger one ate the space between neighbouring sung words.
+                        val scale = 1f + 0.04f * k
                         withTransform({
                             translate(0f, -liftPx * k)
                             scale(scale, scale, Offset(cx, cy))
