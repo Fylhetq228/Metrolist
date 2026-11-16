@@ -215,8 +215,8 @@ fun GerasPlayerContent(
         GerasLyricsColors(
             active = settledColors.content,
             inactive = settledColors.content.copy(alpha = 0.3f),
-            backing = settledColors.accent,
-            accent = settledColors.accent,
+            backing = settledColors.coverAccent,
+            accent = settledColors.coverAccent,
         )
     }
 

@@ -32,6 +32,8 @@ data class GerasPlayerColors(
     val contentMuted: Color,
     val accent: Color,
     val onAccent: Color,
+    /** The cover's own colour, kept even in black-and-white mode for small touches (key words). */
+    val coverAccent: Color = accent,
 )
 
 private val hueCache = java.util.concurrent.ConcurrentHashMap<String, FloatArray>()
@@ -77,7 +79,9 @@ private fun hsl(h: Float, s: Float, l: Float, alpha: Float = 1f): Color {
 }
 
 fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode, mono: Boolean = false): GerasPlayerColors {
-    val (h, s) = if (mono) 0f to 0f else seed?.let(::warm) ?: (30f to 0.08f)
+    val (h0, s0) = seed?.let(::warm) ?: (30f to 0.08f)
+    val (h, s) = if (mono) 0f to 0f else h0 to s0
+    val cover = if (mode == GerasThemeMode.LIGHT) hsl(h0, (s0 + 0.3f).coerceAtMost(0.75f), 0.40f) else hsl(h0, (s0 + 0.3f).coerceAtMost(0.75f), 0.74f)
     return when (mode) {
         GerasThemeMode.DARK -> GerasPlayerColors(
             backgroundTop = hsl(h, s * 0.85f, 0.20f),
@@ -87,6 +91,7 @@ fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode, mono: Boolean = fals
             contentMuted = hsl(h, 0.10f, 0.95f, alpha = 0.6f),
             accent = hsl(h, (s + 0.12f).coerceAtMost(0.5f), 0.78f),
             onAccent = hsl(h, s * 0.6f, 0.10f),
+            coverAccent = cover,
         )
         GerasThemeMode.AMOLED -> GerasPlayerColors(
             backgroundTop = hsl(h, s * 0.8f, 0.12f),
@@ -96,6 +101,7 @@ fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode, mono: Boolean = fals
             contentMuted = hsl(h, 0.10f, 0.94f, alpha = 0.55f),
             accent = hsl(h, (s + 0.12f).coerceAtMost(0.5f), 0.76f),
             onAccent = Color.Black,
+            coverAccent = cover,
         )
         GerasThemeMode.LIGHT -> GerasPlayerColors(
             backgroundTop = hsl(h, s * 0.9f, 0.86f),
@@ -105,6 +111,7 @@ fun gerasColorsFor(seed: FloatArray?, mode: GerasThemeMode, mono: Boolean = fals
             contentMuted = hsl(h, 0.15f, 0.10f, alpha = 0.6f),
             accent = hsl(h, (s + 0.15f).coerceAtMost(0.55f), 0.30f),
             onAccent = hsl(h, 0.2f, 0.97f),
+            coverAccent = cover,
         )
     }
 }
