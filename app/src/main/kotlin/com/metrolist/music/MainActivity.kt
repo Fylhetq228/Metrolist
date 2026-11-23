@@ -1186,12 +1186,21 @@ class MainActivity : FragmentActivity() {
                                                 topAppBarScrollBehavior.state.resetHeightOffset()
                                             }
                                         } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) {
-                                                    saveState = true
+                                            // Geras: settings opened from the profile button live on top of
+                                            // whatever tab was open. Leave them first, otherwise restoring that
+                                            // tab brought the settings screen back and the tap seemed to do nothing.
+                                            val cur = navController.currentBackStackEntry?.destination?.route.orEmpty()
+                                            if (cur.startsWith("settings") || cur.startsWith("geras/settings") || cur.startsWith("geras/profile")) {
+                                                navController.popBackStack("settings", inclusive = true)
+                                            }
+                                            if (navController.currentBackStackEntry?.destination?.route != screen.route) {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
                                             }
                                         }
                                     }
@@ -1317,12 +1326,21 @@ class MainActivity : FragmentActivity() {
                                                 topAppBarScrollBehavior.state.resetHeightOffset()
                                             }
                                         } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) {
-                                                    saveState = true
+                                            // Geras: settings opened from the profile button live on top of
+                                            // whatever tab was open. Leave them first, otherwise restoring that
+                                            // tab brought the settings screen back and the tap seemed to do nothing.
+                                            val cur = navController.currentBackStackEntry?.destination?.route.orEmpty()
+                                            if (cur.startsWith("settings") || cur.startsWith("geras/settings") || cur.startsWith("geras/profile")) {
+                                                navController.popBackStack("settings", inclusive = true)
+                                            }
+                                            if (navController.currentBackStackEntry?.destination?.route != screen.route) {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
                                             }
                                         }
                                     }

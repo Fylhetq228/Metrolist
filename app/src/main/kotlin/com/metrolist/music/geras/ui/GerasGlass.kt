@@ -264,6 +264,10 @@ fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val density = androidx.compose.ui.platform.LocalDensity.current
     val selectedIndex = tabs.indexOfFirst { it.selected }
+    // Gesture handlers live across recompositions: read the current tabs and selection through
+    // these, or they act on a stale screen (taps that "did nothing", drop left on the wrong tab).
+    val currentTabs by androidx.compose.runtime.rememberUpdatedState(tabs)
+    val currentSelected by androidx.compose.runtime.rememberUpdatedState(selectedIndex)
     val scope = rememberCoroutineScope()
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         androidx.compose.foundation.layout.BoxWithConstraints(
@@ -294,7 +298,24 @@ fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
                 scope.launch { left.animateTo(l, if (goingRight) slow else fast) }
                 scope.launch { right.animateTo(r, if (goingRight) fast else slow) }
             }
-            androidx.compose.runtime.LaunchedEffect(selectedIndex, tabW) { if (!dragging) moveTo(selectedIndex) }
+            // Tab the drop was dragged to while navigation catches up; without it the drop jumped
+            // back to the old tab for a moment after letting go.
+            var pending by remember { mutableStateOf(-1) }
+            // Follow the real selection; with no tab selected (settings) the drop fades where it is,
+            // and from there it slides to whichever tab comes back.
+            androidx.compose.runtime.LaunchedEffect(selectedIndex, tabW, dragging) {
+                if (dragging) return@LaunchedEffect
+                if (pending >= 0 && pending != selectedIndex) {
+                    moveTo(pending)
+                    kotlinx.coroutines.delay(700)
+                    // Navigation did not happen (or went elsewhere): settle on the real tab.
+                    pending = -1
+                    moveTo(currentSelected)
+                } else {
+                    pending = -1
+                    moveTo(selectedIndex)
+                }
+            }
 
             val dropModifier = Modifier
                 .graphicsLayer {
@@ -332,13 +353,15 @@ fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
                             onDragStart = { dragging = true },
                             onDragEnd = {
                                 dragging = false
-                                val index = (((left.value + right.value) / 2f) / tabW).toInt().coerceIn(0, tabs.lastIndex)
-                                moveTo(index)
-                                if (index != selectedIndex) tabs[index].onClick()
+                                val index = (((left.value + right.value) / 2f) / tabW).toInt().coerceIn(0, currentTabs.lastIndex)
+                                if (index != currentSelected) {
+                                    pending = index
+                                    currentTabs[index].onClick()
+                                }
                             },
                             onDragCancel = {
                                 dragging = false
-                                moveTo(selectedIndex)
+                                moveTo(currentSelected)
                             },
                         ) { change, _ ->
                             change.consume()
@@ -348,7 +371,7 @@ fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
                         }
                     },
             ) {
-                tabs.forEach { tab ->
+                tabs.forEachIndexed { tabIndex, tab ->
                     val sel by animateFloatAsState(if (tab.selected) 1f else 0f, spring(), label = "navSel")
                     val pop = remember { Animatable(1f) }
                     androidx.compose.runtime.LaunchedEffect(tab.selected) {
@@ -364,8 +387,11 @@ fun GerasNavBar(tabs: List<GerasNavTab>, modifier: Modifier = Modifier) {
                             .weight(1f)
                             .fillMaxSize()
                             .gerasBounce(0.86f, dim = false)
-                            .pointerInput(tab.label) {
-                                detectTapGestures(onTap = { tab.onClick() }, onLongPress = { tab.onLongClick() })
+                            .pointerInput(tabIndex) {
+                                detectTapGestures(
+                                    onTap = { currentTabs.getOrNull(tabIndex)?.onClick?.invoke() },
+                                    onLongPress = { currentTabs.getOrNull(tabIndex)?.onLongClick?.invoke() },
+                                )
                             },
                     ) {
                         Icon(
