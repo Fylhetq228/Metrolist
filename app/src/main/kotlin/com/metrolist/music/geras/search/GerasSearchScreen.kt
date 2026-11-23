@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.search
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ClipboardManager
@@ -221,7 +223,7 @@ fun GerasSearchScreen(viewModel: GerasSearchViewModel = hiltViewModel()) {
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(50))
-                    .background(scheme.surfaceContainer)
+                    .gerasPanelFill(scheme.surfaceContainer)
                     .padding(4.dp),
             ) {
                 Segment(stringResource(R.string.geras_search_online), tab == SearchTab.ONLINE, Modifier.weight(1f)) { viewModel.tab.value = SearchTab.ONLINE }

@@ -124,7 +124,7 @@ fun GerasMenuCard(rows: List<GerasMenuRow>, modifier: Modifier = Modifier) {
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(scheme.surfaceContainerHigh)
+            .gerasPanelFill(scheme.surfaceContainerHigh)
             .animateContentSize(),
     ) {
         rows.forEachIndexed { i, row ->
@@ -184,6 +184,8 @@ fun GerasTopAppBar(
     scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior? = null,
     /** Room kept free at the right end, e.g. for the floating profile button. */
     actionsEndPadding: androidx.compose.ui.unit.Dp = 6.dp,
+    /** True for bars outside the screen content (Library): the actions become real liquid glass. */
+    liquidActions: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     // iOS 26 bar: no slab of colour; the page fades out under it, buttons float as glass.
@@ -216,9 +218,10 @@ fun GerasTopAppBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(end = actionsEndPadding)
+                    .then(if (liquidActions) Modifier.padding(vertical = 2.dp).gerasGlass(RoundedCornerShape(50)) else Modifier)
                     // Drawn only when there are actions: an empty bar shows no stray pill.
                     .drawBehind {
-                        if (size.width > 12.dp.toPx()) {
+                        if (!liquidActions && size.width > 12.dp.toPx()) {
                             val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2f - 2.dp.toPx())
                             val inset = 2.dp.toPx()
                             drawRoundRect(scheme.surfaceContainerHigh.copy(alpha = 0.92f), topLeft = androidx.compose.ui.geometry.Offset(0f, inset), size = androidx.compose.ui.geometry.Size(size.width, size.height - inset * 2), cornerRadius = r)

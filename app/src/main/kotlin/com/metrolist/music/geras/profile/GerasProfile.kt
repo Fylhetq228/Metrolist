@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.profile
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateIntAsState
@@ -132,7 +134,7 @@ fun GerasProfileScreen(navController: NavController) {
                     .padding(horizontal = 16.dp, vertical = 18.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(50))
-                    .background(scheme.surfaceContainer)
+                    .gerasPanelFill(scheme.surfaceContainer)
                     .padding(4.dp),
             ) {
                 Period.entries.forEach { p ->
@@ -263,7 +265,7 @@ private fun StatTile(value: Int, label: String, modifier: Modifier) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(scheme.surfaceContainer)
+            .gerasPanelFill(scheme.surfaceContainer)
             .padding(14.dp),
     ) {
         Text(

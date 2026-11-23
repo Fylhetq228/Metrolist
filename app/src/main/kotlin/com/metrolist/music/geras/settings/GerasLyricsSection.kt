@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.settings
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -140,7 +142,7 @@ fun GerasLyricsSection() {
                 .padding(top = 10.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(scheme.surfaceContainer),
+                .gerasPanelFill(scheme.surfaceContainer),
         ) {
             Toggle(stringResource(R.string.geras_ly_kick), stringResource(R.string.geras_ly_kick_hint), kick) { kick = it }
             Box(Modifier.padding(start = 16.dp).fillMaxWidth().height(1.dp).background(scheme.onSurface.copy(alpha = 0.07f)))
@@ -152,7 +154,7 @@ fun GerasLyricsSection() {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(scheme.surfaceContainer),
+                .gerasPanelFill(scheme.surfaceContainer),
         ) {
             Toggle(stringResource(R.string.geras_scene_backdrop), stringResource(R.string.geras_scene_backdrop_hint), sceneBackdrop) { sceneBackdrop = it }
             Toggle(stringResource(R.string.geras_scene_dust), stringResource(R.string.geras_scene_dust_hint), sceneDust) { sceneDust = it }

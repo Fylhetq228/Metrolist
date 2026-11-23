@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.player
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -127,7 +129,7 @@ fun GerasQueue(state: BottomSheetState, modifier: Modifier = Modifier) {
         Column(
             Modifier
                 .fillMaxSize()
-                .background(scheme.surfaceContainer)
+                .gerasPanelFill(scheme.surfaceContainer)
                 .windowInsetsPadding(WindowInsets.statusBars),
         ) {
             Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {

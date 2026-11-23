@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.settings
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -456,7 +458,7 @@ private fun CategoryGroup(title: String, index: Int, rows: List<Category>) {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(scheme.surfaceContainer),
+                .gerasPanelFill(scheme.surfaceContainer),
         ) {
             rows.forEachIndexed { i, c ->
                 if (i > 0) Box(Modifier.padding(start = 62.dp).fillMaxWidth().height(1.dp).background(scheme.onSurface.copy(alpha = 0.07f)))

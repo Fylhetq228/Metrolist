@@ -49,6 +49,7 @@ import coil3.compose.AsyncImage
 import com.metrolist.music.R
 import com.metrolist.music.geras.audio.GerasPulse
 import com.metrolist.music.geras.theme.GerasFonts
+import com.metrolist.music.geras.ui.gerasLensGlass
 import kotlinx.coroutines.isActive
 import kotlin.math.cos
 import kotlin.math.exp
@@ -235,13 +236,7 @@ private fun SceneCard(title: String, accent: Color, modifier: Modifier, content:
     val shape = RoundedCornerShape(22.dp)
     Column(
         modifier
-            .clip(shape)
-            .background(Color.White.copy(alpha = 0.09f))
-            .border(
-                1.dp,
-                Brush.verticalGradient(0f to Color.White.copy(alpha = 0.34f), 0.4f to Color.White.copy(alpha = 0.08f), 1f to Color.White.copy(alpha = 0.12f)),
-                shape,
-            )
+            .gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, shape, Color.White)
             .padding(horizontal = 13.dp, vertical = 11.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

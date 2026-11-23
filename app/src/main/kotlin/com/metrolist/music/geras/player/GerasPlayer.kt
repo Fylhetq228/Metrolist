@@ -89,6 +89,8 @@ import com.metrolist.music.geras.audio.GerasEqualizerSheet
 import com.metrolist.music.geras.audio.GerasSpeedSheet
 import com.metrolist.music.geras.lyrics.GerasLyricsColors
 import com.metrolist.music.geras.ui.gerasRaised
+import com.metrolist.music.geras.ui.gerasLensGlass
+import com.kyant.backdrop.backdrops.layerBackdrop
 import com.metrolist.music.geras.lyrics.LocalGerasLyricsColors
 import com.metrolist.music.geras.video.GerasClipView
 import com.metrolist.music.geras.video.rememberClipSource
@@ -429,20 +431,28 @@ fun GerasPlayerLayout(
 ) {
     var scrubPosition by remember { mutableStateOf<Long?>(null) }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(0f to colors.backgroundTop, 0.55f to colors.background, 1f to colors.background)),
-    ) {
-        // Lyrics scene: the blurred cover and dust fade in behind the whole player.
+    // Everything behind the controls is recorded once, so every control can be real liquid glass
+    // that bends the drifting cover and the dust behind it.
+    val playerBackdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
+    Box(modifier = modifier.fillMaxSize()) {
         val sceneBackdrop by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasSceneBackdropKey, true)
         val sceneDust by com.metrolist.music.utils.rememberPreference(com.metrolist.music.geras.GerasSceneDustKey, true)
-        androidx.compose.animation.AnimatedVisibility(ui.showLyrics && sceneBackdrop, enter = fadeIn(tween(500)), exit = fadeOut(tween(350))) {
-            com.metrolist.music.geras.lyrics.GerasSceneBackdrop(ui.current?.thumbnailUrl, colors.background)
+        Box(
+            Modifier
+                .matchParentSize()
+                .layerBackdrop(playerBackdrop)
+                .background(Brush.verticalGradient(0f to colors.backgroundTop, 0.55f to colors.background, 1f to colors.background)),
+        ) {
+            // The blurred, drifting cover is always behind the player (like Apple Music); with
+            // lyrics open it gets the dust too.
+            androidx.compose.animation.AnimatedVisibility(sceneBackdrop, enter = fadeIn(tween(500)), exit = fadeOut(tween(350))) {
+                com.metrolist.music.geras.lyrics.GerasSceneBackdrop(ui.current?.thumbnailUrl, colors.background)
+            }
+            androidx.compose.animation.AnimatedVisibility(ui.showLyrics && sceneDust, enter = fadeIn(tween(700)), exit = fadeOut(tween(300))) {
+                com.metrolist.music.geras.lyrics.GerasSceneDust(colors.accent)
+            }
         }
-        androidx.compose.animation.AnimatedVisibility(ui.showLyrics && sceneDust, enter = fadeIn(tween(700)), exit = fadeOut(tween(300))) {
-            com.metrolist.music.geras.lyrics.GerasSceneDust(colors.accent)
-        }
+        androidx.compose.runtime.CompositionLocalProvider(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop provides playerBackdrop) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -561,6 +571,7 @@ fun GerasPlayerLayout(
 
             Spacer(Modifier.height(10.dp))
         }
+        }
     }
 }
 
@@ -573,7 +584,7 @@ private fun Capsule(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .gerasRaised(RoundedCornerShape(50), colors.surface.copy(alpha = 0.10f), elevation = 0.dp)
+            .gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, RoundedCornerShape(50), colors.content)
             .padding(horizontal = 4.dp),
     ) { content() }
 }
@@ -618,7 +629,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
                 .align(Alignment.CenterStart)
                 .gerasBounce(0.88f)
                 .size(40.dp)
-                .gerasRaised(RoundedCornerShape(50), colors.surface.copy(alpha = 0.10f), elevation = 0.dp)
+                .gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, RoundedCornerShape(50), colors.content)
                 .clickable(enabled = ui.interactive, onClick = actions.onWave),
         ) {
             Icon(
@@ -633,7 +644,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
             modifier = Modifier
                 .align(Alignment.Center)
                 .height(40.dp)
-                .gerasRaised(RoundedCornerShape(50), colors.surface.copy(alpha = 0.10f), elevation = 0.dp),
+                .gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, RoundedCornerShape(50), colors.content),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -685,7 +696,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.gerasBounce(0.9f)
                             .size(40.dp)
-                            .gerasRaised(RoundedCornerShape(50), if (ui.showClip) colors.accent else colors.surface.copy(alpha = 0.10f), elevation = 0.dp)
+                            .gerasRaised(RoundedCornerShape(50), if (ui.showClip) colors.accent else colors.surface.copy(alpha = 0.10f), elevation = 0.dp) /* clip on: solid */
                             .clickable(enabled = ui.interactive, onClick = actions.onClip),
                 ) {
                         Icon(
@@ -699,7 +710,7 @@ private fun TopBar(colors: GerasPlayerColors, ui: GerasPlayerUi, actions: GerasP
             RoundIcon(
                 icon = R.drawable.more_horiz,
                 tint = colors.content,
-                modifier = Modifier.gerasRaised(RoundedCornerShape(50), colors.surface.copy(alpha = 0.10f), elevation = 0.dp),
+                modifier = Modifier.gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, RoundedCornerShape(50), colors.content),
                 size = 40.dp,
                 iconSize = 20.dp,
                 onClick = actions.onMenu,
@@ -779,7 +790,7 @@ private fun ControlsCard(ui: GerasPlayerUi, colors: GerasPlayerColors, actions: 
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .gerasRaised(RoundedCornerShape(30.dp), colors.surface.copy(alpha = 0.10f), elevation = 0.dp)
+            .gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, RoundedCornerShape(30.dp), colors.content)
             .padding(vertical = 12.dp, horizontal = 8.dp),
     ) {
         RoundIcon(

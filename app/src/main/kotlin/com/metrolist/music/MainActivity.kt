@@ -1122,6 +1122,7 @@ class MainActivity : FragmentActivity() {
                                         scrollBehavior = topAppBarScrollBehavior,
                                         // Geras: leave the top-right corner to the profile button.
                                         actionsEndPadding = 64.dp,
+                                        liquidActions = true,
                                         colors =
                                             TopAppBarDefaults.topAppBarColors(
                                                 containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,

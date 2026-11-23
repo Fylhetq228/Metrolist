@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.settings
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -49,7 +51,7 @@ fun GerasSettingsGroup(title: String?, items: List<Material3SettingsItem>, modif
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(scheme.surfaceContainer),
+                .gerasPanelFill(scheme.surfaceContainer),
         ) {
             items.forEachIndexed { index, item ->
                 // iOS-like row highlight instead of a ripple.

@@ -43,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -92,6 +93,9 @@ object GerasGlass {
      */
     val LocalBackdrop = androidx.compose.runtime.staticCompositionLocalOf<com.kyant.backdrop.backdrops.LayerBackdrop?> { null }
 
+    /** The full player's own background (blurred cover, dust), for the player's glass controls. */
+    val LocalPlayerBackdrop = androidx.compose.runtime.staticCompositionLocalOf<com.kyant.backdrop.backdrops.LayerBackdrop?> { null }
+
     /** Lens refraction needs RuntimeShader (Android 13+); older phones get the blurred glass. */
     val lensSupported: Boolean get() = android.os.Build.VERSION.SDK_INT >= 33
 
@@ -100,6 +104,35 @@ object GerasGlass {
 
     /** "Smoky" glass picked in design round 2: bends like a lens, dark tint mutes what is behind. */
     var material = Material(refraction = 20.dp, depth = 28.dp, blur = 2.dp, tint = 0.52f, vibrancy = false)
+}
+
+/**
+ * Liquid glass over a local backdrop (the player's own background, for example): bends what is
+ * behind at the edges, lifts colour, lit rim. Falls back to see-through raised glass where the
+ * lens cannot be drawn (Android 12 and older, previews).
+ */
+@Composable
+fun Modifier.gerasLensGlass(
+    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop?,
+    shape: Shape,
+    tint: Color,
+    tintAlpha: Float = 0.07f,
+    refraction: Dp = 14.dp,
+    depth: Dp = 24.dp,
+): Modifier {
+    if (backdrop == null || !GerasGlass.lensSupported) return gerasRaised(shape, tint.copy(alpha = tintAlpha + 0.03f), elevation = 0.dp)
+    return this.drawBackdrop(
+        backdrop = backdrop,
+        shape = { shape },
+        effects = {
+            vibrancy()
+            blur(3.dp.toPx())
+            lens(refraction.toPx(), depth.toPx())
+        },
+        highlight = { com.kyant.backdrop.highlight.Highlight.Default },
+        shadow = { com.kyant.backdrop.shadow.Shadow.Default },
+        onDrawSurface = { drawRect(tint.copy(alpha = tintAlpha)) },
+    )
 }
 
 /** Marks the content that glass surfaces see through. Applied to the main content in MainActivity. */
@@ -514,3 +547,25 @@ private fun MiniButton(icon: Int, tint: Color, size: Dp = 44.dp, onClick: () -> 
         Icon(painterResource(icon), null, tint = tint, modifier = Modifier.size(22.dp))
     }
 }
+
+/**
+ * Fill for glass panels inside a screen (cards, groups, fields): the colour plus a sheen at the
+ * top and lit edges that catch the light like the bars do. Use after a clip to the panel shape.
+ */
+fun Modifier.gerasPanelFill(color: Color): Modifier = this.then(Modifier.drawBehind {
+    drawRect(color)
+    drawRect(
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.07f),
+            0.45f to Color.Transparent,
+            1f to Color.White.copy(alpha = 0.02f),
+        ),
+    )
+    val line = 1.dp.toPx()
+    drawRect(Color.White.copy(alpha = 0.16f), size = androidx.compose.ui.geometry.Size(size.width, line))
+    drawRect(
+        Color.White.copy(alpha = 0.05f),
+        topLeft = Offset(0f, size.height - line),
+        size = androidx.compose.ui.geometry.Size(size.width, line),
+    )
+})

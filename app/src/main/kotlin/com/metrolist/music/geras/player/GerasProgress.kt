@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.metrolist.music.R
 import com.metrolist.music.geras.ui.gerasRaised
+import com.metrolist.music.geras.ui.gerasLensGlass
 import androidx.compose.ui.graphics.compositeOver
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.geras.ui.gerasBounce
@@ -207,7 +208,7 @@ private fun NextCapsule(next: MediaMetadata, colors: GerasPlayerColors, onClick:
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.gerasBounce(0.92f)
-            .gerasRaised(RoundedCornerShape(50), colors.surface.copy(alpha = 0.10f), elevation = 0.dp)
+            .gerasLensGlass(com.metrolist.music.geras.ui.GerasGlass.LocalPlayerBackdrop.current, RoundedCornerShape(50), colors.content)
             .clickable(onClick = onClick)
             .padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
     ) {

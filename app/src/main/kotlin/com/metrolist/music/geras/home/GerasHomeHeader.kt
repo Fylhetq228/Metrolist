@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.home
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -202,7 +204,7 @@ fun GerasHomeHeader(viewModel: HomeViewModel) {
                 .padding(top = 16.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(scheme.surfaceContainer)
+                .gerasPanelFill(scheme.surfaceContainer)
                 .clickable { navController.navigate("history") }
                 .padding(8.dp),
         ) {

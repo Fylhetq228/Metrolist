@@ -1,5 +1,7 @@
 package com.metrolist.music.geras.settings
 
+import com.metrolist.music.geras.ui.gerasPanelFill
+
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -242,7 +244,7 @@ private fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit)
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .gerasPanelFill(MaterialTheme.colorScheme.surfaceContainer),
     ) { content() }
 }
 
